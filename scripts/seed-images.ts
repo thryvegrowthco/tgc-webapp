@@ -56,15 +56,12 @@ async function processImage(item: (typeof IMAGES)[number]) {
     const { readFileSync } = await import("fs");
     const webpBuffer = readFileSync(tmpWebp);
 
-    // 4. Upload to Supabase Storage
-    const storagePath = `blog/${item.slug}.webp`;
-    console.log(`  Uploading to storage: ${storagePath}…`);
-
-    // Remove existing file if present (upsert)
-    await supabase.storage.from("documents").remove([storagePath]);
+    // 4. Upload to public blog-images bucket
+    const storagePath = `${item.slug}.webp`;
+    console.log(`  Uploading to blog-images/${storagePath}…`);
 
     const { error: uploadError } = await supabase.storage
-      .from("documents")
+      .from("blog-images")
       .upload(storagePath, webpBuffer, {
         contentType: "image/webp",
         upsert: true,
@@ -74,7 +71,7 @@ async function processImage(item: (typeof IMAGES)[number]) {
 
     // 5. Get public URL
     const { data: urlData } = supabase.storage
-      .from("documents")
+      .from("blog-images")
       .getPublicUrl(storagePath);
 
     // 6. Update blog post
@@ -91,28 +88,23 @@ async function processImage(item: (typeof IMAGES)[number]) {
   }
 }
 
-async function allowWebp() {
-  const { error } = await supabase.storage.updateBucket("documents", {
-    public: false,
-    allowedMimeTypes: [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "text/plain",
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ],
+async function ensureBucket() {
+  // Create the public blog-images bucket if it doesn't exist
+  const { error } = await supabase.storage.createBucket("blog-images", {
+    public: true,
+    fileSizeLimit: 10485760,
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
   });
-  if (error) throw new Error(`Failed to update bucket: ${error.message}`);
-  console.log("✓ Updated documents bucket to allow image/webp\n");
+  // Ignore "already exists" error
+  if (error && !error.message.includes("already exists")) {
+    throw new Error(`Failed to create bucket: ${error.message}`);
+  }
+  console.log("✓ blog-images bucket ready\n");
 }
 
 async function main() {
   console.log("Seeding featured images…\n");
-  await allowWebp();
+  await ensureBucket();
 
   for (const item of IMAGES) {
     console.log(`[${item.label}]`);

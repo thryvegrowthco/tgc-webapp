@@ -139,19 +139,19 @@ export async function uploadFeaturedImage(
   if (!file || file.size === 0) return { error: "No file provided" };
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `blog/${Date.now()}-${safeName}`;
+  const storagePath = `${Date.now()}-${safeName}`;
 
   const supabase = createServiceClient();
   const arrayBuffer = await file.arrayBuffer();
 
   const { error } = await supabase.storage
-    .from("documents")
+    .from("blog-images")
     .upload(storagePath, arrayBuffer, { contentType: file.type, upsert: false });
 
   if (error) return { error: error.message };
 
   const { data: publicUrlData } = supabase.storage
-    .from("documents")
+    .from("blog-images")
     .getPublicUrl(storagePath);
 
   return { path: publicUrlData.publicUrl };
