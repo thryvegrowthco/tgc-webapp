@@ -13,8 +13,9 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 5. [Writing Blog Posts](#5-writing-blog-posts)
 6. [Managing Job Watchlists](#6-managing-job-watchlists)
 7. [What Happens When Someone Books](#7-what-happens-when-someone-books)
-8. [Known Limitations](#8-known-limitations)
-9. [Troubleshooting](#9-troubleshooting)
+8. [Analytics](#8-analytics)
+9. [Known Limitations](#9-known-limitations)
+10. [Troubleshooting](#10-troubleshooting)
 
 ---
 
@@ -51,7 +52,7 @@ The `/admin` page shows four stat cards at the top and a recent bookings table b
 |---|---|
 | Pending | Created but not yet confirmed — edge case, rarely seen |
 | Confirmed | Client paid, slot is locked, session is scheduled |
-| Completed | Session has taken place (you or a developer must update this manually) |
+| Completed | Session has taken place — mark it completed using the status dropdown on the client detail page |
 | Cancelled | Booking was cancelled — slot may or may not be re-opened depending on circumstances |
 
 ---
@@ -102,7 +103,7 @@ This page shows everyone who has created a client account. Click any client's na
 
 The detail page has three sections:
 
-**Bookings** — A read-only history of the client's bookings with date, service, status, and amount.
+**Bookings** — A history of the client's bookings with date, service, amount, and a status dropdown. To change a booking's status, click the dropdown on that row and select the new status — it saves immediately. Use this to mark sessions as Completed after they occur, or Cancelled if they were not held.
 
 **Session Notes** — Private notes only you can see. Clients cannot see these.
 
@@ -272,23 +273,42 @@ If the booking is for a service that doesn't require a time slot (Resume Review,
 
 ---
 
-## 8. Known Limitations
+## 8. Analytics
 
-**Cancelling a Job Alerts subscription:**
-If a client cancels their monthly Job Alerts subscription through Stripe, the system does not automatically stop their access. You (or your developer) will need to manually update their status in the database. Until this is done, they will continue receiving the weekly email. Contact your developer if you need to deactivate a client's watchlist.
+**URL:** `/admin/analytics`
 
-**Analytics page:**
-The `/admin/analytics` page currently shows a "Coming Soon" message. Your site's Vercel Analytics data (page views, traffic) is available in your Vercel dashboard at `vercel.com`.
+The Analytics page shows a live snapshot of your business performance, pulled directly from your database.
+
+**Revenue section:**
+- **All-Time Revenue** — Total money collected since the site launched
+- **This Month** — Revenue collected since the first of the current month
+- **This Week** — Revenue collected since this Monday
+
+**Bookings by Status:**
+Four cards showing how many bookings are currently in each status (Confirmed, Completed, Cancelled, Pending).
+
+**Subscribers & Clients:**
+- **Active Job Alerts subscribers** — Clients with a currently active $50/month subscription
+- **New clients this month** — Accounts created since the first of the current month
+
+**Most Popular Services:**
+A ranked list showing which services have the most bookings overall.
+
+**Monthly Revenue — Last 6 Months:**
+A table showing your total revenue for each of the past six months.
+
+All figures update automatically as bookings and payments come in. There is no need to refresh or recalculate anything.
+
+---
+
+## 9. Known Limitations
 
 **User roles:**
 There is no button to make someone an admin or to downgrade an admin to a client. Any role changes require a developer to update the database directly.
 
-**Completing/cancelling bookings:**
-Booking statuses (Confirmed → Completed or Cancelled) cannot be changed from the admin panel. This requires a developer to update the record in Supabase.
-
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 **"A client says they didn't get a confirmation email"**
 Check your Resend dashboard for delivery status. Also ask the client to check their spam or junk folder. The email comes from `noreply@thryvegrowth.co`.

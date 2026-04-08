@@ -62,6 +62,9 @@ export function RichTextEditor({
   className,
 }: RichTextEditorProps) {
   const editor = useEditor({
+    // IMPORTANT: These extensions must stay in sync with renderExtensions in
+    // src/app/blog/[slug]/page.tsx. Adding or removing an extension here
+    // without updating the renderer causes posts to render incorrectly or produce empty output.
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3, 4] },

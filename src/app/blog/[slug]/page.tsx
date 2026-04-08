@@ -11,7 +11,10 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
 import type { JSONContent } from "@tiptap/react";
 
-// Extensions used when generating HTML — must match those used in the editor
+// IMPORTANT: These extensions must stay in sync with the editor extensions in
+// src/components/admin/RichTextEditor.tsx (inside useEditor → extensions: []).
+// Adding or removing an extension in either file without updating the other
+// causes blog posts to render incorrectly or produce empty output.
 const renderExtensions = [
   StarterKit.configure({ heading: { levels: [2, 3, 4] }, codeBlock: false }),
   TiptapLink.configure({

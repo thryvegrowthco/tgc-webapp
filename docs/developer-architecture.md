@@ -112,7 +112,7 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 | File | Functions | Notes |
 |---|---|---|
 | `auth.ts` | `signUp`, `logIn`, `logOut`, `requestPasswordReset`, `updatePassword` | — |
-| `booking.ts` | `createBookingCheckoutSession`, `addAvailabilitySlot`, `deleteAvailabilitySlot` | `createBookingCheckoutSession` refuses if slot is already booked; `deleteAvailabilitySlot` refuses if slot is booked |
+| `booking.ts` | `createBookingCheckoutSession`, `addAvailabilitySlot`, `deleteAvailabilitySlot`, `updateBookingStatus` | `createBookingCheckoutSession` refuses if slot is already booked; `deleteAvailabilitySlot` refuses if slot is booked; `updateBookingStatus` is admin-only with status allowlist |
 | `documents.ts` | `uploadDocument`, `deleteDocument`, `addClientNote` | Uses service client; cleans up Storage on DB insert failure |
 | `blog.ts` | `createBlogPost`, `updateBlogPost`, `deleteBlogPost`, `uploadFeaturedImage` | `requireAdmin()` guard; slug uniqueness enforced in both create + update |
 | `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient` | Client actions + admin actions mixed in one file; each has its own auth check |
@@ -140,7 +140,7 @@ Stripe client is wrapped in a `Proxy` to defer initialization until first access
 - Two handlers: `handleCheckoutCompleted` (mode: `payment`) and `handleSubscriptionCheckoutCompleted` (mode: `subscription`)
 - Uses service client (bypasses RLS)
 - All side effects (email, GHL sync) run in `Promise.allSettled` — failures do not block the 200 response
-- **Only `checkout.session.completed` is handled.** `customer.subscription.deleted` is NOT handled — see Known Gaps.
+- Handles `checkout.session.completed`, `customer.subscription.deleted` (sets `subscription_status = 'cancelled'`), and `customer.subscription.updated` (maps Stripe status to `'active'`/`'inactive'`/`'cancelled'`)
 
 ---
 
@@ -218,10 +218,4 @@ ALTER DATABASE postgres SET app.admin_email = 'rachel@thryvegrowth.co';
 
 ## Known Gaps
 
-1. **Subscription cancellation not implemented** — The Stripe webhook does not handle `customer.subscription.deleted`. If a client cancels their Job Alerts subscription, `watchlist_profiles.subscription_status` stays `'active'` indefinitely. Must be updated manually in Supabase until the handler is added.
-
-2. **Analytics page is a stub** — `/admin/analytics` shows "Coming Soon." Vercel Analytics is active in the layout but has no in-app dashboard view.
-
-3. **Booking status updates** — Updating a booking's status (e.g., Confirmed → Completed, or Cancelled) requires direct Supabase access. There is no admin UI for this.
-
-4. **No role management UI** — `profiles.role` can only be changed via the Supabase dashboard or SQL. There is no admin panel control.
+1. **No role management UI** — `profiles.role` can only be changed via the Supabase dashboard or SQL. There is no admin panel control.

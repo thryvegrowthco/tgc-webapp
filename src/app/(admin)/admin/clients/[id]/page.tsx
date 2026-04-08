@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DocumentUploadForm } from "@/components/admin/DocumentUploadForm";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
+import { UpdateBookingStatusSelect } from "@/components/admin/UpdateBookingStatusSelect";
 
 export const metadata: Metadata = {
   title: "Client Detail — Admin",
@@ -80,13 +81,6 @@ export default async function AdminClientDetailPage({
   const documents = (documentsRaw ?? []) as DocRow[];
   const notes = (notesRaw ?? []) as NoteRow[];
 
-  const statusColors: Record<string, string> = {
-    confirmed: "bg-green-100 text-green-700",
-    pending: "bg-amber-100 text-amber-700",
-    completed: "bg-neutral-100 text-neutral-600",
-    cancelled: "bg-red-100 text-red-600",
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Back */}
@@ -152,9 +146,10 @@ export default async function AdminClientDetailPage({
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[b.status ?? ""] ?? "bg-neutral-100 text-neutral-500"}`}>
-                        {b.status}
-                      </span>
+                      <UpdateBookingStatusSelect
+                        bookingId={b.id}
+                        currentStatus={b.status ?? "pending"}
+                      />
                       <span className="text-xs text-neutral-500">
                         ${((b.amount_cents ?? 0) / 100).toFixed(0)}
                       </span>

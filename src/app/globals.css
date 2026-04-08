@@ -2,17 +2,17 @@
 
 @theme {
   /* Brand Colors — Thryve Growth Co. */
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-300: #86efac;
-  --color-brand-400: #4ade80;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
-  --color-brand-800: #166534;
-  --color-brand-900: #14532d;
-  --color-brand-950: #052e16;
+  --color-brand-50: #f0f7f5;
+  --color-brand-100: #d6eae5;
+  --color-brand-200: #aed4cc;
+  --color-brand-300: #7db8ad;
+  --color-brand-400: #4d9082;
+  --color-brand-500: #203e35;
+  --color-brand-600: #1a332b;
+  --color-brand-700: #142822;
+  --color-brand-800: #0e1d19;
+  --color-brand-900: #081210;
+  --color-brand-950: #040908;
 
   /* Neutral Slate */
   --color-neutral-50: #f8fafc;
@@ -29,8 +29,8 @@
   /* Semantic */
   --color-background: #ffffff;
   --color-foreground: #0f172a;
-  --color-muted: #f8fafc;
-  --color-border: #e2e8f0;
+  --color-muted: #f5ece3;
+  --color-border: #e8ddd3;
 
   /* Typography */
   --font-display: var(--font-plus-jakarta), 'Georgia', serif;

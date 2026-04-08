@@ -52,7 +52,7 @@ All integrations are configured via environment variables. See `docs/environment
 **Where to get credentials:** Stripe dashboard → Developers → API Keys; webhook secret from Developers → Webhooks
 
 **Webhook endpoint to register in Stripe:** `https://thryvegrowth.co/api/webhooks/stripe`
-**Event to enable:** `checkout.session.completed` only
+**Events to enable:** `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
 
 **Lazy Proxy singleton:** The Stripe client is wrapped in a JavaScript `Proxy` that defers `new Stripe(...)` until first access. This prevents `next build` from failing when `STRIPE_SECRET_KEY` is not set in the build environment.
 
@@ -63,8 +63,6 @@ All integrations are configured via environment variables. See `docs/environment
 4. Add the entry to the `SERVICES` record and `SERVICE_SELECT_OPTIONS` array
 5. If the service requires a calendar slot, add it to `BOOKABLE_SERVICES`
 6. Update `docs/environment-variables.md` with the new var
-
-**Known gap — subscription cancellation:** The webhook handles `checkout.session.completed` only. `customer.subscription.deleted` is NOT handled. If a client cancels their Job Alerts subscription through Stripe, `watchlist_profiles.subscription_status` remains `'active'` until manually updated in Supabase. This means the weekly cron will continue emailing them.
 
 **Graceful degradation:** None — payments are core functionality.
 

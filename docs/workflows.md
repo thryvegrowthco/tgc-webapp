@@ -143,7 +143,42 @@ Every Monday 9AM UTC: GET /api/cron/job-alerts (Vercel Cron)
   4. Returns { sent, errors }
 ```
 
-**Subscription cancellation gap:** If a client cancels their Stripe subscription, `subscription_status` is NOT automatically updated. Must be set to `'cancelled'` manually in Supabase to stop cron emails.
+---
+
+## 2b. Subscription Cancellation Flow
+
+```
+Client cancels subscription in Stripe billing portal or Stripe dashboard
+        │
+        ▼
+Stripe fires customer.subscription.deleted to /api/webhooks/stripe
+        │
+        ▼
+handleSubscriptionDeleted (src/app/api/webhooks/stripe/route.ts)
+  1. Reads subscription.id from event.data.object
+  2. Finds watchlist_profiles row WHERE stripe_subscription_id = subscription.id
+  3. Updates subscription_status = 'cancelled', updated_at = NOW()
+        │
+        ▼
+Next Monday cron at 9AM UTC:
+  Fetches watchlist_profiles WHERE subscription_status = 'active'
+  → cancelled client is excluded → no email sent
+```
+
+**Subscription status transitions via customer.subscription.updated:**
+
+```
+Stripe status          → local subscription_status
+─────────────────────────────────────────────────
+active / trialing      → 'active'
+past_due / paused /
+  unpaid               → 'inactive'
+canceled               → 'cancelled'
+incomplete /
+  incomplete_expired   → (no update — skipped)
+```
+
+`handleSubscriptionUpdated` fires on every Stripe subscription lifecycle change and keeps `watchlist_profiles.subscription_status` in sync.
 
 ---
 

@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
     } else {
       await handleCheckoutCompleted(session);
     }
+  } else if (event.type === "customer.subscription.deleted") {
+    await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+  } else if (event.type === "customer.subscription.updated") {
+    await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
   }
 
   return new Response("OK", { status: 200 });
@@ -186,6 +190,48 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
     status: session.payment_status ?? "paid",
     service_type: "Job Alerts & Watchlists",
   });
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from("watchlist_profiles")
+    .update({ subscription_status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("stripe_subscription_id", subscription.id);
+
+  if (error) {
+    console.error("[Stripe Webhook] Failed to cancel watchlist_profile:", error);
+  }
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const stripeStatus = subscription.status;
+
+  let localStatus: string;
+  if (stripeStatus === "active" || stripeStatus === "trialing") {
+    localStatus = "active";
+  } else if (
+    stripeStatus === "past_due" ||
+    stripeStatus === "paused" ||
+    stripeStatus === "unpaid"
+  ) {
+    localStatus = "inactive";
+  } else if (stripeStatus === "canceled") {
+    localStatus = "cancelled";
+  } else {
+    // incomplete, incomplete_expired — not a meaningful local transition
+    return;
+  }
+
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from("watchlist_profiles")
+    .update({ subscription_status: localStatus, updated_at: new Date().toISOString() })
+    .eq("stripe_subscription_id", subscription.id);
+
+  if (error) {
+    console.error("[Stripe Webhook] Failed to update watchlist_profile status:", error);
+  }
 }
 
 function formatTime(time: string): string {

@@ -15,7 +15,7 @@ export const resend = new Proxy({} as Resend, {
   },
 });
 
-export const FROM_EMAIL = "Thryve Growth Co. <hello@thryvegrowth.co>";
+export const FROM_EMAIL = "Thryve Growth Co. <hello@go.thryvegrowth.co>";
 
 export interface BookingConfirmationData {
   clientName: string;
@@ -36,13 +36,13 @@ export async function sendBookingConfirmation(data: BookingConfirmationData) {
       <html>
       <body style="font-family: system-ui, sans-serif; color: #0f172a; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
         <div style="margin-bottom: 32px;">
-          <h1 style="font-size: 24px; font-weight: 700; color: #14532d; margin: 0 0 4px;">
+          <h1 style="font-size: 24px; font-weight: 700; color: #203e35; margin: 0 0 4px;">
             Thryve Growth Co.
           </h1>
           <p style="color: #64748b; margin: 0; font-size: 14px;">Clarity. Accountability. Real Growth.</p>
         </div>
 
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
             Your booking is confirmed ✓
           </h2>
@@ -72,7 +72,7 @@ export async function sendBookingConfirmation(data: BookingConfirmationData) {
 
         <p style="font-size: 14px; color: #475569; line-height: 1.6;">
           You'll receive a video call link before our session. If you need to reschedule or have any questions, reply to this email or reach out at
-          <a href="mailto:hello@thryvegrowth.co" style="color: #16a34a;">hello@thryvegrowth.co</a>.
+          <a href="mailto:hello@go.thryvegrowth.co" style="color: #203e35;">hello@go.thryvegrowth.co</a>.
         </p>
 
         <p style="font-size: 14px; color: #475569; margin-top: 24px;">

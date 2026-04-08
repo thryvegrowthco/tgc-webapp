@@ -12,32 +12,32 @@ interface RachelPhotoProps {
 
 const photoConfig: Record<PhotoVariant, { src: string; alt: string; width: number; height: number; label: string }> = {
   hero: {
-    src: "/images/headshots/rachel-hero.jpg",
+    src: "/images/headshots/rachel-hero.webp",
     alt: "Rachel, Founder of Thryve Growth Co.",
     width: 600,
     height: 750,
-    label: "rachel-hero.jpg",
+    label: "rachel-hero.webp",
   },
   about: {
-    src: "/images/headshots/rachel-about.jpg",
+    src: "/images/headshots/rachel-about.webp",
     alt: "Rachel, Founder of Thryve Growth Co. — About",
     width: 560,
     height: 700,
-    label: "rachel-about.jpg",
+    label: "rachel-about.webp",
   },
   "about-2": {
-    src: "/images/headshots/rachel-about-2.jpg",
+    src: "/images/headshots/rachel-about-2.webp",
     alt: "Rachel working with clients at Thryve Growth Co.",
     width: 560,
     height: 420,
-    label: "rachel-about-2.jpg",
+    label: "rachel-about-2.webp",
   },
   profile: {
-    src: "/images/headshots/rachel-profile.jpg",
+    src: "/images/headshots/rachel-profile.webp",
     alt: "Rachel — Thryve Growth Co.",
     width: 200,
     height: 200,
-    label: "rachel-profile.jpg",
+    label: "rachel-profile.webp",
   },
 };
 

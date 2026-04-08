@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
     try {
       const { resend } = await import("@/lib/email/resend");
       await resend.emails.send({
-        from: "Rachel at Thryve <noreply@thryvegrowth.co>",
+        from: "Rachel at Thryve <noreply@go.thryvegrowth.co>",
         to: profile.email,
         subject: `Your ${matches.length} new job match${matches.length !== 1 ? "es" : ""} this week`,
         text: emailBody,

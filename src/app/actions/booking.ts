@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe/client";
 import { SERVICES, BOOKABLE_SERVICES, type ServiceKey } from "@/lib/stripe/products";
 
@@ -73,6 +74,35 @@ export async function createBookingCheckoutSession(data: BookingFormData): Promi
   }
 
   redirect(session.url);
+}
+
+// Called from admin to update the status of an existing booking
+export async function updateBookingStatus(
+  bookingId: string,
+  status: string
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "admin") return { error: "Unauthorized" };
+
+  const allowed = ["pending", "confirmed", "completed", "cancelled"];
+  if (!allowed.includes(status)) return { error: "Invalid status" };
+
+  const serviceClient = createServiceClient();
+  const { error } = await serviceClient
+    .from("bookings")
+    .update({ status })
+    .eq("id", bookingId);
+
+  if (error) return { error: error.message };
+  return { success: true };
 }
 
 // Called from admin to add a single availability slot
