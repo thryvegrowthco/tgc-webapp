@@ -92,13 +92,14 @@ export async function updateBookingStatus(
     .single();
   if (profile?.role !== "admin") return { error: "Unauthorized" };
 
-  const allowed = ["pending", "confirmed", "completed", "cancelled"];
-  if (!allowed.includes(status)) return { error: "Invalid status" };
+  const allowed = ["pending", "confirmed", "completed", "cancelled"] as const;
+  type BookingStatus = typeof allowed[number];
+  if (!(allowed as readonly string[]).includes(status)) return { error: "Invalid status" };
 
   const serviceClient = createServiceClient();
   const { error } = await serviceClient
     .from("bookings")
-    .update({ status })
+    .update({ status: status as BookingStatus })
     .eq("id", bookingId);
 
   if (error) return { error: error.message };
