@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Calendar, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -112,19 +113,19 @@ export default async function BookingsPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-neutral-200 rounded-xl p-12 text-center">
-          <div className="w-12 h-12 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="h-5 w-5 text-brand-600" />
-          </div>
-          <h3 className="font-display font-bold text-neutral-900 mb-2">No bookings yet</h3>
-          <p className="text-sm text-neutral-500 mb-5">
-            Ready to get started? Book a call with Rachel.
-          </p>
-          <Button asChild>
-            <Link href="/book">
-              Book a Session <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="bg-white border border-neutral-200 rounded-xl">
+          <EmptyState
+            icon={Calendar}
+            title="No bookings yet"
+            description="Ready to get started? Book a call with Rachel."
+            action={
+              <Button asChild>
+                <Link href="/book">
+                  Book a Session <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            }
+          />
         </div>
       )}
     </div>

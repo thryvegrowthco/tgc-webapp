@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Calendar, FileText, Bell, ArrowRight, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -129,12 +130,12 @@ export default async function DashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-6">
-            <p className="text-sm text-neutral-500 mb-3">No bookings yet.</p>
-            <Button asChild size="sm">
-              <Link href="/book">Book a Call</Link>
-            </Button>
-          </div>
+          <EmptyState
+            icon={Calendar}
+            title="No bookings yet."
+            description="Ready to get started?"
+            action={<Button asChild size="sm"><Link href="/book">Book a Call</Link></Button>}
+          />
         )}
       </div>
 
@@ -159,9 +160,11 @@ export default async function DashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="py-6 text-center">
-            <p className="text-sm text-neutral-500">No documents yet. Rachel will upload them here as your work progresses.</p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="No documents yet."
+            description="Rachel will upload files here as your work progresses."
+          />
         )}
       </div>
 

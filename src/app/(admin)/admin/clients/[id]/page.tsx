@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileText, Download } from "lucide-react";
+import { FileText, Download } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { DocumentUploadForm } from "@/components/admin/DocumentUploadForm";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
@@ -83,13 +84,10 @@ export default async function AdminClientDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Back */}
-      <Link
-        href="/admin/clients"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" /> All Clients
-      </Link>
+      <Breadcrumb items={[
+        { label: "Clients", href: "/admin/clients" },
+        { label: client.full_name ?? "Client" },
+      ]} />
 
       {/* Client header */}
       <div className="bg-white rounded-xl border border-neutral-200 p-6">

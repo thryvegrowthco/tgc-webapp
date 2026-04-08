@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -25,9 +27,7 @@ export default async function AdminClientsPage() {
 
       <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
         {!clients || clients.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-neutral-400">
-            No clients yet.
-          </div>
+          <EmptyState icon={Users} title="No clients yet." description="Clients will appear here once they sign up." />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 border-b border-neutral-100">

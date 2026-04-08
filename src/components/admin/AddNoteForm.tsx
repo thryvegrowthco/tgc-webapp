@@ -6,19 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { addClientNote } from "@/app/actions/documents";
 
 export function AddNoteForm({ clientId }: { clientId: string }) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
-    setSuccess(false);
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -28,12 +25,11 @@ export function AddNoteForm({ clientId }: { clientId: string }) {
     setLoading(false);
 
     if (result.error) {
-      setError(result.error);
+      toast.error(result.error);
     } else {
-      setSuccess(true);
+      toast.success("Note saved.");
       formRef.current?.reset();
       router.refresh();
-      setTimeout(() => setSuccess(false), 2000);
     }
   }
 
@@ -57,17 +53,6 @@ export function AddNoteForm({ clientId }: { clientId: string }) {
         </Label>
         <Input id="sessionDate" name="sessionDate" type="date" className="h-9 text-sm" />
       </div>
-
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
-        </p>
-      )}
-      {success && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-          Note saved.
-        </p>
-      )}
 
       <Button type="submit" size="sm" disabled={loading}>
         {loading ? "Saving…" : "Add Note"}

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Star, ExternalLink, MapPin } from "lucide-react";
+import { Star, ExternalLink, MapPin } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { WatchlistManager } from "@/components/admin/WatchlistManager";
 
@@ -100,14 +101,10 @@ export default async function AdminWatchlistClientPage({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Link
-          href="/admin/watchlists"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> All Watchlists
-        </Link>
-      </div>
+      <Breadcrumb items={[
+        { label: "Watchlists", href: "/admin/watchlists" },
+        { label: profile.full_name ?? profile.email },
+      ]} />
 
       <div>
         <h1 className="font-display text-2xl font-bold text-neutral-900">

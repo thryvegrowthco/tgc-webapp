@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, FileEdit, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -36,14 +37,18 @@ export default async function AdminContentPage() {
 
       <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
         {!posts || posts.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <p className="text-sm text-neutral-400 mb-4">No posts yet. Write your first one.</p>
-            <Button asChild size="sm">
-              <Link href="/admin/content/new">
-                <Plus className="h-4 w-4" /> New Post
-              </Link>
-            </Button>
-          </div>
+          <EmptyState
+            icon={FileEdit}
+            title="No posts yet."
+            description="Write your first post to get started."
+            action={
+              <Button asChild size="sm">
+                <Link href="/admin/content/new">
+                  <Plus className="h-4 w-4" /> New Post
+                </Link>
+              </Button>
+            }
+          />
         ) : (
           <div className="divide-y divide-neutral-100">
             {posts.map((post) => (

@@ -35,14 +35,17 @@ src/
 ├── app/
 │   ├── (admin)/admin/          ← Admin pages (role-gated per page)
 │   ├── (dashboard)/dashboard/  ← Client pages (session-gated)
+│   ├── (auth)/                 ← Login, signup, reset-password (no Header/Footer; bare layout)
+│   ├── (marketing)/            ← All public-facing pages (homepage, about, blog, services, etc.)
+│   │                             Has its own layout.tsx with <Header /> and <Footer />
 │   ├── actions/                ← Server actions (auth, booking, blog, documents, watchlist)
 │   ├── api/                    ← Route handlers (booking slots, download, stripe webhook, cron)
-│   └── blog/                   ← Public blog (index + [slug])
+│   └── auth/                   ← /auth/callback route handler (not a UI page)
 ├── components/
 │   ├── admin/                  ← Admin-only components
 │   ├── booking/                ← BookingFlow, BookingCalendar, TimeSlotPicker, BookingForm
 │   ├── dashboard/              ← Client dashboard components
-│   ├── layout/                 ← Header, Footer, MobileNav
+│   ├── layout/                 ← Header, Footer, MobileNav (used only in (marketing) layout)
 │   ├── marketing/              ← Public page sections
 │   ├── shared/                 ← Shared (Logo, RachelPhoto, SectionCTA, NewsletterForm, etc.)
 │   └── ui/                     ← shadcn/ui design system primitives
@@ -63,12 +66,16 @@ src/
 
 **Route groups:**
 
-| Group | Path prefix | Access control |
-|---|---|---|
-| `(admin)` | `/admin/*` | Each page checks `profiles.role = 'admin'` via Supabase session |
-| `(dashboard)` | `/dashboard/*` | Each layout/page checks `supabase.auth.getUser()` |
-| `(auth)` | `/login`, `/signup`, `/reset-password` | Public; `proxy.ts` redirects authenticated users to `/dashboard` |
-| Public | All other routes | No auth check |
+| Group | Path prefix | Layout | Access control |
+|---|---|---|---|
+| `(admin)` | `/admin/*` | `AdminNav` sidebar; no public Header/Footer | Each page checks `profiles.role = 'admin'` via Supabase session |
+| `(dashboard)` | `/dashboard/*` | `DashboardNav` sidebar; no public Header/Footer | Each layout/page checks `supabase.auth.getUser()` |
+| `(auth)` | `/login`, `/signup`, `/reset-password` | Bare (no Header/Footer) | Public; `proxy.ts` redirects authenticated users to `/dashboard` |
+| `(marketing)` | `/`, `/about`, `/services`, `/blog`, `/book`, `/contact`, `/faq`, `/investment`, `/packages`, `/privacy`, `/testimonials`, `/terms` | `Header` + `Footer` from `(marketing)/layout.tsx` | Public |
+
+**Key architectural rule:** `Header` and `Footer` from `src/components/layout/` are rendered **only** inside `src/app/(marketing)/layout.tsx`. They do not appear in dashboard, admin, or auth pages. The root `layout.tsx` is a bare HTML shell (fonts, metadata, `<Toaster />`, `<Analytics />`).
+
+**Toast notifications:** `sonner` (`<Toaster />`) is placed in the root layout body so it is available across all route groups (admin, dashboard, and marketing). Import `toast` from `"sonner"` in any client component to call `toast.success(...)` or `toast.error(...)`.
 
 **Proxy (`src/proxy.ts`):**
 - Redirects unauthenticated users hitting `/dashboard/*` or `/admin/*` to `/login?redirect=...`
@@ -213,6 +220,21 @@ ALTER DATABASE postgres SET app.admin_email = 'rachel@thryvegrowth.co';
 - If not set, all signups default to `role = 'client'`
 - Persists across sessions — set once, works forever
 - Existing users are not affected; update them with `UPDATE profiles SET role = 'admin' WHERE email = '...'`
+
+---
+
+## UI Component Patterns
+
+**Reusable UI components in `src/components/ui/`:**
+
+| Component | File | Purpose |
+|---|---|---|
+| `Breadcrumb` | `breadcrumb.tsx` | Navigation breadcrumbs for detail/nested pages. Props: `items: Array<{ label: string; href?: string }>`. Last item is non-linked (current page). |
+| `ConfirmDialog` | `confirm-dialog.tsx` | Accessible confirmation dialog for destructive actions. Built on `@radix-ui/react-dialog`. Props: `open`, `onOpenChange`, `title`, `description`, `confirmLabel` (default: "Delete"), `confirmVariant`, `onConfirm`, `loading`. |
+| `EmptyState` | `empty-state.tsx` | Standardized empty state for tables and lists. Props: `icon?`, `title`, `description?`, `action?`. |
+| `PageSkeleton` | `page-skeleton.tsx` | Shared loading skeleton for `loading.tsx` files. Used in all dashboard and admin route segments. |
+
+**Filter state pattern (for future filter UI):** Use URL `searchParams` (server component readable) rather than `useState`. A "Clear filters" button is a `<Link href="/admin/clients">` that resets all params. This keeps filter state shareable and bookmarkable without client-side state.
 
 ---
 

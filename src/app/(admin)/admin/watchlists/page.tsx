@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bell, Users, ArrowRight } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -60,12 +61,7 @@ export default async function AdminWatchlistsPage() {
 
       <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
         {watchlists.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <div className="w-10 h-10 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Users className="h-4 w-4 text-brand-600" />
-            </div>
-            <p className="text-sm text-neutral-400">No watchlist profiles yet.</p>
-          </div>
+          <EmptyState icon={Users} title="No watchlist profiles yet." description="Clients will appear here once they set up a job watchlist." />
         ) : (
           <div className="divide-y divide-neutral-100">
             {watchlists.map((w) => {

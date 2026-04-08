@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { FileText, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const categoryLabels: Record<string, string> = {
   resume: "Resume",
@@ -79,14 +80,12 @@ export default async function DocumentsPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-neutral-200 rounded-xl p-12 text-center">
-          <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="h-5 w-5 text-neutral-400" />
-          </div>
-          <h3 className="font-display font-bold text-neutral-900 mb-2">No documents yet</h3>
-          <p className="text-sm text-neutral-500 max-w-sm mx-auto">
-            Rachel will upload documents here as your work together progresses — resumes, worksheets, session notes, and more.
-          </p>
+        <div className="bg-white border border-neutral-200 rounded-xl">
+          <EmptyState
+            icon={FileText}
+            title="No documents yet"
+            description="Rachel will upload documents here as your work together progresses — resumes, worksheets, session notes, and more."
+          />
         </div>
       )}
     </div>

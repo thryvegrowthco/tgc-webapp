@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { redirect } from "next/navigation";
+import { toast } from "sonner";
 import { User, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,6 @@ export default function ProfilePage() {
   const [profile, setProfile] = React.useState<Profile | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
-  const [saveSuccess, setSaveSuccess] = React.useState(false);
 
   const [pwState, pwAction, pwPending] = useActionState(updatePassword, {});
 
@@ -39,18 +39,21 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!profile) return;
     setSaving(true);
-    setSaveSuccess(false);
     const form = e.currentTarget;
     const data = new FormData(form);
     const supabase = createClient();
-    await supabase.from("profiles").update({
+    const { error } = await supabase.from("profiles").update({
       full_name: data.get("fullName") as string,
       phone: data.get("phone") as string,
       company: data.get("company") as string,
       job_title: data.get("jobTitle") as string,
     }).eq("id", profile.id);
     setSaving(false);
-    setSaveSuccess(true);
+    if (error) {
+      toast.error("Failed to save profile. Please try again.");
+    } else {
+      toast.success("Profile updated successfully.");
+    }
   }
 
   if (loading) {
@@ -78,12 +81,6 @@ export default function ProfilePage() {
           </div>
           <h2 className="font-display font-bold text-neutral-900">Personal Information</h2>
         </div>
-
-        {saveSuccess && (
-          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-            Profile updated successfully.
-          </div>
-        )}
 
         <form onSubmit={handleProfileSave} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

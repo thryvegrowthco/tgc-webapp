@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { uploadDocument } from "@/app/actions/documents";
 
 const CATEGORIES = [
@@ -20,14 +21,10 @@ const CATEGORIES = [
 export function DocumentUploadForm({ clientId }: { clientId: string }) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
-    setSuccess(false);
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -37,12 +34,11 @@ export function DocumentUploadForm({ clientId }: { clientId: string }) {
     setLoading(false);
 
     if (result.error) {
-      setError(result.error);
+      toast.error(result.error);
     } else {
-      setSuccess(true);
+      toast.success("Document uploaded successfully.");
       formRef.current?.reset();
       router.refresh();
-      setTimeout(() => setSuccess(false), 3000);
     }
   }
 
@@ -85,17 +81,6 @@ export function DocumentUploadForm({ clientId }: { clientId: string }) {
           />
         </div>
       </div>
-
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
-        </p>
-      )}
-      {success && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-          Document uploaded successfully.
-        </p>
-      )}
 
       <Button type="submit" size="sm" disabled={loading}>
         <Upload className="h-3.5 w-3.5" />

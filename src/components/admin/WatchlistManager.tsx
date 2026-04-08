@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, Star } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   addManualJob,
@@ -20,7 +21,6 @@ export function WatchlistManager({ clientId }: Props) {
   const router = useRouter();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [fetchingJobs, setFetchingJobs] = React.useState(false);
-  const [fetchResult, setFetchResult] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
   // ── Manual job add ──────────────────────────────────────────────────────
@@ -32,13 +32,14 @@ export function WatchlistManager({ clientId }: Props) {
     const result = await addManualJob(formData);
 
     if ("error" in result) {
-      alert(result.error);
+      toast.error(result.error ?? "Failed to add job.");
       setSubmitting(false);
       return;
     }
 
     // Assign the new job to this client
     await assignJobToClient(clientId, result.jobId);
+    toast.success("Job added and assigned to client.");
     setShowAddForm(false);
     setSubmitting(false);
     router.refresh();
@@ -47,14 +48,11 @@ export function WatchlistManager({ clientId }: Props) {
   // ── JSearch fetch ────────────────────────────────────────────────────────
   async function handleFetchJSearch() {
     setFetchingJobs(true);
-    setFetchResult(null);
     const result = await fetchJSearchJobsForClient(clientId);
     if ("error" in result) {
-      setFetchResult(result.error ?? "Unknown error");
+      toast.error(result.error ?? "Failed to fetch jobs.");
     } else {
-      setFetchResult(
-        `Fetched ${result.fetched} jobs from JSearch — ${result.inserted} new added to client.`
-      );
+      toast.success(`Fetched ${result.fetched} jobs — ${result.inserted} new added to client.`);
     }
     setFetchingJobs(false);
     router.refresh();
@@ -87,12 +85,6 @@ export function WatchlistManager({ clientId }: Props) {
           </Button>
         </div>
       </div>
-
-      {fetchResult && (
-        <p className="text-xs text-neutral-600 bg-neutral-50 rounded-lg px-3 py-2">
-          {fetchResult}
-        </p>
-      )}
 
       {showAddForm && (
         <form onSubmit={handleManualJobSubmit} className="border border-neutral-100 rounded-xl p-4 space-y-3 bg-neutral-50">

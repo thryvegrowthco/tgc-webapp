@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { WatchlistSetupForm } from "@/components/dashboard/WatchlistSetupForm";
 
@@ -47,12 +46,12 @@ export default async function WatchlistSetupPage() {
 
   return (
     <div className="max-w-2xl">
-      <Link
-        href="/dashboard/watchlist"
-        className="inline-flex items-center gap-1.5 text-sm text-brand-700 font-medium hover:text-brand-800 mb-6"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to Watchlist
-      </Link>
+      <div className="mb-6">
+        <Breadcrumb items={[
+          { label: "Job Watchlist", href: "/dashboard/watchlist" },
+          { label: "Preferences" },
+        ]} />
+      </div>
 
       <div className="mb-8">
         <h1 className="font-display text-2xl font-bold text-neutral-900">

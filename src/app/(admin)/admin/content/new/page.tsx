@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { BlogPostForm } from "@/components/admin/BlogPostForm";
 
 export const metadata: Metadata = {
@@ -11,12 +10,10 @@ export const metadata: Metadata = {
 export default function NewBlogPostPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        href="/admin/content"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" /> All Posts
-      </Link>
+      <Breadcrumb items={[
+        { label: "Blog", href: "/admin/content" },
+        { label: "New Post" },
+      ]} />
 
       <div>
         <h1 className="font-display text-2xl font-bold text-neutral-900">New Post</h1>

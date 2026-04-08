@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { addAvailabilitySlot } from "@/app/actions/booking";
 
 const SERVICE_TYPES = [
@@ -18,15 +19,11 @@ const SERVICE_TYPES = [
 
 export function AddSlotForm() {
   const router = useRouter();
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
-    setSuccess(false);
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -35,12 +32,11 @@ export function AddSlotForm() {
     setLoading(false);
 
     if (result.error) {
-      setError(result.error);
+      toast.error(result.error);
     } else {
-      setSuccess(true);
+      toast.success("Slot added successfully.");
       formRef.current?.reset();
       router.refresh();
-      setTimeout(() => setSuccess(false), 3000);
     }
   }
 
@@ -93,18 +89,6 @@ export function AddSlotForm() {
           </select>
         </div>
       </div>
-
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
-          {error}
-        </p>
-      )}
-
-      {success && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-          Slot added successfully.
-        </p>
-      )}
 
       <Button type="submit" disabled={loading}>
         {loading ? "Adding…" : "Add Slot"}

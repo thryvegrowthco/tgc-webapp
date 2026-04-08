@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Calendar } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { AddSlotForm } from "@/components/admin/AddSlotForm";
 import { SlotList } from "@/components/admin/SlotList";
@@ -110,9 +112,7 @@ export default async function AdminBookingsPage() {
         </div>
 
         {!bookings || bookings.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-neutral-400">
-            No upcoming sessions.
-          </div>
+          <EmptyState icon={Calendar} title="No upcoming sessions." description="Confirmed and pending bookings will appear here." />
         ) : (
           <div className="divide-y divide-neutral-100">
             {bookings.map((booking) => {
