@@ -93,6 +93,7 @@ async function processImage(item: (typeof IMAGES)[number]) {
 
 async function allowWebp() {
   const { error } = await supabase.storage.updateBucket("documents", {
+    public: false,
     allowedMimeTypes: [
       "application/pdf",
       "application/msword",
