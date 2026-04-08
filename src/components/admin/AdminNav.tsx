@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logOut } from "@/app/actions/auth";
-import { LogoWordmark } from "@/components/shared/Logo";
+import { Logo } from "@/components/shared/Logo";
 
 const navItems = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard, exact: true },
@@ -35,7 +35,7 @@ export function AdminNav() {
     <aside className="w-64 flex-shrink-0 flex flex-col border-r border-neutral-200 bg-white min-h-screen">
       {/* Logo + admin badge */}
       <div className="px-6 py-5 border-b border-neutral-100">
-        <LogoWordmark />
+        <Logo />
         <span className="mt-2 inline-block text-xs font-semibold uppercase tracking-widest text-brand-700 bg-brand-50 px-2 py-0.5 rounded">
           Admin
         </span>

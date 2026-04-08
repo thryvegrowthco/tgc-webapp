@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LogoWordmark } from "@/components/shared/Logo";
+import { Logo } from "@/components/shared/Logo";
 import { cn } from "@/lib/utils";
 
 const coreServices = [
@@ -77,10 +77,10 @@ export function Header() {
     <>
       <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/95 backdrop-blur-sm shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center justify-between py-3">
 
             {/* Logo */}
-            <LogoWordmark />
+            <Logo />
 
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
@@ -91,7 +91,7 @@ export function Header() {
                   onClick={() => setServicesOpen(!servicesOpen)}
                   onKeyDown={(e) => e.key === "Escape" && setServicesOpen(false)}
                   className={cn(
-                    "flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "flex items-center gap-1 px-3 py-2 rounded-md text-base font-medium transition-colors",
                     isActive("/services")
                       ? "text-brand-700 bg-brand-50"
                       : "text-neutral-600 hover:text-brand-700 hover:bg-brand-50"
@@ -176,7 +176,7 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "px-3 py-2 rounded-md text-base font-medium transition-colors",
                     isActive(link.href)
                       ? "text-brand-700 bg-brand-50"
                       : "text-neutral-600 hover:text-brand-700 hover:bg-brand-50"
@@ -189,7 +189,7 @@ export function Header() {
 
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3">
-              <Button asChild size="default">
+              <Button asChild size="lg">
                 <Link href="/book">Book a Call</Link>
               </Button>
             </div>
@@ -218,7 +218,7 @@ export function Header() {
           {/* Drawer */}
           <div className="absolute right-0 top-0 h-full w-[min(360px,100vw)] bg-white shadow-2xl overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
-              <LogoWordmark />
+              <Logo />
               <button
                 onClick={() => setMobileOpen(false)}
                 className="p-2 rounded-md text-neutral-500 hover:text-neutral-700"

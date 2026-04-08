@@ -18,9 +18,9 @@ export function Logo({ variant = "light", className, linkClassName }: LogoProps)
         <Image
           src={logoSrc}
           alt="Thryve Growth Co."
-          width={160}
-          height={44}
-          className="h-11 w-auto object-contain"
+          width={320}
+          height={88}
+          className="h-20 w-auto object-contain"
           priority
           onError={() => {}}
         />

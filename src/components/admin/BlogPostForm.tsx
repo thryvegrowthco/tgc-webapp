@@ -86,9 +86,8 @@ export function BlogPostForm({ mode, postId, initialData }: BlogPostFormProps) {
 
     let result: { error?: string } = {};
     if (mode === "new") {
-      // createBlogPost redirects on success — no return value arrives
-      await createBlogPost(payload);
-      return;
+      // createBlogPost redirects on success — only returns if there's an error
+      result = await createBlogPost(payload);
     } else {
       result = await updateBlogPost(postId!, payload);
     }

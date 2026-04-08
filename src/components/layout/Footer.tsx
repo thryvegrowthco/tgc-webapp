@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Mail } from "lucide-react";
-import { LogoWordmark } from "@/components/shared/Logo";
+import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 
 const serviceLinks = [
@@ -32,7 +32,7 @@ export function Footer() {
 
           {/* Column 1 — Brand */}
           <div className="lg:col-span-1">
-            <LogoWordmark variant="dark" />
+            <Logo variant="dark" />
             <p className="mt-4 text-sm text-brand-200 leading-relaxed font-medium italic">
               Clarity. Accountability. Real Growth.
             </p>

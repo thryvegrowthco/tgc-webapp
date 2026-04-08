@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logOut } from "@/app/actions/auth";
-import { LogoWordmark } from "@/components/shared/Logo";
+import { Logo } from "@/components/shared/Logo";
 
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, exact: true },
@@ -33,7 +33,7 @@ export function DashboardNav() {
     <aside className="w-64 flex-shrink-0 flex flex-col border-r border-neutral-200 bg-white min-h-screen">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-neutral-100">
-        <LogoWordmark />
+        <Logo />
       </div>
 
       {/* Nav */}
