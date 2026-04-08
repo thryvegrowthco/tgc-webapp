@@ -137,10 +137,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div
             className="prose prose-neutral prose-lg max-w-none
-              prose-headings:font-display prose-headings:font-bold
-              prose-h2:text-2xl prose-h3:text-xl
+              prose-headings:font-display prose-headings:font-bold prose-headings:text-neutral-900
+              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
+              prose-p:text-neutral-700 prose-p:leading-relaxed
+              prose-li:text-neutral-700
+              prose-strong:text-neutral-900
               prose-a:text-brand-700 prose-a:no-underline hover:prose-a:underline
-              prose-blockquote:border-brand-400 prose-blockquote:bg-brand-50 prose-blockquote:rounded-r-lg prose-blockquote:py-1
+              prose-blockquote:border-l-4 prose-blockquote:border-brand-400 prose-blockquote:bg-brand-50 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:not-italic
               prose-code:bg-neutral-100 prose-code:rounded prose-code:px-1 prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
               prose-img:rounded-lg"
             dangerouslySetInnerHTML={{ __html: html }}

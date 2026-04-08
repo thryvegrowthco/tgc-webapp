@@ -41,13 +41,14 @@ export async function signUp(
     return { error: error.message };
   }
 
-  // Create profile row (trigger handles this in prod, but safe to do here too)
+  // The handle_new_user() trigger creates the profile row automatically.
+  // We only upsert as a fallback, and intentionally omit `role` so we never
+  // overwrite the admin role the trigger may have assigned.
   if (data.user) {
     await supabase.from("profiles").upsert({
       id: data.user.id,
       email,
       full_name: fullName,
-      role: "client",
     });
   }
 

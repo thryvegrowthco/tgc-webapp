@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Plus, FileEdit, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const metadata: Metadata = {
   title: "Blog — Admin",
@@ -11,15 +11,20 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminContentPage() {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
-  const { data: posts } = await supabase
+  const { data: posts, error } = await supabase
     .from("blog_posts")
     .select("id, title, slug, published, published_at, created_at, excerpt")
     .order("created_at", { ascending: false });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          Could not load posts — {error.message}. Verify that the database migrations have been run.
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-neutral-900">Blog</h1>

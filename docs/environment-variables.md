@@ -71,6 +71,14 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 
 *If absent, "Fetch from JSearch" returns 0 results. Manual job entry still works. Set this to enable automated job fetching.
 
+### Auth Hooks
+
+| Variable | Required | Source | Purpose |
+|---|---|---|---|
+| `SUPABASE_HOOK_SECRET` | Yes | Supabase → Authentication → Hooks → Send Email → secret | Verifies that incoming requests to `/api/auth/send-email` came from Supabase |
+
+> **How to get it:** After registering the Send Email hook in the Supabase dashboard, copy the auto-generated secret and paste it here. If this var is missing, the hook endpoint returns 500 and auth emails will fail.
+
 ### Cron + App
 
 | Variable | Required | Source | Purpose |

@@ -20,7 +20,8 @@ All integrations are configured via environment variables. See `docs/environment
 **Auth setup:**
 - Email/password auth only (no OAuth providers)
 - On signup, `emailRedirectTo` points to `/auth/callback`, which exchanges the auth code for a session cookie
-- Password reset email links also go through `/auth/callback?next=/dashboard/profile`
+- All auth emails (signup confirmation, password reset, magic link, email change) are intercepted by the **Send Email hook** (`/api/auth/send-email`) and sent via Resend — see the Resend section below
+- Password reset and confirmation links go through `/auth/confirm?token_hash=...` (the hook constructs token_hash URLs; the existing `/auth/callback` handles `?code=` links only)
 
 **Database:**
 - Postgres with Row Level Security (RLS) enabled on all tables
@@ -70,22 +71,39 @@ All integrations are configured via environment variables. See `docs/environment
 
 ## Resend
 
-**What it does:** Sends all transactional emails — booking confirmations, admin alerts, and the weekly job digest.
+**What it does:** Sends all transactional emails — auth emails, booking confirmations, admin alerts, and the weekly job digest.
 
-**Client file:** `src/lib/email/resend.ts` (lazy Proxy singleton + email send functions)
+**Client file:** `src/lib/email/resend.ts` (lazy Proxy singleton + booking email functions)
+**Auth email templates:** `src/lib/email/auth-emails.ts`
 
 **Env vars:**
 - `RESEND_API_KEY` — API key from Resend dashboard
+- `SUPABASE_HOOK_SECRET` — shared secret for verifying Send Email hook requests (see Auth Hooks section in environment-variables.md)
 
 **Where to get credentials:** Resend dashboard → API Keys
 
-**From address:** `Thryve Growth Co. <hello@thryvegrowth.co>` — must be a verified domain in Resend
+**From address:** `Thryve Growth Co. <hello@go.thryvegrowth.co>` — must be a verified sending domain in Resend  
 **Admin alert address:** `hello@thryvegrowth.co`
+
+**Send Email hook setup (one-time):**
+1. Deploy the app to production
+2. Supabase dashboard → Authentication → Hooks → **Send Email**
+3. Set URL to `https://thryvegrowth.co/api/auth/send-email`
+4. Copy the generated secret → add to Vercel as `SUPABASE_HOOK_SECRET`
+
+**Hook handler:** `src/app/api/auth/send-email/route.ts`
+- Verifies the Supabase HMAC-SHA256 signature (`x-supabase-signature` header)
+- Routes to the correct template based on `email_action_type`
+- Constructs confirmation URL: `{APP_URL}/auth/confirm?token_hash=...&type=...&next=...`
 
 **Emails sent:**
 
 | Email | Trigger | Template location |
 |---|---|---|
+| Signup confirmation | Supabase Send Email hook (`signup`) | `src/lib/email/auth-emails.ts → sendSignupConfirmation` |
+| Password reset | Supabase Send Email hook (`recovery`) | `src/lib/email/auth-emails.ts → sendPasswordReset` |
+| Email change confirmation | Supabase Send Email hook (`email_change`) | `src/lib/email/auth-emails.ts → sendEmailChange` |
+| Magic link sign-in | Supabase Send Email hook (`magiclink`) | `src/lib/email/auth-emails.ts → sendMagicLink` |
 | Booking confirmation (to client) | Stripe webhook on `checkout.session.completed` | `src/lib/email/resend.ts → sendBookingConfirmation` |
 | New booking alert (to Rachel) | Same webhook | `src/lib/email/resend.ts → sendAdminBookingAlert` |
 | Weekly job digest (to subscribers) | Vercel Cron every Monday 9AM UTC | `src/app/api/cron/job-alerts/route.ts` — inline plain text |

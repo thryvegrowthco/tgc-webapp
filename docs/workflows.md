@@ -304,17 +304,24 @@ signUp server action (src/app/actions/auth.ts)
   })
         │
         ▼
-Supabase sends verification email with link to /auth/callback?code=...
+Supabase fires Send Email hook → POST /api/auth/send-email
+  (src/app/api/auth/send-email/route.ts)
+  1. Verifies HMAC-SHA256 signature using SUPABASE_HOOK_SECRET
+  2. email_action_type = "signup"
+  3. Constructs: {APP_URL}/auth/confirm?token_hash=...&type=signup&next=/dashboard
+  4. sendSignupConfirmation(email, name, confirmUrl) via Resend
         │
         ▼
-Client clicks link → /auth/callback (src/app/auth/callback/route.ts)
-  supabase.auth.exchangeCodeForSession(code)
+Client receives branded confirmation email from hello@go.thryvegrowth.co
+Client clicks link → /auth/confirm (src/app/auth/confirm/route.ts)
+  supabase.auth.verifyOtp({ token_hash, type: 'signup' })
   Sets session cookie
-  Redirects to /dashboard (or ?next= param if set)
+  Redirects to /dashboard
         │
         ▼
 handle_new_user() Postgres trigger fires on auth.users INSERT
   Creates profiles row: { id, email, full_name, role: 'client' }
+  (role = 'admin' if email matches hardcoded ADMIN_EMAIL in migration 0003)
 ```
 
 **Login:**
@@ -340,11 +347,18 @@ requestPasswordReset server action
   })
         │
         ▼
-Client clicks email link → /auth/callback
-  Exchanges code, sets session → redirects to /dashboard/profile
+Supabase fires Send Email hook → POST /api/auth/send-email
+  email_action_type = "recovery"
+  Constructs: {APP_URL}/auth/confirm?token_hash=...&type=recovery&next=/reset-password
+  sendPasswordReset(email, name, resetUrl) via Resend
         │
         ▼
-Client on profile page → enters new password
+Client clicks email link → /auth/confirm
+  supabase.auth.verifyOtp({ token_hash, type: 'recovery' })
+  Redirects to /reset-password
+        │
+        ▼
+Client on /reset-password → enters new password
         │
         ▼
 updatePassword server action
