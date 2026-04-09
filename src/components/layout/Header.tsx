@@ -75,7 +75,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/95 backdrop-blur-sm shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-[#f5ece3]/95 backdrop-blur-sm shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-3">
 

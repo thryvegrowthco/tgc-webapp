@@ -5,7 +5,7 @@ import { RachelPhoto } from "@/components/shared/RachelPhoto";
 
 export function HomeHero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-brand-50 via-white to-brand-50">
+    <section className="relative overflow-hidden bg-white">
       {/* Decorative background blobs */}
       <div
         aria-hidden="true"
@@ -17,7 +17,7 @@ export function HomeHero() {
       />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-12 lg:gap-16 items-center">
 
           {/* Copy — left column */}
           <div className="order-2 lg:order-1">
@@ -29,15 +29,19 @@ export function HomeHero() {
               </span>
             </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-[1.1] tracking-tight">
+            <h1 className="font-display text-5xl sm:text-6xl font-bold text-black leading-[1.1] tracking-tight">
               Grow Better{" "}
-              <span className="text-brand-700">Leaders.</span>
+              <span className="text-[#203e35]">Leaders.</span>
               <br />
+            </h1>
+            <h1 className="font-display text-5xl sm:text-6xl font-bold text-black leading-[1.1] tracking-tight">
               Build Stronger{" "}
-              <span className="text-brand-700">Teams.</span>
+              <span className="text-[#203e35]">Teams.</span>
               <br />
+            </h1>
+            <h1 className="font-display text-5xl sm:text-6xl font-bold text-black leading-[1.1] tracking-tight">
               Move Careers{" "}
-              <span className="text-brand-700">Forward.</span>
+              <span className="text-[#203e35]">Forward.</span>
             </h1>
 
             <p className="mt-6 text-lg text-neutral-600 leading-relaxed max-w-xl">
