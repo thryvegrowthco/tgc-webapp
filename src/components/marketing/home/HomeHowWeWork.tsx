@@ -77,23 +77,23 @@ export function HomeHowWeWork() {
       </section>
 
       {/* Credibility Banner */}
-      <section className="py-16 bg-neutral-900">
+      <section className="py-16 bg-muted">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400 mb-2">
+            <p className="text-sm font-semibold uppercase tracking-widest text-brand-500 mb-2">
               Built From Real Experience
             </p>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-brand-500">
               Not Theory. Not Trends. Real-world HR Leadership.
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
             {stats.map((stat) => (
               <div key={stat.label}>
-                <div className="font-display text-4xl font-bold text-brand-400 mb-2">
+                <div className="font-display text-4xl font-bold text-brand-500 mb-2">
                   {stat.value}
                 </div>
-                <div className="text-sm text-neutral-400 font-medium">
+                <div className="text-sm text-brand-500 font-medium">
                   {stat.label}
                 </div>
               </div>
