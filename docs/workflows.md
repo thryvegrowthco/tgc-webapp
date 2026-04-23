@@ -364,3 +364,58 @@ Client on /reset-password → enters new password
 updatePassword server action
   supabase.auth.updateUser({ password: newPassword })
 ```
+
+---
+
+## 6. Contact Form Flow
+
+```
+Visitor on /contact → fills firstName, lastName, email, subject, message → submits
+        │
+        ▼
+ContactForm (src/components/shared/ContactForm.tsx)
+  POST /api/contact with JSON payload
+        │
+        ▼
+/api/contact route handler (src/app/api/contact/route.ts)
+  1. Validate: all 5 fields non-empty strings; email matches regex;
+     field lengths within limits (message ≤ 5000 chars, others ≤ 200)
+  2. Call sendContactFormSubmission (src/lib/email/resend.ts)
+       - from: hello@go.thryvegrowth.co (must be verified in Resend)
+       - to:   hello@thryvegrowth.co
+       - replyTo: submitter's email → Rachel can reply directly
+       - HTML body with escaped fields, message line breaks preserved
+  3. On Resend error → 500 + console.error with details
+  4. On success → { ok: true } → ContactForm shows "Message received!"
+```
+
+**Graceful degradation:** None. If Resend is misconfigured (e.g., `go.thryvegrowth.co` is not a verified sending domain in Resend) the request returns 500 and the user sees a generic error. Check server logs for the underlying Resend error message.
+
+---
+
+## 7. Newsletter Subscribe Flow
+
+```
+Visitor submits Footer newsletter form (any marketing page)
+  OR visitor submits blog-page NewsletterForm (/blog)
+        │
+        ▼
+POST /api/newsletter with { email, firstName?, source }
+  source = "footer" | "blog"
+        │
+        ▼
+/api/newsletter route handler (src/app/api/newsletter/route.ts)
+  1. Validate + normalize email (trim, lowercase, regex)
+  2. Insert into newsletter_subscribers via service client
+       - Duplicate email (Postgres 23505) → returns { ok: true, alreadySubscribed: true }
+  3. Fire-and-forget syncNewsletterSubscriber to GoHighLevel
+       - Tags: ["thryve-newsletter"]
+       - Silently skips if GHL_API_KEY or GHL_LOCATION_ID absent
+  4. Return { ok: true }
+```
+
+**Notes:**
+- Both forms hit the same API route; no shared UI component (Footer uses dark theme + first-name field; blog form is light-theme single-field).
+- The `newsletter_subscribers` table has an RLS policy allowing anon INSERT, but the route uses the service client for simplicity and to future-proof against policy changes.
+- No confirmation email is sent today. If Rachel wants a welcome email in the future, add a Resend template in `src/lib/email/` and call it after the insert.
+

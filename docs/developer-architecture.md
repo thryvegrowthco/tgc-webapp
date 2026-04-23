@@ -174,6 +174,19 @@ Stripe client is wrapped in a `Proxy` to defer initialization until first access
 
 ---
 
+## Public API Routes
+
+Lightweight route handlers for marketing-page forms. Both accept JSON POST, return `{ ok: true }` on success and `{ ok: false, error }` on validation/server errors.
+
+| Route | Triggered by | What it does |
+|---|---|---|
+| `POST /api/newsletter` | Footer form + blog-page `NewsletterForm` | Validates email, inserts into `newsletter_subscribers` (via service client), calls `syncNewsletterSubscriber` for GHL. Duplicate email (Postgres `23505`) returns success. Body: `{ email, firstName?, source? }`. |
+| `POST /api/contact` | `/contact` page `ContactForm` | Validates all 5 fields, calls `sendContactFormSubmission` (Resend) with `replyTo` set to the submitter's email so Rachel can reply directly. Body: `{ firstName, lastName, email, subject, message }`. |
+
+Both routes run server-side only; no auth required (public forms). The service client is used for `/api/newsletter` because `newsletter_subscribers` has an anon-insert RLS policy, but service client avoids any RLS surprises.
+
+---
+
 ## Cron Job
 
 **File:** `src/app/api/cron/job-alerts/route.ts`

@@ -93,6 +93,68 @@ export async function sendBookingConfirmation(data: BookingConfirmationData) {
   });
 }
 
+export interface ContactFormSubmission {
+  firstName: string;
+  lastName: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export async function sendContactFormSubmission(data: ContactFormSubmission) {
+  const messageHtml = escapeHtml(data.message).replace(/\n/g, "<br>");
+  const fullName = `${data.firstName} ${data.lastName}`.trim();
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: "hello@thryvegrowth.co",
+    replyTo: data.email,
+    subject: `New contact: ${data.subject} — ${fullName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: system-ui, sans-serif; color: #0f172a; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 16px; color: #203e35;">
+          New contact form submission
+        </h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px; width: 120px;">Name</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px;">${escapeHtml(fullName)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Email</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px;">
+              <a href="mailto:${escapeHtml(data.email)}" style="color: #203e35;">${escapeHtml(data.email)}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Subject</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px;">${escapeHtml(data.subject)}</td>
+          </tr>
+        </table>
+        <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 20px;">
+          <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Message</p>
+          <p style="margin: 0; font-size: 15px; color: #0f172a; line-height: 1.6;">${messageHtml}</p>
+        </div>
+        <p style="font-size: 13px; color: #64748b; margin-top: 24px;">
+          Reply directly to this email to respond to ${escapeHtml(data.firstName || "them")}.
+        </p>
+      </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendAdminBookingAlert(data: BookingConfirmationData) {
   return resend.emails.send({
     from: FROM_EMAIL,

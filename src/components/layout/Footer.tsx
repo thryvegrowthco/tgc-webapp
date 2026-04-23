@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
@@ -24,6 +25,32 @@ const companyLinks = [
 ];
 
 export function Footer() {
+  const [firstName, setFirstName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [status, setStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
+
+  async function handleNewsletterSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!email) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, firstName, source: "footer" }),
+      });
+      if (!res.ok) {
+        setStatus("error");
+        return;
+      }
+      setStatus("success");
+      setFirstName("");
+      setEmail("");
+    } catch {
+      setStatus("error");
+    }
+  }
+
   return (
     <footer className="bg-brand-900 text-white">
       {/* Main footer content */}
@@ -44,7 +71,7 @@ export function Footer() {
             {/* Social Links */}
             <div className="mt-6 flex gap-3">
               <a
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/company/thryvegrowthco/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Thryve Growth Co. on LinkedIn"
@@ -56,7 +83,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/thryvegrowthco/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Thryve Growth Co. on Instagram"
@@ -123,27 +150,41 @@ export function Footer() {
             <p className="text-sm text-brand-200 leading-relaxed mb-4">
               Get practical growth tips, career insights, and updates from Rachel.
             </p>
-            <form className="space-y-2" onSubmit={(e) => e.preventDefault()}>
-              <input
-                type="text"
-                placeholder="First name"
-                className="w-full rounded-lg px-4 py-2.5 text-sm bg-brand-800 border border-brand-700 text-white placeholder:text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
-              />
-              <input
-                type="email"
-                placeholder="Email address"
-                required
-                className="w-full rounded-lg px-4 py-2.5 text-sm bg-brand-800 border border-brand-700 text-white placeholder:text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
-              />
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="w-full border-brand-500 text-brand-300 hover:bg-brand-800 hover:text-white"
-              >
-                Subscribe
-              </Button>
-            </form>
+            {status === "success" ? (
+              <p className="text-sm text-brand-200 font-medium py-3">
+                You&apos;re subscribed! Talk soon.
+              </p>
+            ) : (
+              <form className="space-y-2" onSubmit={handleNewsletterSubmit}>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full rounded-lg px-4 py-2.5 text-sm bg-brand-800 border border-brand-700 text-white placeholder:text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                />
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg px-4 py-2.5 text-sm bg-brand-800 border border-brand-700 text-white placeholder:text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                />
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  disabled={status === "loading"}
+                  className="w-full border-brand-500 text-brand-300 hover:bg-brand-800 hover:text-white disabled:opacity-60"
+                >
+                  {status === "loading" ? "Subscribing…" : "Subscribe"}
+                </Button>
+                {status === "error" && (
+                  <p className="text-xs text-red-300">Something went wrong. Try again.</p>
+                )}
+              </form>
+            )}
           </div>
         </div>
       </div>

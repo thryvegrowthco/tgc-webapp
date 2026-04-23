@@ -67,6 +67,39 @@ All integrations are configured via environment variables. See `docs/environment
 
 **Graceful degradation:** None — payments are core functionality.
 
+### Testing payments
+
+The Stripe integration is mode-agnostic — the code uses whatever keys are set in the environment. Test mode is controlled entirely by env vars.
+
+**Confirm you're in test mode:** check `.env.local` — `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` should start with `pk_test_` and `STRIPE_SECRET_KEY` should start with `sk_test_`. All 10 `STRIPE_PRICE_*` vars must reference test-mode price IDs from the Stripe dashboard (products created while the dashboard is in test mode).
+
+**Run a test payment:**
+1. `npm run dev`, go through a booking flow, reach the Stripe-hosted checkout page
+2. Use a Stripe test card (any future expiry, any 3-digit CVC, any ZIP):
+
+| Card number | Outcome |
+|---|---|
+| `4242 4242 4242 4242` | Successful payment |
+| `4000 0000 0000 9995` | Insufficient funds (declined) |
+| `4000 0025 0000 3155` | Requires 3DS authentication |
+| `4000 0000 0000 0002` | Generic decline |
+
+3. Verify the charge in Stripe Dashboard → Payments (test mode toggle on) — no real money moves
+
+**Forward webhooks locally** (required for booking records to land in Supabase during local testing):
+1. Install the CLI: `brew install stripe/stripe-cli/stripe`
+2. `stripe login`
+3. `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+4. Copy the `whsec_…` value the CLI prints — paste it into `.env.local` as `STRIPE_WEBHOOK_SECRET` (this value is different from the production webhook secret)
+5. Complete a test checkout — the CLI window shows events being forwarded, and a row appears in `bookings` + `payments`
+
+**Switch to live mode (when ready):**
+1. Toggle Stripe Dashboard from "Test mode" to "Live mode"
+2. Create production products + prices — copy the live price IDs
+3. Register the production webhook at `https://thryvegrowth.co/api/webhooks/stripe` → copy its signing secret
+4. In Vercel → Project Settings → Environment Variables (Production scope only): replace all Stripe keys + price IDs + webhook secret with the live values
+5. Leave `.env.local` on test keys for ongoing local work — production and test webhook secrets must stay separate per environment
+
 ---
 
 ## Resend
@@ -106,6 +139,7 @@ All integrations are configured via environment variables. See `docs/environment
 | Magic link sign-in | Supabase Send Email hook (`magiclink`) | `src/lib/email/auth-emails.ts → sendMagicLink` |
 | Booking confirmation (to client) | Stripe webhook on `checkout.session.completed` | `src/lib/email/resend.ts → sendBookingConfirmation` |
 | New booking alert (to Rachel) | Same webhook | `src/lib/email/resend.ts → sendAdminBookingAlert` |
+| Contact form submission (to Rachel) | `POST /api/contact` | `src/lib/email/resend.ts → sendContactFormSubmission` (sets `replyTo` to the submitter) |
 | Weekly job digest (to subscribers) | Vercel Cron every Monday 9AM UTC | `src/app/api/cron/job-alerts/route.ts` — inline plain text |
 
 **Lazy Proxy singleton:** Same pattern as Stripe — defers `new Resend(...)` until first access to avoid build failures.

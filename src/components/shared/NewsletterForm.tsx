@@ -11,11 +11,15 @@ export function NewsletterForm() {
     if (!email) return;
     setStatus("loading");
     try {
-      await fetch("/api/newsletter", {
+      const res = await fetch("/api/newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, source: "blog" }),
       });
+      if (!res.ok) {
+        setStatus("error");
+        return;
+      }
       setStatus("success");
       setEmail("");
     } catch {
