@@ -72,7 +72,7 @@ export async function sendPasswordReset(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
-    subject: "Reset your password — Thryve Growth Co.",
+    subject: "Reset your password, Thryve Growth Co.",
     html: `
       <!DOCTYPE html>
       <html>
@@ -110,7 +110,7 @@ export async function sendPasswordReset(
         </p>
 
         <p style="font-size: 14px; color: #475569; margin-top: 24px;">
-          If you didn't request a password reset, you can safely ignore this email — your password won't change.
+          If you didn't request a password reset, you can safely ignore this email. Your password won't change.
         </p>
 
         <div style="border-top: 1px solid #e2e8f0; margin-top: 40px; padding-top: 20px;">
@@ -133,7 +133,7 @@ export async function sendEmailChange(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
-    subject: "Confirm your new email address — Thryve Growth Co.",
+    subject: "Confirm your new email address, Thryve Growth Co.",
     html: `
       <!DOCTYPE html>
       <html>
@@ -195,7 +195,7 @@ export async function sendMagicLink(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
-    subject: "Your sign-in link — Thryve Growth Co.",
+    subject: "Your sign-in link, Thryve Growth Co.",
     html: `
       <!DOCTYPE html>
       <html>

@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         if (!job) return null;
         const location = job.is_remote ? "Remote" : (job.location ?? "");
         const recommended = m.rachel_recommended ? " ⭐ Rachel's Pick" : "";
-        return `• ${job.title} at ${job.company}${location ? ` — ${location}` : ""}${job.salary_range ? ` (${job.salary_range})` : ""}${recommended}${job.url ? `\n  Apply: ${job.url}` : ""}`;
+        return `• ${job.title} at ${job.company}${location ? `, ${location}` : ""}${job.salary_range ? ` (${job.salary_range})` : ""}${recommended}${job.url ? `\n  Apply: ${job.url}` : ""}`;
       })
       .filter(Boolean)
       .join("\n\n");
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       "Log in to your dashboard to update your status on each listing:",
       `${process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co"}/dashboard/watchlist`,
       "",
-      "— Rachel, Thryve Growth Co.",
+      "Rachel, Thryve Growth Co.",
     ].join("\n");
 
     try {

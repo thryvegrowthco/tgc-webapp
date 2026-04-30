@@ -62,7 +62,7 @@ export default async function WatchlistPage() {
           </div>
           <h3 className="font-display font-bold text-neutral-900 mb-2">Set up your watchlist</h3>
           <p className="text-sm text-neutral-500 mb-5 max-w-sm mx-auto">
-            Tell Rachel what you&apos;re looking for and she&apos;ll curate job matches for you — both manually and via automated feeds.
+            Tell Rachel what you&apos;re looking for and she&apos;ll curate job matches for you, both manually and through automated feeds.
           </p>
           <Button asChild>
             <Link href="/dashboard/watchlist/setup">

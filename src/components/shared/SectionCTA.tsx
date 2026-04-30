@@ -14,7 +14,7 @@ interface SectionCTAProps {
 
 export function SectionCTA({
   heading = "Ready to Get Started?",
-  body = "Let's talk about what growth looks like for you. No pressure — just an honest conversation.",
+  body = "Let's talk about what growth looks like for you. No pressure. Just an honest conversation.",
   primaryLabel = "Book a Call",
   primaryHref = "/book",
   secondaryLabel = "Learn More",

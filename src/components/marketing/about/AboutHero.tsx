@@ -24,14 +24,12 @@ export function AboutHero() {
               </span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl font-bold text-neutral-900 leading-tight mb-6">
-              Real Experience.<br />
-              <span className="text-brand-700">Real Growth.</span>
+              Hi, I&apos;m <span className="text-brand-700">Rachel.</span>
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed max-w-xl">
-              Thryve Growth Co. was built on one simple belief: that real growth
-              requires real honesty. Not the kind of coaching that tells you
-              what you want to hear, but the kind that helps you see clearly and
-              move forward with intention.
+              I&apos;m the founder of Thryve Growth Co. and a senior HR leader who
+              has spent years helping people and organizations grow through real
+              challenges, not just theory.
             </p>
             <div className="mt-8 flex items-center gap-6 text-sm text-neutral-500">
               <div className="flex items-center gap-1.5">

@@ -16,7 +16,7 @@ const services = [
   { value: "interview-prep", label: "Interview Preparation" },
   { value: "resume-materials", label: "Resume & Career Materials" },
   { value: "job-alerts", label: "Job Alerts & Watchlists" },
-  { value: "not-sure", label: "Not sure yet — let's talk" },
+  { value: "not-sure", label: "Not sure yet, let's talk" },
 ];
 
 export function BookingForm() {

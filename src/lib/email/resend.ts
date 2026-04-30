@@ -30,7 +30,7 @@ export async function sendBookingConfirmation(data: BookingConfirmationData) {
   return resend.emails.send({
     from: FROM_EMAIL,
     to: data.clientEmail,
-    subject: `Booking Confirmed — ${data.serviceType}`,
+    subject: `Booking Confirmed: ${data.serviceType}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -118,7 +118,7 @@ export async function sendContactFormSubmission(data: ContactFormSubmission) {
     from: FROM_EMAIL,
     to: "hello@thryvegrowth.co",
     replyTo: data.email,
-    subject: `New contact: ${data.subject} — ${fullName}`,
+    subject: `New contact: ${data.subject} from ${fullName}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -159,7 +159,7 @@ export async function sendAdminBookingAlert(data: BookingConfirmationData) {
   return resend.emails.send({
     from: FROM_EMAIL,
     to: "hello@thryvegrowth.co",
-    subject: `New Booking: ${data.serviceType} — ${data.clientName}`,
+    subject: `New Booking: ${data.serviceType} from ${data.clientName}`,
     html: `
       <p>New booking received:</p>
       <ul>

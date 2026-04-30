@@ -84,7 +84,7 @@ export default async function DocumentsPage() {
           <EmptyState
             icon={FileText}
             title="No documents yet"
-            description="Rachel will upload documents here as your work together progresses — resumes, worksheets, session notes, and more."
+            description="Rachel will upload documents here as your work together progresses: resumes, worksheets, session notes, and more."
           />
         </div>
       )}

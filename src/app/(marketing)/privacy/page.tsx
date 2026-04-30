@@ -21,50 +21,50 @@ export default function PrivacyPage() {
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">1. Who We Are</h2>
             <p>
-              Thryve Growth Co. LLC (&ldquo;Thryve Growth Co.&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) operates the website thryvegrowth.co and provides HR consulting, career coaching, and related services. This Privacy Policy explains how we collect, use, and protect information you provide to us.
+              Thryve Growth Co. LLC (&ldquo;Thryve Growth Co.&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) runs the website thryvegrowth.co and offers HR consulting, career coaching, and related services. This page explains, in plain language, what information we collect when you work with us, how we use it, and how we keep it safe.
             </p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">2. Information We Collect</h2>
-            <p className="mb-3">We collect information you provide directly to us, including:</p>
+            <p className="mb-3">We only collect information you share with us directly. That usually includes:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Name, email address, and phone number when you contact us or book a call</li>
-              <li>Professional information (job title, company, career goals) when you engage our services</li>
-              <li>Payment information processed securely through Stripe (we do not store card numbers)</li>
-              <li>Communications you send us via email or contact forms</li>
-              <li>Account information if you create a client dashboard account</li>
+              <li>Your name, email address, and phone number when you reach out or book a call</li>
+              <li>Professional details like your job title, company, or career goals once we start working together</li>
+              <li>Payment details, processed securely through Stripe. We never see or store your card number</li>
+              <li>Anything you send us by email or through a contact form</li>
+              <li>Account details if you create a client dashboard login</li>
             </ul>
-            <p className="mt-3">We also collect limited technical information automatically, including browser type, pages visited, and referring URLs, via standard web analytics.</p>
+            <p className="mt-3">We also pick up a small amount of technical information automatically, like your browser type, pages you visit, and where you came from. That comes from standard web analytics and helps us understand how the site is used.</p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">3. How We Use Your Information</h2>
-            <p className="mb-3">We use your information to:</p>
+            <p className="mb-3">We use what you share with us to:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>Provide, schedule, and improve our services</li>
-              <li>Communicate with you about your inquiries, bookings, and engagements</li>
-              <li>Send you service-related emails and updates</li>
-              <li>Send marketing emails if you have subscribed (you may unsubscribe at any time)</li>
-              <li>Process payments and maintain billing records</li>
-              <li>Comply with legal obligations</li>
+              <li>Stay in touch about your inquiries, bookings, and ongoing work together</li>
+              <li>Send service-related emails and updates</li>
+              <li>Send marketing emails if you&apos;ve subscribed (you can unsubscribe any time)</li>
+              <li>Process payments and keep billing records</li>
+              <li>Meet our legal obligations</li>
             </ul>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">4. How We Share Your Information</h2>
-            <p className="mb-3">We do not sell your personal information. We share your information only with:</p>
+            <p className="mb-3">We never sell your personal information. We only share it with:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Service providers</strong> who help us operate our business (e.g., Supabase for data storage, Stripe for payments, Resend for email, Vercel for hosting). These providers are contractually bound to protect your data.</li>
-              <li><strong>GoHighLevel</strong> for marketing email communications if you have subscribed.</li>
-              <li><strong>Legal authorities</strong> when required by law or to protect our rights.</li>
+              <li><strong>Trusted service providers</strong> who help us run the business (Supabase for data storage, Stripe for payments, Resend for email, and Vercel for hosting). They&apos;re contractually required to keep your data safe.</li>
+              <li><strong>GoHighLevel</strong> for marketing emails, but only if you&apos;ve subscribed.</li>
+              <li><strong>Legal authorities</strong> when the law requires it or when we need to protect our rights.</li>
             </ul>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">5. Data Retention</h2>
             <p>
-              We retain your personal information for as long as necessary to provide services and comply with legal obligations. If you request deletion of your account or information, we will do so within 30 days except where retention is required by law.
+              We hold on to your information only as long as we need it to provide services and meet legal obligations. If you ever ask us to delete your account or your data, we will take care of that within 30 days, unless the law requires us to keep it longer.
             </p>
           </div>
 
@@ -72,47 +72,47 @@ export default function PrivacyPage() {
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">6. Your Rights</h2>
             <p className="mb-3">You have the right to:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Access the personal information we hold about you</li>
-              <li>Correct inaccurate information</li>
-              <li>Request deletion of your information</li>
-              <li>Opt out of marketing communications at any time</li>
-              <li>Data portability where applicable</li>
+              <li>See what personal information we have about you</li>
+              <li>Ask us to correct anything that&apos;s inaccurate</li>
+              <li>Request that we delete your information</li>
+              <li>Unsubscribe from marketing emails at any time</li>
+              <li>Receive a copy of your data where applicable</li>
             </ul>
-            <p className="mt-3">To exercise any of these rights, contact us at <a href="mailto:hello@thryvegrowth.co" className="text-brand-700 underline underline-offset-4">hello@thryvegrowth.co</a>.</p>
+            <p className="mt-3">If you want to exercise any of these rights, just email us at <a href="mailto:hello@thryvegrowth.co" className="text-brand-700 underline underline-offset-4">hello@thryvegrowth.co</a> and we&apos;ll take care of it.</p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">7. Security</h2>
             <p>
-              We implement industry-standard security measures to protect your information, including encrypted data storage (Supabase with row-level security), secure HTTPS transmission, and payment processing via PCI-compliant Stripe. No method of transmission over the internet is 100% secure, but we take reasonable steps to protect your data.
+              We take reasonable, industry-standard steps to keep your information safe. That includes encrypted data storage in Supabase with row-level security, secure HTTPS connections, and PCI-compliant payment processing through Stripe. No system on the internet is ever 100 percent secure, but we work hard to protect your data and treat it with care.
             </p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">8. Cookies</h2>
             <p>
-              Our website uses minimal cookies necessary for site functionality and analytics (Vercel Analytics). We do not use advertising or tracking cookies. You may disable cookies in your browser settings, though this may affect site functionality.
+              We only use the cookies our site needs to function and a small set for basic analytics through Vercel. We don&apos;t run advertising or third-party tracking cookies. You can turn cookies off in your browser settings if you prefer, though some parts of the site may not work as smoothly.
             </p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">9. Children&apos;s Privacy</h2>
             <p>
-              Our services are not directed to individuals under 18. We do not knowingly collect personal information from minors. If you believe we have collected information from a minor, contact us immediately.
+              Our services are designed for adults and aren&apos;t intended for anyone under 18. We don&apos;t knowingly collect personal information from minors. If you believe a minor has shared information with us, please reach out and we&apos;ll remove it right away.
             </p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">10. Changes to This Policy</h2>
             <p>
-              We may update this Privacy Policy from time to time. We will notify you of material changes by updating the effective date and, where appropriate, by email. Continued use of our services after changes constitutes acceptance of the updated policy.
+              We may update this Privacy Policy from time to time. When we make a meaningful change, we&apos;ll update the effective date above and, where it makes sense, send you a note by email. Continuing to use our services after a change means you accept the updated policy.
             </p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">11. Contact Us</h2>
             <p>
-              Questions about this Privacy Policy? Contact us at:
+              Have a question about this policy? We&apos;re happy to hear from you.
             </p>
             <div className="mt-3 bg-neutral-50 rounded-xl border border-neutral-200 p-4 text-sm">
               <p className="font-semibold text-neutral-900">Thryve Growth Co. LLC</p>

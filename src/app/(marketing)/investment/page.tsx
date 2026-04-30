@@ -15,31 +15,31 @@ const individualServices = [
     category: "Career & Leadership Coaching",
     href: "/services/coaching",
     options: [
-      { name: "Single Coaching Session", price: "$125", unit: "per session", note: "" },
-      { name: "3-Session Coaching Package", price: "$400", unit: "package", note: "Save $25" },
+      { name: "Single Session", price: "$125", unit: "per session", note: "" },
+      { name: "4-Session Coaching Plan", price: "$425", unit: "package", note: "" },
     ],
   },
   {
     category: "Interview Preparation",
     href: "/services/interview-prep",
     options: [
-      { name: "Single Interview Prep Session", price: "$100", unit: "per session", note: "" },
-      { name: "2-Session Interview Prep Package", price: "$250", unit: "package", note: "Best value" },
+      { name: "Single Session", price: "$100", unit: "per session", note: "" },
+      { name: "Interview Package (3 Sessions)", price: "$250", unit: "package", note: "" },
     ],
   },
   {
     category: "Resume & Career Materials",
     href: "/services/resume-materials",
     options: [
-      { name: "Resume Review", price: "$75", unit: "one-time", note: "Written feedback" },
-      { name: "Full Resume Rewrite", price: "$200", unit: "one-time", note: "Includes intake call + 2 revisions" },
+      { name: "Resume Review + Edits", price: "$75", unit: "one-time", note: "Written feedback and minor revisions" },
+      { name: "Full Resume Rewrite", price: "$150", unit: "one-time", note: "Includes intake call and two revisions" },
     ],
   },
   {
     category: "Job Alerts & Watchlists",
     href: "/services/job-alerts",
     options: [
-      { name: "Job Alerts Monthly Subscription", price: "$50", unit: "/month", note: "Cancel anytime" },
+      { name: "Monthly Support", price: "$15", unit: "/month", note: "Cancel anytime" },
     ],
   },
 ];
@@ -49,8 +49,8 @@ const businessServices = [
     category: "HR Consulting & Team Development",
     href: "/services/hr-consulting",
     options: [
-      { name: "HR Consulting, Hourly", price: "$100", unit: "/hour", note: "" },
-      { name: "HR Consulting, Project-Based", price: "$500+", unit: "project", note: "Scope determined after assessment" },
+      { name: "Hourly Support", price: "$125", unit: "/hour", note: "" },
+      { name: "Project-Based Work", price: "$500+", unit: "starting", note: "Scope determined after assessment" },
     ],
   },
   {
@@ -172,11 +172,11 @@ export default function InvestmentPage() {
         </div>
       </section>
 
-      {/* Why Transparent Pricing */}
+      {/* A Quick Note on Pricing */}
       <section className="py-16 bg-white border-t border-neutral-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h2 className="font-display text-xl font-bold text-neutral-900 mb-6">Why Pricing Is Public</h2>
+            <h2 className="font-display text-xl font-bold text-neutral-900 mb-6">A Quick Note on Pricing</h2>
             <ul className="space-y-3">
               {whyPublic.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-neutral-600 text-sm leading-relaxed">
@@ -190,10 +190,11 @@ export default function InvestmentPage() {
       </section>
 
       <SectionCTA
-        heading="Ready to Get Started?"
+        heading="Not Sure Where to Start?"
         body="Pick a service, book a call, or just reach out if you have questions. No pressure either way."
-        primaryLabel="Book a Call"
-        secondaryLabel="View Services"
+        primaryLabel="Work With Me"
+        primaryHref="/book"
+        secondaryLabel="Start Your Growth"
         secondaryHref="/services"
       />
     </>

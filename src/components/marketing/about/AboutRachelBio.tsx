@@ -25,9 +25,10 @@ export function AboutRachelBio() {
             The Person Behind the Work
           </h2>
           <p className="text-neutral-600 leading-relaxed">
-            I didn&apos;t start in coaching. I started in the trenches of HR, managing
-            difficult conversations, building teams, and figuring out what actually
-            moves people forward vs. what just looks good on paper.
+            I didn&apos;t land here by accident. I built my career from the ground
+            up, starting in assistant level roles and working my way into senior
+            leadership. Every step came with a learning curve, tough moments, and
+            a lot of figuring things out in real time.
           </p>
         </div>
 
@@ -36,29 +37,17 @@ export function AboutRachelBio() {
           {/* Bio copy — wider column */}
           <div className="lg:col-span-3 space-y-5 text-neutral-600 leading-relaxed">
             <p>
-              Over more than a decade in HR leadership, I&apos;ve hired hundreds of
-              people, coached managers through their hardest conversations, helped
-              individuals land roles they didn&apos;t think were possible for them, and
-              built the kind of structures that let organizations actually grow,
-              not just expand headcount.
+              That experience shaped how I approach this work.
             </p>
             <p>
-              I&apos;ve seen what works and what doesn&apos;t. I&apos;ve watched companies invest
-              in the wrong things and leaders repeat the same patterns. And I&apos;ve
-              helped people find real clarity when they couldn&apos;t see a way forward.
+              I&apos;m not here to give surface level advice or tell you what
+              sounds good. I&apos;m here to help you get clear, be honest about
+              what&apos;s actually going on, and take action that moves you forward.
             </p>
             <p>
-              What I know for certain is this: generic advice doesn&apos;t produce
-              real results. Cookie-cutter coaching doesn&apos;t create lasting change.
-              The only way to grow is to look honestly at where you are, get
-              clear on where you want to go, and then do the actual work to get
-              there, with accountability and support from someone who&apos;s been
-              in the room.
-            </p>
-            <p>
-              That&apos;s what Thryve Growth Co. is. It&apos;s the support I wish more
-              leaders and job seekers had access to: practical, direct, and
-              grounded in what actually works.
+              Through Thryve Growth Co., I work with individuals and organizations
+              who are ready to take their growth seriously and do the work it
+              requires.
             </p>
 
             {/* Highlights */}
@@ -96,9 +85,8 @@ export function AboutRachelBio() {
                 Rachel&apos;s philosophy:
               </p>
               <p className="text-sm text-brand-700 leading-relaxed italic">
-                &ldquo;Growth isn&apos;t comfortable. But it is possible, if you&apos;re willing
-                to be honest about where you are and committed to doing the work
-                to get where you want to go.&rdquo;
+                &ldquo;I&apos;ll support you, and I&apos;ll be honest with you. You
+                need both.&rdquo;
               </p>
             </div>
           </div>

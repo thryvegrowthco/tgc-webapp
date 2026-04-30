@@ -186,7 +186,7 @@ export function WatchlistSetupForm({ initialData }: Props) {
         <label className={labelClass}>Notes for Rachel</label>
         <textarea
           rows={4}
-          placeholder="Anything else Rachel should know — deal-breakers, company culture preferences, industries to avoid, etc."
+          placeholder="Anything else Rachel should know: deal-breakers, company culture preferences, industries to avoid, etc."
           value={preferencesNotes}
           onChange={(e) => setPreferencesNotes(e.target.value)}
           className={fieldClass}

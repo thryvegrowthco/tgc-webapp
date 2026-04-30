@@ -20,7 +20,7 @@ const photoConfig: Record<PhotoVariant, { src: string; alt: string; width: numbe
   },
   about: {
     src: "/images/headshots/rachel-about.webp",
-    alt: "Rachel, Founder of Thryve Growth Co. — About",
+    alt: "Rachel, Founder of Thryve Growth Co.",
     width: 560,
     height: 700,
     label: "rachel-about.webp",
@@ -34,7 +34,7 @@ const photoConfig: Record<PhotoVariant, { src: string; alt: string; width: numbe
   },
   profile: {
     src: "/images/headshots/rachel-profile.webp",
-    alt: "Rachel — Thryve Growth Co.",
+    alt: "Rachel, Thryve Growth Co.",
     width: 200,
     height: 200,
     label: "rachel-profile.webp",

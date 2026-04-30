@@ -3,7 +3,7 @@ const steps = [
     number: "01",
     title: "Get Clear",
     description:
-      "We start with a real conversation. No intake forms, no fluff. We talk about where you are, where you want to be, and what's actually getting in the way. Clarity is the foundation of everything.",
+      "We start with a brief intake form so I can come prepared for our discovery call. Then we have a real conversation about where you are, where you want to be, and what's actually getting in the way. Clarity is the foundation of everything.",
   },
   {
     number: "02",
@@ -43,8 +43,8 @@ export function HomeHowWeWork() {
               How We Work Together
             </h2>
             <p className="text-neutral-600 leading-relaxed">
-              No mystery. No fluff. Here&apos;s exactly what working with Thryve
-              Growth Co. looks like.
+              No mystery. Just a clear, honest path forward. Here&apos;s exactly
+              what working with Thryve Growth Co. looks like.
             </p>
           </div>
 

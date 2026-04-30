@@ -21,7 +21,7 @@ export function HomeIntro() {
                   Based in
                 </p>
                 <p className="text-sm font-bold">
-                  Serving clients<br />nationwide
+                  Wisconsin
                 </p>
               </div>
             </div>
@@ -42,9 +42,9 @@ export function HomeIntro() {
             <div className="space-y-4 text-neutral-600 leading-relaxed">
               <p>
                 I&apos;m an HR professional and career coach with over a decade of
-                real-world experience leading HR teams, building company cultures,
-                and helping people navigate careers that actually mean something
-                to them.
+                real-world experience leading HR teams, guiding and co-creating
+                company cultures, and helping people navigate careers that actually
+                mean something to them.
               </p>
               <p>
                 I started Thryve Growth Co. because I kept seeing the same
