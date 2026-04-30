@@ -12,14 +12,14 @@ export const metadata: Metadata = {
 
 const options = [
   {
-    title: "Resume Review",
+    title: "Resume Review + Edits",
     price: "$75",
-    description: "I review your existing resume and provide detailed written feedback: what's working, what needs to change, and how to position yourself more effectively.",
-    includes: ["Written feedback on content and formatting", "Positioning and narrative review", "ATS optimization notes", "Prioritized list of changes to make"],
+    description: "I review your existing resume and provide written feedback and minor revisions: what's working, what needs to change, and how to position yourself more effectively.",
+    includes: ["Written feedback on content and formatting", "Minor revisions to your existing resume", "Positioning and narrative review", "ATS optimization notes", "Prioritized list of changes to make"],
   },
   {
     title: "Full Resume Rewrite",
-    price: "$200",
+    price: "$150",
     description: "Starting from your existing resume and a 30-minute intake call, I rewrite your resume from scratch: clean, clear, and positioned for where you want to go.",
     includes: ["30-minute intake call", "Complete rewrite (1-2 page)", "ATS-optimized format", "Two rounds of revisions", "Final file in Word + PDF"],
   },

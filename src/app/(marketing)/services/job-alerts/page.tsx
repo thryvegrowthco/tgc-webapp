@@ -117,7 +117,7 @@ export default function JobAlertsPage() {
                   <div className="p-2 bg-brand-50 rounded-lg"><Bell className="h-4 w-4 text-brand-600" /></div>
                   <p className="font-semibold text-neutral-800">Investment</p>
                 </div>
-                <p className="text-2xl font-display font-bold text-brand-700">$50<span className="text-base font-normal text-neutral-500">/month</span></p>
+                <p className="text-2xl font-display font-bold text-brand-700">$15<span className="text-base font-normal text-neutral-500">/month</span></p>
                 <p className="text-sm text-neutral-500 mt-1">Cancel anytime.</p>
                 <div className="mt-4">
                   <Button asChild size="sm">

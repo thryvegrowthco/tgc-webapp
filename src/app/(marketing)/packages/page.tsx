@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 const packages = [
   {
     name: "Coaching Package",
-    subtitle: "3-Session Coaching Series",
-    price: "$400",
-    savings: "Save $25 vs. individual sessions",
+    subtitle: "4-Session Coaching Plan",
+    price: "$425",
+    savings: "Save $75 vs. individual sessions",
     badgeColor: "bg-brand-600",
     description:
-      "Three focused 1:1 coaching sessions designed to build momentum. Whether you're navigating a transition, developing as a leader, or working through what's next, three sessions gives us enough time to get clear and start moving.",
+      "Four focused 1:1 coaching sessions designed to build real momentum. Whether you're navigating a transition, developing as a leader, or working through what's next, four sessions give us enough time to get clear, build a plan, and start moving.",
     includes: [
-      "3 x 1-hour coaching sessions (virtual)",
+      "4 x 1-hour coaching sessions (virtual)",
       "Pre-session prep materials",
       "Accountability check-ins between sessions",
       "Post-series action plan",
@@ -32,18 +32,19 @@ const packages = [
   },
   {
     name: "Interview Prep Package",
-    subtitle: "2-Session Interview Series",
+    subtitle: "3-Session Interview Series",
     price: "$250",
-    savings: "Best value for interview prep",
+    savings: "Save $50 vs. individual sessions",
     badgeColor: "bg-neutral-800",
     description:
-      "Two sessions dedicated to getting you interview-ready. The first session focuses on strategy, story, and the basics. The second is a full mock interview with real feedback so you can walk in prepared.",
+      "Three sessions dedicated to getting you interview-ready. We start with strategy and story, work through a full mock interview with real feedback, then sharpen everything in a final prep session so you walk in confident.",
     includes: [
       "Session 1: Strategy, framing, and behavioral question prep",
       "Session 2: Full mock interview with real-time feedback",
+      "Session 3: Refined mock interview and final prep",
       "Written post-session feedback",
       "STAR method coaching",
-      "Question bank for your target role/industry",
+      "Question bank for your target role and industry",
     ],
     bestFor: "Upcoming interviews, career changers, returning to the job market",
     href: "/book",
@@ -54,9 +55,9 @@ const packages = [
 const buildYourOwn = [
   { label: "Career Coaching Session", price: "$125", href: "/services/coaching" },
   { label: "Interview Prep Session", price: "$100", href: "/services/interview-prep" },
-  { label: "Resume Review", price: "$75", href: "/services/resume-materials" },
-  { label: "Full Resume Rewrite", price: "$200", href: "/services/resume-materials" },
-  { label: "Job Alerts (monthly)", price: "$50/mo", href: "/services/job-alerts" },
+  { label: "Resume Review + Edits", price: "$75", href: "/services/resume-materials" },
+  { label: "Full Resume Rewrite", price: "$150", href: "/services/resume-materials" },
+  { label: "Job Alerts (monthly)", price: "$15/mo", href: "/services/job-alerts" },
 ];
 
 export default function PackagesPage() {

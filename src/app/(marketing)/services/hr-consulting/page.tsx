@@ -70,7 +70,7 @@ export default function HRConsultingPage() {
 
               <div className="bg-brand-50 rounded-xl p-5 border border-brand-100">
                 <p className="text-sm font-semibold text-brand-800 mb-1">Investment</p>
-                <p className="text-2xl font-display font-bold text-brand-700">$100<span className="text-base font-normal text-brand-600">/hour</span></p>
+                <p className="text-2xl font-display font-bold text-brand-700">$125<span className="text-base font-normal text-brand-600">/hour</span></p>
                 <p className="text-sm text-brand-700 mt-1">Project-based pricing available starting at $500</p>
                 <Link href="/investment" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800 mt-3">
                   View full pricing <ArrowRight className="h-3.5 w-3.5" />

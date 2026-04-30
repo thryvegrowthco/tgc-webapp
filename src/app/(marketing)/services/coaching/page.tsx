@@ -75,8 +75,8 @@ export default function CoachingPage() {
                     <span className="font-display font-bold text-brand-700 text-lg">$125</span>
                   </div>
                   <div className="flex items-baseline justify-between border-t border-brand-200 pt-2">
-                    <span className="text-sm text-neutral-700">3-Session Package</span>
-                    <span className="font-display font-bold text-brand-700 text-lg">$400 <span className="text-sm font-normal text-brand-600">save $25</span></span>
+                    <span className="text-sm text-neutral-700">4-Session Coaching Plan</span>
+                    <span className="font-display font-bold text-brand-700 text-lg">$425 <span className="text-sm font-normal text-brand-600">save $75</span></span>
                   </div>
                 </div>
                 <Link href="/investment" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800 mt-3">
