@@ -13,11 +13,11 @@ export const metadata: Metadata = {
 const included = [
   "Pre-session review of your resume, role, and target company",
   "Mock interview (behavioral, situational, role-specific)",
-  "Real-time and post-session feedback — honest, not sugarcoated",
+  "Real-time and post-session feedback: honest, not sugarcoated",
   "STAR method coaching for behavioral questions",
   "Strategy for answering tough questions (gaps, salary, weaknesses)",
   "How to research and prep for specific companies",
-  "Questions to ask — and why they matter",
+  "Questions to ask, and why they matter",
   "Follow-up strategy and thank-you note guidance",
 ];
 
@@ -42,7 +42,7 @@ export default function InterviewPrepPage() {
         eyebrow="For Individuals"
         title="Interview"
         titleAccent="Preparation"
-        description="Most people practice with friends who tell them what they want to hear. I'll tell you what you actually need to hear — and help you fix it before the real thing."
+        description="Most people practice with friends who tell them what they want to hear. I'll tell you what you actually need to hear, and help you fix it before the real thing."
       />
 
       <section className="py-20 lg:py-28 bg-white">
@@ -55,12 +55,12 @@ export default function InterviewPrepPage() {
               <p className="text-neutral-600 leading-relaxed mb-5">
                 I&apos;ve been on both sides of the interview table. As an HR professional
                 and hiring manager, I know exactly what interviewers are listening
-                for — and more importantly, what makes candidates stand out vs.
+                for, and more importantly, what makes candidates stand out vs.
                 blend in.
               </p>
               <p className="text-neutral-600 leading-relaxed mb-8">
                 Interview prep with me is not about scripting answers. It&apos;s about
-                helping you communicate clearly, confidently, and authentically —
+                helping you communicate clearly, confidently, and authentically,
                 and walking in with a strategy, not just hope.
               </p>
 

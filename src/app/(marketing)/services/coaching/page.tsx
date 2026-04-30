@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 
 const included = [
   "1:1 coaching sessions (virtual)",
-  "Career clarity — defining what you actually want and why",
+  "Career clarity: defining what you actually want and why",
   "Goal setting with real accountability built in",
   "Career transition strategy and planning",
   "Leadership skill development for new and experienced managers",
-  "Feedback on how you show up — honest, not just encouraging",
+  "Feedback on how you show up: honest, not just encouraging",
   "Action plans you can execute between sessions",
   "Support navigating workplace challenges and difficult situations",
 ];
@@ -26,7 +26,7 @@ const whoFor = [
   "People navigating a career transition or industry change",
   "New managers stepping into leadership for the first time",
   "Experienced leaders ready to operate at the next level",
-  "High performers who want more — more clarity, more impact, more intention",
+  "High performers who want more: more clarity, more impact, more intention",
   "Anyone who wants real accountability alongside real support",
 ];
 
@@ -43,7 +43,7 @@ export default function CoachingPage() {
         eyebrow="For Individuals"
         title="Career & Leadership"
         titleAccent="Coaching"
-        description="Coaching that's actually grounded in how hiring, leadership, and career growth work in the real world — not just motivational frameworks. Get clear on where you want to go, build a plan to get there, and have someone in your corner who will hold you to it."
+        description="Coaching that's actually grounded in how hiring, leadership, and career growth work in the real world, not just motivational frameworks. Get clear on where you want to go, build a plan to get there, and have someone in your corner who will hold you to it."
       />
 
       {/* What's Included */}
@@ -61,7 +61,7 @@ export default function CoachingPage() {
                 go, and build a practical plan to get there.
               </p>
               <p className="text-neutral-600 leading-relaxed mb-8">
-                I bring 10+ years of actual HR experience into every session — which
+                I bring 10+ years of actual HR experience into every session, which
                 means I understand how careers really work, what hiring managers
                 are actually thinking, and how to help you navigate workplace
                 dynamics with confidence.

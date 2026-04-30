@@ -34,7 +34,7 @@ export default async function BlogPage() {
               Practical Insights for <span className="text-brand-700">Real Growth</span>
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
-              Career advice, leadership insights, and HR perspective — grounded in real experience, not trends.
+              Career advice, leadership insights, and HR perspective, grounded in real experience, not trends.
             </p>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default async function BlogPage() {
             <div className="bg-brand-50 border border-brand-100 rounded-xl px-5 py-4 flex items-center gap-3 max-w-2xl">
               <span className="text-brand-600 text-lg">✍️</span>
               <p className="text-sm text-brand-800">
-                <span className="font-semibold">Posts coming soon.</span> Rachel is working on the first batch of articles — subscribe below to be notified when they publish.
+                <span className="font-semibold">Posts coming soon.</span> Rachel is working on the first batch of articles. Subscribe below to be notified when they publish.
               </p>
             </div>
           ) : (
@@ -125,7 +125,7 @@ export default async function BlogPage() {
             Get New Posts in Your Inbox
           </h2>
           <p className="text-neutral-600 text-sm mb-6">
-            Practical career and leadership insights — no filler, no spam.
+            Practical career and leadership insights, no filler, no spam.
           </p>
           <NewsletterForm />
           <p className="text-xs text-neutral-400 mt-3">Unsubscribe anytime.</p>
@@ -134,7 +134,7 @@ export default async function BlogPage() {
 
       <SectionCTA
         heading="Want to Work Together?"
-        body="The blog is one thing — but real growth happens in real conversations. Book a call and let's talk."
+        body="The blog is one thing, but real growth happens in real conversations. Book a call and let's talk."
         primaryLabel="Book a Call"
         secondaryLabel="View Services"
         secondaryHref="/services"

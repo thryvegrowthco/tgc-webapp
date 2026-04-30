@@ -7,20 +7,20 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 export const metadata: Metadata = {
   title: "Resume & Career Materials",
   description:
-    "Resume review, full rewrite, LinkedIn optimization, and cover letters — career materials that actually tell your story the right way.",
+    "Resume review, full rewrite, LinkedIn optimization, and cover letters: career materials that actually tell your story the right way.",
 };
 
 const options = [
   {
     title: "Resume Review",
     price: "$75",
-    description: "I review your existing resume and provide detailed written feedback — what's working, what needs to change, and how to position yourself more effectively.",
+    description: "I review your existing resume and provide detailed written feedback: what's working, what needs to change, and how to position yourself more effectively.",
     includes: ["Written feedback on content and formatting", "Positioning and narrative review", "ATS optimization notes", "Prioritized list of changes to make"],
   },
   {
     title: "Full Resume Rewrite",
     price: "$200",
-    description: "Starting from your existing resume and a 30-minute intake call, I rewrite your resume from scratch — clean, clear, and positioned for where you want to go.",
+    description: "Starting from your existing resume and a 30-minute intake call, I rewrite your resume from scratch: clean, clear, and positioned for where you want to go.",
     includes: ["30-minute intake call", "Complete rewrite (1-2 page)", "ATS-optimized format", "Two rounds of revisions", "Final file in Word + PDF"],
   },
 ];
@@ -43,7 +43,7 @@ export default function ResumeMaterialsPage() {
         eyebrow="For Individuals"
         title="Resume & Career"
         titleAccent="Materials"
-        description="Your resume is not just a list of jobs — it's a story about what you bring and where you're headed. I'll help you tell that story in a way that actually lands."
+        description="Your resume is not just a list of jobs. It's a story about what you bring and where you're headed. I'll help you tell that story in a way that actually lands."
       />
 
       <section className="py-20 lg:py-28 bg-white">
@@ -53,7 +53,7 @@ export default function ResumeMaterialsPage() {
           </h2>
           <p className="text-neutral-600 leading-relaxed mb-12 max-w-2xl">
             As someone who has reviewed thousands of resumes as an HR professional
-            and hiring manager, I know exactly what gets attention — and what gets
+            and hiring manager, I know exactly what gets attention, and what gets
             you passed over. My resume work is practical, direct, and built around
             helping you compete for the roles you actually want.
           </p>

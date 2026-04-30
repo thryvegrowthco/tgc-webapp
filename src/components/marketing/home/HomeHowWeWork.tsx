@@ -3,19 +3,19 @@ const steps = [
     number: "01",
     title: "Get Clear",
     description:
-      "We start with a real conversation — no intake forms, no fluff. We talk about where you are, where you want to be, and what's actually getting in the way. Clarity is the foundation of everything.",
+      "We start with a real conversation. No intake forms, no fluff. We talk about where you are, where you want to be, and what's actually getting in the way. Clarity is the foundation of everything.",
   },
   {
     number: "02",
     title: "Build a Plan",
     description:
-      "Together we map out a path that makes sense for your situation. Not a generic playbook — a practical, focused strategy built around your goals, your timeline, and what you're actually capable of executing.",
+      "Together we map out a path that makes sense for your situation. Not a generic playbook, but a practical, focused strategy built around your goals, your timeline, and what you're actually capable of executing.",
   },
   {
     number: "03",
     title: "Do the Work",
     description:
-      "This is where it gets real. We work, we adjust, and I hold you accountable. Growth isn't comfortable — but it is possible when you have the right support and someone who won't let you off the hook.",
+      "This is where it gets real. We work, we adjust, and I hold you accountable. Growth isn't comfortable, but it is possible when you have the right support and someone who won't let you off the hook.",
   },
 ];
 

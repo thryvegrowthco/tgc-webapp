@@ -18,7 +18,7 @@ const services = [
     badgeColor: "bg-brand-100 text-brand-800",
     title: "Career & Leadership Coaching",
     description:
-      "Whether you're navigating a career transition, stepping into leadership, or just feeling stuck — I'll help you get clear on where you want to go and how to get there.",
+      "Whether you're navigating a career transition, stepping into leadership, or just feeling stuck, I'll help you get clear on where you want to go and how to get there.",
     href: "/services/coaching",
   },
   {
@@ -55,7 +55,7 @@ export function HomeServicesOverview() {
           </h2>
           <p className="text-neutral-600 leading-relaxed">
             Whether you&apos;re building a team or building a career, there&apos;s a path
-            forward — and I&apos;m here to help you find it.
+            forward, and I&apos;m here to help you find it.
           </p>
         </div>
 

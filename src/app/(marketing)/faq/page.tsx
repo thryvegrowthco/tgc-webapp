@@ -21,11 +21,11 @@ const faqCategories = [
     items: [
       {
         q: "How do I know if Thryve Growth Co. is the right fit for me?",
-        a: "The best way to find out is to book a call. We'll talk about what's going on, what you're looking to get out of working together, and whether I'm the right person to help. I'll be honest if I don't think I'm the right fit — I'd rather tell you that upfront than take your money and underdeliver.",
+        a: "The best way to find out is to book a call. We'll talk about what's going on, what you're looking to get out of working together, and whether I'm the right person to help. I'll be honest if I don't think I'm the right fit. I'd rather tell you that upfront than take your money and underdeliver.",
       },
       {
         q: "What happens after I book a call?",
-        a: "Once you submit your inquiry, I'll review it personally and reach out within 1–2 business days to confirm your call and send a calendar invite. Our first conversation is about understanding your situation — not a sales pitch.",
+        a: "Once you submit your inquiry, I'll review it personally and reach out within 1–2 business days to confirm your call and send a calendar invite. Our first conversation is about understanding your situation, not a sales pitch.",
       },
       {
         q: "Do you work with individuals and businesses?",
@@ -42,7 +42,7 @@ const faqCategories = [
     items: [
       {
         q: "What does a coaching session look like?",
-        a: "Sessions are 60 minutes, conducted via video call. We'll typically start by reviewing where you are relative to your goals or actions from our last session, dig into whatever is most pressing, and close with clear next steps and accountability. Every session is focused and practical — not freeform conversation.",
+        a: "Sessions are 60 minutes, conducted via video call. We'll typically start by reviewing where you are relative to your goals or actions from our last session, dig into whatever is most pressing, and close with clear next steps and accountability. Every session is focused and practical, not freeform conversation.",
       },
       {
         q: "How many sessions will I need?",
@@ -50,7 +50,7 @@ const faqCategories = [
       },
       {
         q: "What's the difference between coaching and HR consulting?",
-        a: "Coaching is 1:1 work focused on your individual goals — career, leadership, professional development. HR consulting is organizational — I work with companies to build HR infrastructure, develop managers, improve culture, and solve people-related business challenges. Some clients use both.",
+        a: "Coaching is 1:1 work focused on your individual goals: career, leadership, professional development. HR consulting is organizational. I work with companies to build HR infrastructure, develop managers, improve culture, and solve people-related business challenges. Some clients use both.",
       },
       {
         q: "Do you offer ongoing retainer relationships for businesses?",
@@ -71,7 +71,7 @@ const faqCategories = [
       },
       {
         q: "What's your refund policy?",
-        a: "For sessions already completed, I don't offer refunds — but I do take responsibility for the quality of my work. If you're not getting value from our sessions, I want to know. For unused sessions in a package, those can be applied to a future engagement.",
+        a: "For sessions already completed, I don't offer refunds, but I do take responsibility for the quality of my work. If you're not getting value from our sessions, I want to know. For unused sessions in a package, those can be applied to a future engagement.",
       },
       {
         q: "Can I use my employer's professional development budget?",
@@ -109,7 +109,7 @@ const faqCategories = [
       },
       {
         q: "Can I update my watchlist preferences?",
-        a: "Yes — log into your dashboard anytime to update your watchlist profile. As your search evolves, your criteria can evolve too.",
+        a: "Yes. Log into your dashboard anytime to update your watchlist profile. As your search evolves, your criteria can evolve too.",
       },
       {
         q: "Is there a minimum commitment for the Job Alerts subscription?",

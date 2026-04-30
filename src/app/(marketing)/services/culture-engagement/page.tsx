@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 const included = [
-  "Culture assessment — honest look at current state vs. desired state",
+  "Culture assessment: honest look at current state vs. desired state",
   "Employee engagement analysis and gap identification",
   "Values definition and behavioral alignment",
   "Manager accountability and leadership consistency audits",
@@ -40,7 +40,7 @@ export default function CultureEngagementPage() {
         eyebrow="For Businesses"
         title="Culture & Engagement"
         titleAccent="Consulting"
-        description="Culture isn't what you say it is — it's what your team experiences every day. I help organizations close the gap between the culture they claim to have and the one they're actually building."
+        description="Culture isn't what you say it is. It's what your team experiences every day. I help organizations close the gap between the culture they claim to have and the one they're actually building."
       />
 
       <section className="py-20 lg:py-28 bg-white">
@@ -57,7 +57,7 @@ export default function CultureEngagementPage() {
                 how performance is rewarded.
               </p>
               <p className="text-neutral-600 leading-relaxed mb-8">
-                Culture consulting starts with an honest assessment — not a
+                Culture consulting starts with an honest assessment, not a
                 feel-good survey. We look at what&apos;s actually happening, identify
                 the gaps, and build a clear plan to close them. No buzzwords,
                 no programs that fade after a week.

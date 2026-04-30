@@ -8,19 +8,19 @@ import { Button } from "@/components/ui/button";
 export const metadata: Metadata = {
   title: "Job Alerts & Watchlists",
   description:
-    "Curated job matches delivered to you — filtered to your goals, your experience, and your preferences. Manual curation by Rachel plus automated job board feeds.",
+    "Curated job matches delivered to you, filtered to your goals, your experience, and your preferences. Manual curation by Rachel plus automated job board feeds.",
 };
 
 const howItWorks = [
   {
     step: "01",
     title: "Set Up Your Profile",
-    description: "Tell me what you're looking for — target roles, industries, locations, salary range, remote preference, and any other criteria that matter to you.",
+    description: "Tell me what you're looking for: target roles, industries, locations, salary range, remote preference, and any other criteria that matter to you.",
   },
   {
     step: "02",
     title: "Rachel Reviews & Curates",
-    description: "I personally review matches and add roles I think fit your goals — including jobs I spot that you might not find on your own.",
+    description: "I personally review matches and add roles I think fit your goals, including jobs I spot that you might not find on your own.",
   },
   {
     step: "03",
@@ -56,7 +56,7 @@ export default function JobAlertsPage() {
         eyebrow="For Individuals"
         title="Job Alerts &"
         titleAccent="Watchlists"
-        description="Stop scrolling job boards for hours. I'll surface the right opportunities for you — curated manually and pulled from live feeds — so you can focus on applying strategically instead of searching endlessly."
+        description="Stop scrolling job boards for hours. I'll surface the right opportunities for you, curated manually and pulled from live feeds, so you can focus on applying strategically instead of searching endlessly."
       />
 
       {/* How It Works */}
@@ -98,7 +98,7 @@ export default function JobAlertsPage() {
                   <p className="font-semibold text-brand-800">Human Curation</p>
                 </div>
                 <p className="text-sm text-brand-700 leading-relaxed">
-                  Rachel manually reviews and adds matches — including roles she spots that fit your goals, even if they don&apos;t show up in automated searches.
+                  Rachel manually reviews and adds matches, including roles she spots that fit your goals, even if they don&apos;t show up in automated searches.
                 </p>
               </div>
               <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6">
@@ -145,7 +145,7 @@ export default function JobAlertsPage() {
 
       <SectionCTA
         heading="Ready to Let Someone Else Do the Searching?"
-        body="Set up your watchlist and get curated job matches delivered to your dashboard — without the daily scroll."
+        body="Set up your watchlist and get curated job matches delivered to your dashboard, without the daily scroll."
         primaryLabel="Get Started"
         secondaryLabel="View Pricing"
         secondaryHref="/investment"

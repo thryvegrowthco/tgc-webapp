@@ -7,7 +7,7 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 export const metadata: Metadata = {
   title: "Packages",
   description:
-    "Bundled coaching and career packages from Thryve Growth Co. — more support, more value, more momentum.",
+    "Bundled coaching and career packages from Thryve Growth Co., built for more support, more value, and more momentum.",
 };
 
 const packages = [
@@ -18,7 +18,7 @@ const packages = [
     savings: "Save $25 vs. individual sessions",
     badgeColor: "bg-brand-600",
     description:
-      "Three focused 1:1 coaching sessions designed to build momentum. Whether you're navigating a transition, developing as a leader, or working through what's next — three sessions gives us enough time to get clear and start moving.",
+      "Three focused 1:1 coaching sessions designed to build momentum. Whether you're navigating a transition, developing as a leader, or working through what's next, three sessions gives us enough time to get clear and start moving.",
     includes: [
       "3 x 1-hour coaching sessions (virtual)",
       "Pre-session prep materials",
@@ -74,7 +74,7 @@ export default function PackagesPage() {
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
               Bundled packages are designed for people who are serious about
-              moving forward — and who understand that real progress takes more
+              moving forward, and who understand that real progress takes more
               than a single conversation.
             </p>
           </div>
@@ -174,7 +174,7 @@ export default function PackagesPage() {
 
       <SectionCTA
         heading="Not Sure Which Package Is Right?"
-        body="Book a call and let's figure it out together. There's no obligation — just an honest conversation about what makes sense for your situation."
+        body="Book a call and let's figure it out together. There's no obligation, just an honest conversation about what makes sense for your situation."
         primaryLabel="Book a Call"
         secondaryLabel="View All Services"
         secondaryHref="/services"

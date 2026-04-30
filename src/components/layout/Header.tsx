@@ -38,6 +38,7 @@ const addOnServices = [
 const navLinks = [
   { label: "About", href: "/about" },
   { label: "Investment", href: "/investment" },
+  { label: "Resources", href: "/resources" },
   { label: "Blog", href: "/blog" },
 ];
 

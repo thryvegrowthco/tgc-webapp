@@ -4,7 +4,7 @@ const values = [
   {
     title: "Honesty Over Comfort",
     description:
-      "The most valuable thing I can give you is the truth — even when it's hard to hear. Real growth starts with an honest look at where you actually are.",
+      "The most valuable thing I can give you is the truth, even when it's hard to hear. Real growth starts with an honest look at where you actually are.",
   },
   {
     title: "Accountability That Sticks",
@@ -19,7 +19,7 @@ const values = [
   {
     title: "Tailored, Not Template",
     description:
-      "Your situation is specific. Your strategy should be too. I don't pull out a playbook — I build one with you based on your actual context.",
+      "Your situation is specific. Your strategy should be too. I don't pull out a playbook. I build one with you based on your actual context.",
   },
   {
     title: "Respect for Your Time",
@@ -29,7 +29,7 @@ const values = [
   {
     title: "Belief in Your Potential",
     description:
-      "I only take on clients I believe in. If I'm working with you, it's because I genuinely believe you can get where you want to go — and I'll help you prove it.",
+      "I only take on clients I believe in. If I'm working with you, it's because I genuinely believe you can get where you want to go, and I'll help you prove it.",
   },
 ];
 

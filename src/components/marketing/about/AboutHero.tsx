@@ -30,7 +30,7 @@ export function AboutHero() {
             <p className="text-lg text-neutral-600 leading-relaxed max-w-xl">
               Thryve Growth Co. was built on one simple belief: that real growth
               requires real honesty. Not the kind of coaching that tells you
-              what you want to hear — the kind that helps you see clearly and
+              what you want to hear, but the kind that helps you see clearly and
               move forward with intention.
             </p>
             <div className="mt-8 flex items-center gap-6 text-sm text-neutral-500">

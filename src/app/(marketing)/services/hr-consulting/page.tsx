@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 const included = [
-  "HR infrastructure audit — what's working, what isn't, what's missing",
+  "HR infrastructure audit: what's working, what isn't, and what's missing",
   "Role clarity and accountability systems",
   "Performance management framework design and implementation",
   "Hiring strategy, process design, and interview frameworks",
@@ -58,7 +58,7 @@ export default function HRConsultingPage() {
               </h2>
               <p className="text-neutral-600 leading-relaxed mb-8">
                 HR consulting with Thryve Growth Co. is not about writing handbooks
-                that sit in a drawer. It&apos;s about building real infrastructure — the
+                that sit in a drawer. It&apos;s about building real infrastructure, the
                 kind that helps your team operate with clarity, your managers lead
                 with confidence, and your organization grow sustainably.
               </p>

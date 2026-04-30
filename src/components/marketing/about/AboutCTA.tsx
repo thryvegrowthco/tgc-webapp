@@ -18,7 +18,7 @@ export function AboutCTA() {
         </h2>
         <p className="text-brand-200 text-lg leading-relaxed max-w-xl mx-auto mb-10">
           If you&apos;re ready to stop spinning your wheels and start making real
-          progress — whether for yourself or your organization — I&apos;d love to
+          progress, whether for yourself or your organization, I&apos;d love to
           connect.
         </p>
 

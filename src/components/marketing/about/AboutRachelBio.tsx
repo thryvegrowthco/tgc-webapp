@@ -25,7 +25,7 @@ export function AboutRachelBio() {
             The Person Behind the Work
           </h2>
           <p className="text-neutral-600 leading-relaxed">
-            I didn&apos;t start in coaching. I started in the trenches of HR — managing
+            I didn&apos;t start in coaching. I started in the trenches of HR, managing
             difficult conversations, building teams, and figuring out what actually
             moves people forward vs. what just looks good on paper.
           </p>
@@ -39,7 +39,7 @@ export function AboutRachelBio() {
               Over more than a decade in HR leadership, I&apos;ve hired hundreds of
               people, coached managers through their hardest conversations, helped
               individuals land roles they didn&apos;t think were possible for them, and
-              built the kind of structures that let organizations actually grow —
+              built the kind of structures that let organizations actually grow,
               not just expand headcount.
             </p>
             <p>
@@ -52,12 +52,12 @@ export function AboutRachelBio() {
               real results. Cookie-cutter coaching doesn&apos;t create lasting change.
               The only way to grow is to look honestly at where you are, get
               clear on where you want to go, and then do the actual work to get
-              there — with accountability and support from someone who&apos;s been
+              there, with accountability and support from someone who&apos;s been
               in the room.
             </p>
             <p>
               That&apos;s what Thryve Growth Co. is. It&apos;s the support I wish more
-              leaders and job seekers had access to — practical, direct, and
+              leaders and job seekers had access to: practical, direct, and
               grounded in what actually works.
             </p>
 
@@ -96,7 +96,7 @@ export function AboutRachelBio() {
                 Rachel&apos;s philosophy:
               </p>
               <p className="text-sm text-brand-700 leading-relaxed italic">
-                &ldquo;Growth isn&apos;t comfortable. But it is possible — if you&apos;re willing
+                &ldquo;Growth isn&apos;t comfortable. But it is possible, if you&apos;re willing
                 to be honest about where you are and committed to doing the work
                 to get where you want to go.&rdquo;
               </p>

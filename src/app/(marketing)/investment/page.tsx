@@ -7,7 +7,7 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 export const metadata: Metadata = {
   title: "Investment",
   description:
-    "Transparent pricing for all Thryve Growth Co. services — HR consulting, career coaching, interview prep, resume writing, and job alerts.",
+    "Transparent pricing for all Thryve Growth Co. services: HR consulting, career coaching, interview prep, resume writing, and job alerts.",
 };
 
 const individualServices = [
@@ -49,8 +49,8 @@ const businessServices = [
     category: "HR Consulting & Team Development",
     href: "/services/hr-consulting",
     options: [
-      { name: "HR Consulting — Hourly", price: "$100", unit: "/hour", note: "" },
-      { name: "HR Consulting — Project-Based", price: "$500+", unit: "project", note: "Scope determined after assessment" },
+      { name: "HR Consulting, Hourly", price: "$100", unit: "/hour", note: "" },
+      { name: "HR Consulting, Project-Based", price: "$500+", unit: "project", note: "Scope determined after assessment" },
     ],
   },
   {
@@ -64,7 +64,7 @@ const businessServices = [
 
 const whyPublic = [
   "You deserve to know what you're getting into before a single conversation",
-  "No surprise invoices — every engagement is scoped and agreed on upfront",
+  "No surprise invoices. Every engagement is scoped and agreed on upfront",
   "Pricing reflects the real-world experience and outcomes you're getting",
   "If it doesn't fit your budget, I'll be honest about that too",
 ];

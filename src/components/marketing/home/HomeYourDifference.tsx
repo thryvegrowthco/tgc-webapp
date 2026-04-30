@@ -1,11 +1,11 @@
 import { CheckCircle2 } from "lucide-react";
 
 const differentiators = [
-  "Real HR experience — not just frameworks and theory",
-  "Direct, honest guidance — even when it's uncomfortable",
+  "Real HR experience, not just frameworks and theory",
+  "Direct, honest guidance, even when it's uncomfortable",
   "Practical tools and strategies you can actually use",
   "Accountability built into every engagement",
-  "No cookie-cutter approaches — everything is tailored to you",
+  "No cookie-cutter approaches; everything is tailored to you",
   "Someone in your corner who actually wants you to succeed",
 ];
 
@@ -29,7 +29,7 @@ export function HomeYourDifference() {
               You deserve more than generic advice and a PDF workbook. Growth
               happens when someone actually understands your situation, challenges
               your assumptions, and helps you build something that works for
-              your real life — not a theoretical one.
+              your real life, not a theoretical one.
             </p>
           </div>
 

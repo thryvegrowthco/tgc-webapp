@@ -15,14 +15,14 @@ export const metadata: Metadata = {
 const testimonials = [
   {
     quote:
-      "I had been in the same role for six years telling myself I was fine — Rachel was the first person who helped me see I had completely outgrown it. She didn't tell me what I wanted to hear. She asked the right questions and held me accountable to actually doing something about it. Three months later I accepted a director-level offer I never would have chased on my own.",
+      "I had been in the same role for six years telling myself I was fine. Rachel was the first person who helped me see I had completely outgrown it. She didn't tell me what I wanted to hear. She asked the right questions and held me accountable to actually doing something about it. Three months later I accepted a director-level offer I never would have chased on my own.",
     name: "Marcus T.",
     title: "Director of Operations",
     service: "Career & Leadership Coaching",
   },
   {
     quote:
-      "I had bombed three final-round interviews before working with Rachel. In two sessions she helped me understand exactly why — I was answering questions like I was still in my old role instead of the one I was applying for. Her feedback was direct and a little uncomfortable, which is exactly what I needed. I got an offer the next time out.",
+      "I had bombed three final-round interviews before working with Rachel. In two sessions she helped me understand exactly why: I was answering questions like I was still in my old role instead of the one I was applying for. Her feedback was direct and a little uncomfortable, which is exactly what I needed. I got an offer the next time out.",
     name: "Danielle K.",
     title: "Senior Product Manager, Healthcare Tech",
     service: "Interview Preparation",
@@ -36,14 +36,14 @@ const testimonials = [
   },
   {
     quote:
-      "We had grown to 22 employees and were still running HR like a startup — no documented processes, no accountability structure, managers making it up as they went. Rachel came in, assessed where we were, and gave us a framework we could actually use. She didn't overcomplicate it. Six months in, our managers are more confident and our turnover has dropped noticeably.",
+      "We had grown to 22 employees and were still running HR like a startup, with no documented processes, no accountability structure, and managers making it up as they went. Rachel came in, assessed where we were, and gave us a framework we could actually use. She didn't overcomplicate it. Six months in, our managers are more confident and our turnover has dropped noticeably.",
     name: "Priya S.",
     title: "COO, Regional Logistics Company",
     service: "HR Consulting",
   },
   {
     quote:
-      "We'd done engagement surveys for years and done nothing with them. Rachel helped us understand that was the actual problem — not our scores, but our inability to act on what we were hearing. She ran a culture assessment, gave us honest feedback about where leadership was falling short, and helped us build a real action plan. The difference in team energy over the next quarter was noticeable.",
+      "We'd done engagement surveys for years and done nothing with them. Rachel helped us understand that was the actual problem: not our scores, but our inability to act on what we were hearing. She ran a culture assessment, gave us honest feedback about where leadership was falling short, and helped us build a real action plan. The difference in team energy over the next quarter was noticeable.",
     name: "Tom B.",
     title: "VP of People, 60-person SaaS Company",
     service: "Culture & Engagement",

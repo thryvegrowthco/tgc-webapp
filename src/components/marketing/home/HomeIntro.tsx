@@ -48,7 +48,7 @@ export function HomeIntro() {
               </p>
               <p>
                 I started Thryve Growth Co. because I kept seeing the same
-                patterns — organizations struggling with unclear expectations and
+                patterns: organizations struggling with unclear expectations and
                 disengaged teams, and individuals stuck in careers that didn&apos;t
                 fit, unsure of their next move.
               </p>

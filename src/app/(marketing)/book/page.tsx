@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 const whatToExpect = [
-  "A real conversation — no sales pressure",
+  "A real conversation, no sales pressure",
   "Honest feedback about whether I can help",
   "Clarity on next steps, whatever they may be",
   "Confirmation email sent immediately after booking",

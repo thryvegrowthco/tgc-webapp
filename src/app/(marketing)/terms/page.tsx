@@ -69,16 +69,16 @@ export default function TermsPage() {
           </div>
 
           <div>
-            <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">7. Nature of Services — Not Legal or Financial Advice</h2>
+            <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">7. Nature of Services: Not Legal or Financial Advice</h2>
             <p>
-              Our coaching and consulting services are educational and advisory in nature. Nothing we provide constitutes legal, financial, medical, or psychological advice. Results are not guaranteed — outcomes depend on client effort, commitment, and individual circumstances. Testimonials and examples represent individual results and are not typical guarantees.
+              Our coaching and consulting services are educational and advisory in nature. Nothing we provide constitutes legal, financial, medical, or psychological advice. Results are not guaranteed; outcomes depend on client effort, commitment, and individual circumstances. Testimonials and examples represent individual results and are not typical guarantees.
             </p>
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">8. Intellectual Property</h2>
             <p>
-              All content on thryvegrowth.co — including text, design, graphics, tools, and templates — is the property of Thryve Growth Co. LLC and may not be reproduced, distributed, or used without written permission. Materials created specifically for you as a client (resume, action plans, etc.) are yours to use for personal and professional purposes.
+              All content on thryvegrowth.co, including text, design, graphics, tools, and templates, is the property of Thryve Growth Co. LLC and may not be reproduced, distributed, or used without written permission. Materials created specifically for you as a client (resume, action plans, etc.) are yours to use for personal and professional purposes.
             </p>
           </div>
 

@@ -19,6 +19,7 @@ const companyLinks = [
   { label: "About", href: "/about" },
   { label: "Investment", href: "/investment" },
   { label: "Packages", href: "/packages" },
+  { label: "Resources", href: "/resources" },
   { label: "FAQ", href: "/faq" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
@@ -52,18 +53,18 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-brand-900 text-white">
+    <footer className="bg-[#f5f0e8] text-neutral-800">
       {/* Main footer content */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
 
           {/* Column 1 — Brand */}
           <div className="lg:col-span-1">
-            <Logo variant="dark" />
-            <p className="mt-4 text-sm text-brand-200 leading-relaxed font-medium italic">
+            <Logo />
+            <p className="mt-4 text-sm text-brand-800 leading-relaxed font-medium italic">
               Clarity. Accountability. Real Growth.
             </p>
-            <p className="mt-3 text-sm text-brand-300 leading-relaxed">
+            <p className="mt-3 text-sm text-neutral-700 leading-relaxed">
               Practical HR consulting and coaching for individuals and organizations
               who want to grow with intention.
             </p>
@@ -75,7 +76,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Thryve Growth Co. on LinkedIn"
-                className="rounded-lg p-2 text-brand-300 hover:text-white hover:bg-brand-800 transition-colors"
+                className="rounded-lg p-2 text-neutral-600 hover:text-brand-700 hover:bg-white transition-colors"
               >
                 {/* LinkedIn brand icon */}
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -87,7 +88,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Thryve Growth Co. on Instagram"
-                className="rounded-lg p-2 text-brand-300 hover:text-white hover:bg-brand-800 transition-colors"
+                className="rounded-lg p-2 text-neutral-600 hover:text-brand-700 hover:bg-white transition-colors"
               >
                 {/* Instagram brand icon */}
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -97,7 +98,7 @@ export function Footer() {
               <a
                 href="mailto:hello@thryvegrowth.co"
                 aria-label="Email Thryve Growth Co."
-                className="rounded-lg p-2 text-brand-300 hover:text-white hover:bg-brand-800 transition-colors"
+                className="rounded-lg p-2 text-neutral-600 hover:text-brand-700 hover:bg-white transition-colors"
               >
                 <Mail className="h-5 w-5" />
               </a>
@@ -106,7 +107,7 @@ export function Footer() {
 
           {/* Column 2 — Services */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand-400 mb-4">
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand-700 mb-4">
               Services
             </h3>
             <ul className="space-y-2.5">
@@ -114,7 +115,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-brand-200 hover:text-white transition-colors"
+                    className="text-sm text-neutral-700 hover:text-brand-700 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -125,7 +126,7 @@ export function Footer() {
 
           {/* Column 3 — Company */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand-400 mb-4">
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand-700 mb-4">
               Company
             </h3>
             <ul className="space-y-2.5">
@@ -133,7 +134,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-brand-200 hover:text-white transition-colors"
+                    className="text-sm text-neutral-700 hover:text-brand-700 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -144,15 +145,15 @@ export function Footer() {
 
           {/* Column 4 — Newsletter */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand-400 mb-4">
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand-700 mb-4">
               Stay Connected
             </h3>
-            <p className="text-sm text-brand-200 leading-relaxed mb-4">
+            <p className="text-sm text-neutral-700 leading-relaxed mb-4">
               Get practical growth tips, career insights, and updates from Rachel.
             </p>
             {status === "success" ? (
-              <p className="text-sm text-brand-200 font-medium py-3">
-                You&apos;re subscribed! Talk soon.
+              <p className="text-sm text-neutral-800 font-medium py-3">
+                You&apos;re subscribed. Talk soon.
               </p>
             ) : (
               <form className="space-y-2" onSubmit={handleNewsletterSubmit}>
@@ -161,7 +162,7 @@ export function Footer() {
                   placeholder="First name"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full rounded-lg px-4 py-2.5 text-sm bg-brand-800 border border-brand-700 text-white placeholder:text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                  className="w-full rounded-lg px-4 py-2.5 text-sm bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
                 />
                 <input
                   type="email"
@@ -169,19 +170,19 @@ export function Footer() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg px-4 py-2.5 text-sm bg-brand-800 border border-brand-700 text-white placeholder:text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                  className="w-full rounded-lg px-4 py-2.5 text-sm bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
                 />
                 <Button
                   type="submit"
                   variant="outline"
                   size="sm"
                   disabled={status === "loading"}
-                  className="w-full border-brand-500 text-brand-300 hover:bg-brand-800 hover:text-white disabled:opacity-60"
+                  className="w-full border-brand-600 text-brand-700 hover:bg-brand-700 hover:text-white disabled:opacity-60"
                 >
                   {status === "loading" ? "Subscribing…" : "Subscribe"}
                 </Button>
                 {status === "error" && (
-                  <p className="text-xs text-red-300">Something went wrong. Try again.</p>
+                  <p className="text-xs text-red-600">Something went wrong. Try again.</p>
                 )}
               </form>
             )}
@@ -190,16 +191,16 @@ export function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-brand-800">
+      <div className="border-t border-neutral-300/60">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-brand-400">
+          <p className="text-sm text-neutral-600">
             © {new Date().getFullYear()} Thryve Growth Co. LLC. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <Link href="/privacy" className="text-sm text-brand-400 hover:text-brand-200 transition-colors">
+            <Link href="/privacy" className="text-sm text-neutral-600 hover:text-brand-700 transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-sm text-brand-400 hover:text-brand-200 transition-colors">
+            <Link href="/terms" className="text-sm text-neutral-600 hover:text-brand-700 transition-colors">
               Terms of Service
             </Link>
           </div>

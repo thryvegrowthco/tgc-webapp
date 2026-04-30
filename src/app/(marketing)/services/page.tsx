@@ -7,7 +7,7 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 export const metadata: Metadata = {
   title: "Services",
   description:
-    "HR consulting, career coaching, culture consulting, interview prep, resume writing, and job alerts — real-world support for individuals and organizations ready to grow.",
+    "HR consulting, career coaching, culture consulting, interview prep, resume writing, and job alerts: real-world support for individuals and organizations ready to grow.",
 };
 
 const coreServices = [
@@ -27,7 +27,7 @@ const coreServices = [
     badgeColor: "bg-brand-100 text-brand-800",
     title: "Career & Leadership Coaching",
     description:
-      "Whether you're making a career transition, stepping into a leadership role, or feeling stuck — I'll help you get clear, build confidence, and move forward with intention.",
+      "Whether you're making a career transition, stepping into a leadership role, or feeling stuck, I'll help you get clear, build confidence, and move forward with intention.",
     outcomes: ["Career clarity & direction", "Leadership skill development", "Confidence & accountability", "Real, actionable strategy"],
     href: "/services/coaching",
   },
@@ -65,7 +65,7 @@ const addOnServices = [
     badge: "For Individuals",
     title: "Job Alerts & Watchlists",
     description:
-      "Curated job matches delivered to you — sourced both manually by Rachel and from live job board feeds — filtered to your goals and preferences.",
+      "Curated job matches delivered to you, sourced both manually by Rachel and from live job board feeds, filtered to your goals and preferences.",
     href: "/services/job-alerts",
   },
 ];
@@ -85,7 +85,7 @@ export default function ServicesPage() {
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed max-w-2xl">
               Whether you&apos;re an organization that needs stronger HR infrastructure, or an individual
-              ready to take your career seriously — there&apos;s a path forward. Here&apos;s how I can help.
+              ready to take your career seriously, there&apos;s a path forward. Here&apos;s how I can help.
             </p>
           </div>
         </div>

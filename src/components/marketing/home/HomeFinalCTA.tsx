@@ -28,7 +28,7 @@ export function HomeFinalCTA() {
 
         <p className="text-lg text-neutral-600 leading-relaxed mb-10 max-w-xl mx-auto">
           Whether you&apos;re looking to build a stronger team, advance your career,
-          or just figure out your next move — let&apos;s talk. No pressure, no
+          or just figure out your next move, let&apos;s talk. No pressure, no
           commitment, just an honest conversation about what growth looks like
           for you.
         </p>

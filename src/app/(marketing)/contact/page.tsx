@@ -6,11 +6,11 @@ import { ContactForm } from "@/components/shared/ContactForm";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Get in touch with Rachel at Thryve Growth Co. Questions about services, pricing, or just want to say hello — reach out.",
+    "Get in touch with Rachel at Thryve Growth Co. Questions about services, pricing, or just want to say hello? Reach out.",
   openGraph: {
     title: "Contact | Thryve Growth Co.",
     description:
-      "Get in touch with Thryve Growth Co. — questions, inquiries, or just want to say hello.",
+      "Get in touch with Thryve Growth Co. for questions, inquiries, or just to say hello.",
   },
 };
 
@@ -21,11 +21,11 @@ const faqs = [
   },
   {
     q: "Do you work with clients outside my area?",
-    a: "Yes — I work with clients nationwide. All sessions are conducted virtually.",
+    a: "Yes, I work with clients nationwide. All sessions are conducted virtually.",
   },
   {
     q: "What if I'm not sure which service I need?",
-    a: "That's completely fine. Just reach out and describe what's going on — I'll help you figure out the best fit.",
+    a: "That's completely fine. Just reach out and describe what's going on, and I'll help you figure out the best fit.",
   },
 ];
 
@@ -149,7 +149,7 @@ export default function ContactPage() {
               <div className="rounded-xl bg-brand-700 p-5 text-white">
                 <p className="font-semibold mb-2">Ready to get started?</p>
                 <p className="text-sm text-brand-200 leading-relaxed mb-4">
-                  Skip the back-and-forth — book a call directly and let&apos;s talk
+                  Skip the back-and-forth. Book a call directly and let&apos;s talk
                   about what you need.
                 </p>
                 <Link

@@ -8,7 +8,7 @@ import { AboutCTA } from "@/components/marketing/about/AboutCTA";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Meet Rachel, founder of Thryve Growth Co. — HR professional, career coach, and the person behind 10+ years of real-world experience helping leaders and individuals grow with clarity and accountability.",
+    "Meet Rachel, founder of Thryve Growth Co. An HR professional, career coach, and the person behind 10+ years of real-world experience helping leaders and individuals grow with clarity and accountability.",
   openGraph: {
     title: "About | Thryve Growth Co.",
     description:

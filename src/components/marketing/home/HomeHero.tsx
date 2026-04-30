@@ -46,7 +46,7 @@ export function HomeHero() {
 
             <p className="mt-6 text-lg text-neutral-600 leading-relaxed max-w-xl">
               Growth takes clarity, accountability, and someone who will tell you
-              what you need to hear — not just what sounds nice.
+              what you need to hear, not just what sounds nice.
             </p>
 
             {/* CTA buttons */}
