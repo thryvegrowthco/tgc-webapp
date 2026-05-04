@@ -12,7 +12,7 @@ CREATE TABLE client_profiles (
   pronouns TEXT,
 
   -- Professional context
-  current_role TEXT,
+  current_position TEXT,
   company TEXT,
   industry TEXT,
   years_experience TEXT, -- bucketed: '0-2', '3-5', '6-10', '10+'

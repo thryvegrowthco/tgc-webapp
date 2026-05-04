@@ -22,7 +22,7 @@ export default async function OnboardingPage() {
     location: existing?.location ?? null,
     timezone: existing?.timezone ?? null,
     pronouns: existing?.pronouns ?? null,
-    currentRole: existing?.current_role ?? null,
+    currentPosition: existing?.current_position ?? null,
     company: existing?.company ?? null,
     industry: existing?.industry ?? null,
     yearsExperience: existing?.years_experience ?? null,

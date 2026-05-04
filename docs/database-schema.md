@@ -186,7 +186,7 @@ Prospects captured from the public `JobWatchlistLeadForm` on `/services/job-aler
 | `full_name` | `TEXT` | — | Required |
 | `email` | `TEXT` | — | Required, indexed |
 | `phone` | `TEXT` | `NULL` | — |
-| `current_role` | `TEXT` | `NULL` | — |
+| `current_position` | `TEXT` | `NULL` | Renamed from `current_role` to avoid Postgres reserved-word collision |
 | `target_role` | `TEXT` | `NULL` | — |
 | `location` | `TEXT` | `NULL` | — |
 | `remote_preference` | `TEXT` | `NULL` | CHECK: `remote`, `hybrid`, `onsite`, `any` |

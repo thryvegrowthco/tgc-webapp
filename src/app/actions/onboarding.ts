@@ -33,7 +33,7 @@ export async function saveOnboarding(formData: FormData) {
   const timezone = trimOrNull(formData.get("timezone"));
   const pronouns = trimOrNull(formData.get("pronouns"));
 
-  const currentRole = trimOrNull(formData.get("currentRole"));
+  const currentPosition = trimOrNull(formData.get("currentPosition"));
   const company = trimOrNull(formData.get("company"));
   const industry = trimOrNull(formData.get("industry"));
   const yearsExperience = trimOrNull(formData.get("yearsExperience"));
@@ -108,7 +108,7 @@ export async function saveOnboarding(formData: FormData) {
     location,
     timezone,
     pronouns,
-    current_role: currentRole,
+    current_position: currentPosition,
     company,
     industry,
     years_experience: yearsExperience,

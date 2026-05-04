@@ -58,8 +58,8 @@ export default async function AdminLeadDetailPage({ params }: Props) {
               <a href={`tel:${lead.phone}`} className="text-brand-700 hover:text-brand-800">{lead.phone}</a>
             </Info>
           )}
-          {lead.current_role && (
-            <Info icon={Briefcase} label="Current role">{lead.current_role}</Info>
+          {lead.current_position && (
+            <Info icon={Briefcase} label="Current role">{lead.current_position}</Info>
           )}
           {lead.target_role && (
             <Info icon={Briefcase} label="Target role">{lead.target_role}</Info>

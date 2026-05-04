@@ -75,7 +75,7 @@ export default async function AdminClientDetailPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("client_profiles")
-      .select("location, timezone, pronouns, current_role, company, industry, years_experience, primary_goal, services_interested, preferred_contact_method, availability_notes, completed_at")
+      .select("location, timezone, pronouns, current_position, company, industry, years_experience, primary_goal, services_interested, preferred_contact_method, availability_notes, completed_at")
       .eq("client_id", id)
       .maybeSingle(),
   ]);
@@ -87,7 +87,7 @@ export default async function AdminClientDetailPage({
     location: string | null;
     timezone: string | null;
     pronouns: string | null;
-    current_role: string | null;
+    current_position: string | null;
     company: string | null;
     industry: string | null;
     years_experience: string | null;
@@ -162,7 +162,7 @@ export default async function AdminClientDetailPage({
             {intake.location && <Field label="Location">{intake.location}</Field>}
             {intake.timezone && <Field label="Time zone">{intake.timezone}</Field>}
             {intake.pronouns && <Field label="Pronouns">{intake.pronouns}</Field>}
-            {intake.current_role && <Field label="Current role">{intake.current_role}</Field>}
+            {intake.current_position && <Field label="Current role">{intake.current_position}</Field>}
             {intake.industry && <Field label="Industry">{intake.industry}</Field>}
             {intake.years_experience && <Field label="Years experience">{intake.years_experience}</Field>}
             {intake.preferred_contact_method && (

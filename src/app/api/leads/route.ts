@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 
   const phone = trimOrNull(raw.phone, MAX_FIELD_LENGTH);
-  const currentRole = trimOrNull(raw.currentRole, MAX_FIELD_LENGTH);
+  const currentPosition = trimOrNull(raw.currentPosition, MAX_FIELD_LENGTH);
   const targetRole = trimOrNull(raw.targetRole, MAX_FIELD_LENGTH);
   const location = trimOrNull(raw.location, MAX_FIELD_LENGTH);
   const remoteRaw = trimOrNull(raw.remotePreference, 20);
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       full_name: fullName,
       email,
       phone,
-      current_role: currentRole,
+      current_position: currentPosition,
       target_role: targetRole,
       location,
       remote_preference: remotePreference,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Notify Rachel + send the lead a thank-you (best-effort, don't block)
-  void notifyRachel({ fullName, email, phone, currentRole, targetRole, location, timeline, notes });
+  void notifyRachel({ fullName, email, phone, currentPosition, targetRole, location, timeline, notes });
   void thankLead({ fullName, email });
 
   return NextResponse.json({ ok: true });
@@ -85,7 +85,7 @@ async function notifyRachel(data: {
   fullName: string;
   email: string;
   phone: string | null;
-  currentRole: string | null;
+  currentPosition: string | null;
   targetRole: string | null;
   location: string | null;
   timeline: string | null;
@@ -103,7 +103,7 @@ async function notifyRachel(data: {
           <tr><td><strong>Name:</strong></td><td>${escapeHtml(data.fullName)}</td></tr>
           <tr><td><strong>Email:</strong></td><td>${escapeHtml(data.email)}</td></tr>
           ${data.phone ? `<tr><td><strong>Phone:</strong></td><td>${escapeHtml(data.phone)}</td></tr>` : ""}
-          ${data.currentRole ? `<tr><td><strong>Current role:</strong></td><td>${escapeHtml(data.currentRole)}</td></tr>` : ""}
+          ${data.currentPosition ? `<tr><td><strong>Current role:</strong></td><td>${escapeHtml(data.currentPosition)}</td></tr>` : ""}
           ${data.targetRole ? `<tr><td><strong>Target role:</strong></td><td>${escapeHtml(data.targetRole)}</td></tr>` : ""}
           ${data.location ? `<tr><td><strong>Location:</strong></td><td>${escapeHtml(data.location)}</td></tr>` : ""}
           ${data.timeline ? `<tr><td><strong>Timeline:</strong></td><td>${escapeHtml(data.timeline)}</td></tr>` : ""}

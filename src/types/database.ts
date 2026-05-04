@@ -438,7 +438,7 @@ export type Database = {
           location: string | null;
           timezone: string | null;
           pronouns: string | null;
-          current_role: string | null;
+          current_position: string | null;
           company: string | null;
           industry: string | null;
           years_experience: string | null;
@@ -457,7 +457,7 @@ export type Database = {
           location?: string | null;
           timezone?: string | null;
           pronouns?: string | null;
-          current_role?: string | null;
+          current_position?: string | null;
           company?: string | null;
           industry?: string | null;
           years_experience?: string | null;
@@ -476,7 +476,7 @@ export type Database = {
           location?: string | null;
           timezone?: string | null;
           pronouns?: string | null;
-          current_role?: string | null;
+          current_position?: string | null;
           company?: string | null;
           industry?: string | null;
           years_experience?: string | null;
@@ -497,7 +497,7 @@ export type Database = {
           full_name: string;
           email: string;
           phone: string | null;
-          current_role: string | null;
+          current_position: string | null;
           target_role: string | null;
           location: string | null;
           remote_preference: "remote" | "hybrid" | "onsite" | "any" | null;
@@ -515,7 +515,7 @@ export type Database = {
           full_name: string;
           email: string;
           phone?: string | null;
-          current_role?: string | null;
+          current_position?: string | null;
           target_role?: string | null;
           location?: string | null;
           remote_preference?: "remote" | "hybrid" | "onsite" | "any" | null;
@@ -533,7 +533,7 @@ export type Database = {
           full_name?: string;
           email?: string;
           phone?: string | null;
-          current_role?: string | null;
+          current_position?: string | null;
           target_role?: string | null;
           location?: string | null;
           remote_preference?: "remote" | "hybrid" | "onsite" | "any" | null;

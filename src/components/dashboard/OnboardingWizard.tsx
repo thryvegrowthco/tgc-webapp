@@ -36,7 +36,7 @@ export interface OnboardingInitial {
   location: string | null;
   timezone: string | null;
   pronouns: string | null;
-  currentRole: string | null;
+  currentPosition: string | null;
   company: string | null;
   industry: string | null;
   yearsExperience: string | null;
@@ -143,8 +143,8 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="currentRole">Current role</Label>
-              <Input id="currentRole" name="currentRole" placeholder="e.g. Senior Account Manager" defaultValue={initial.currentRole ?? ""} />
+              <Label htmlFor="currentPosition">Current role</Label>
+              <Input id="currentPosition" name="currentPosition" placeholder="e.g. Senior Account Manager" defaultValue={initial.currentPosition ?? ""} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="company">Company</Label>

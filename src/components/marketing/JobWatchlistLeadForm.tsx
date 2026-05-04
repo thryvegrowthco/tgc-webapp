@@ -22,7 +22,7 @@ export function JobWatchlistLeadForm() {
       fullName: String(formData.get("fullName") ?? ""),
       email: String(formData.get("email") ?? ""),
       phone: String(formData.get("phone") ?? ""),
-      currentRole: String(formData.get("currentRole") ?? ""),
+      currentPosition: String(formData.get("currentPosition") ?? ""),
       targetRole: String(formData.get("targetRole") ?? ""),
       location: String(formData.get("location") ?? ""),
       remotePreference: String(formData.get("remotePreference") ?? ""),
@@ -90,7 +90,7 @@ export function JobWatchlistLeadForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="lead-current-role">Current role</Label>
-          <Input id="lead-current-role" name="currentRole" placeholder="e.g. Senior Account Manager" />
+          <Input id="lead-current-role" name="currentPosition" placeholder="e.g. Senior Account Manager" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="lead-target-role">Target role</Label>

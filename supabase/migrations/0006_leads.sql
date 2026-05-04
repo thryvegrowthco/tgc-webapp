@@ -8,7 +8,7 @@ CREATE TABLE leads (
   full_name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
-  current_role TEXT,
+  current_position TEXT,
   target_role TEXT,
   location TEXT,
   remote_preference TEXT CHECK (remote_preference IN ('remote', 'hybrid', 'onsite', 'any')),
