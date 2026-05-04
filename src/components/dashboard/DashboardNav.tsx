@@ -8,6 +8,7 @@ import {
   FileText,
   Bell,
   User,
+  CreditCard,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navItems = [
   { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, exact: false },
   { label: "Job Watchlist", href: "/dashboard/watchlist", icon: Bell, exact: false },
+  { label: "Billing", href: "/dashboard/billing", icon: CreditCard, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: User, exact: false },
 ];
 
