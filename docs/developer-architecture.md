@@ -71,7 +71,11 @@ src/
 | `(admin)` | `/admin/*` | `AdminNav` sidebar; no public Header/Footer | Each page checks `profiles.role = 'admin'` via Supabase session |
 | `(dashboard)` | `/dashboard/*` | `DashboardNav` sidebar; no public Header/Footer | Each layout/page checks `supabase.auth.getUser()` |
 | `(auth)` | `/login`, `/signup`, `/reset-password` | Bare (no Header/Footer) | Public; `proxy.ts` redirects authenticated users to `/dashboard` |
-| `(marketing)` | `/`, `/about`, `/services`, `/blog`, `/book`, `/contact`, `/faq`, `/investment`, `/packages`, `/privacy`, `/testimonials`, `/terms` | `Header` + `Footer` from `(marketing)/layout.tsx` | Public |
+| `(marketing)` | `/`, `/about`, `/services`, `/blog`, `/book`, `/contact`, `/faq`, `/investment`, `/packages`, `/privacy`, `/resources`, `/testimonials`, `/terms` | `Header` + `Footer` from `(marketing)/layout.tsx` | Public |
+
+**Dashboard pages:** `/dashboard` (overview), `/dashboard/bookings`, `/dashboard/documents`, `/dashboard/watchlist` (browsable matches), `/dashboard/watchlist/setup` (preferences wizard), `/dashboard/applications` (post-application tracker for matches with status `applied`/`interviewing`/`offer`/`not_a_fit`), `/dashboard/billing` (Stripe Customer Portal handoff), `/dashboard/profile`.
+
+**Admin pages:** `/admin` (overview), `/admin/leads` (+ `/admin/leads/[id]`), `/admin/bookings`, `/admin/clients` (+ `/admin/clients/[id]`), `/admin/content` (blog), `/admin/watchlists` (+ `/admin/watchlists/[clientId]`), `/admin/analytics`.
 
 **Key architectural rule:** `Header` and `Footer` from `src/components/layout/` are rendered **only** inside `src/app/(marketing)/layout.tsx`. They do not appear in dashboard, admin, or auth pages. The root `layout.tsx` is a bare HTML shell (fonts, metadata, `<Toaster />`, `<Analytics />`).
 
@@ -122,7 +126,9 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 | `booking.ts` | `createBookingCheckoutSession`, `addAvailabilitySlot`, `deleteAvailabilitySlot`, `updateBookingStatus` | `createBookingCheckoutSession` refuses if slot is already booked; `deleteAvailabilitySlot` refuses if slot is booked; `updateBookingStatus` is admin-only with status allowlist |
 | `documents.ts` | `uploadDocument`, `deleteDocument`, `addClientNote` | Uses service client; cleans up Storage on DB insert failure |
 | `blog.ts` | `createBlogPost`, `updateBlogPost`, `deleteBlogPost`, `uploadFeaturedImage` | `requireAdmin()` guard; slug uniqueness enforced in both create + update |
-| `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient` | Client actions + admin actions mixed in one file; each has its own auth check |
+| `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient` | Client actions + admin actions mixed in one file; each has its own auth check. `fetchJSearchJobsForClient` and `runAutoMatchForClient` apply the scoring engine in `src/lib/matching/score.ts` and only insert matches with score ≥ 60. |
+| `billing.ts` | `createPortalSession` | Looks up client's `stripe_subscription_id`, retrieves Stripe customer ID from the subscription, creates a Stripe Customer Portal session, and redirects. Used by `/dashboard/billing`. |
+| `leads.ts` | `updateLeadStatus`, `updateLeadAdminNotes` | Admin-only. Used on `/admin/leads/[id]`. |
 
 ---
 
@@ -182,6 +188,7 @@ Lightweight route handlers for marketing-page forms. Both accept JSON POST, retu
 |---|---|---|
 | `POST /api/newsletter` | Footer form + blog-page `NewsletterForm` | Validates email, inserts into `newsletter_subscribers` (via service client), calls `syncNewsletterSubscriber` for GHL. Duplicate email (Postgres `23505`) returns success. Body: `{ email, firstName?, source? }`. |
 | `POST /api/contact` | `/contact` page `ContactForm` | Validates all 5 fields, calls `sendContactFormSubmission` (Resend) with `replyTo` set to the submitter's email so Rachel can reply directly. Body: `{ firstName, lastName, email, subject, message }`. |
+| `POST /api/leads` | `/services/job-alerts` page `JobWatchlistLeadForm` | Validates input, inserts a row into `leads` via service client, fires two best-effort emails (admin notification to `hello@thryvegrowth.co`, thank-you to the lead). Body: `{ fullName, email, phone?, currentRole?, targetRole?, location?, remotePreference?, timeline?, notes? }`. |
 
 Both routes run server-side only; no auth required (public forms). The service client is used for `/api/newsletter` because `newsletter_subscribers` has an anon-insert RLS policy, but service client avoids any RLS surprises.
 
@@ -207,6 +214,30 @@ Both routes run server-side only; no auth required (public forms). The service c
 - `normalizeJob(job)` — maps raw JSearch response to `job_listings` table shape; truncates description to 2000 chars
 - Responses cached 1 hour via Next.js `fetch` cache: `next: { revalidate: 3600 }`
 - Deduplication in `fetchJSearchJobsForClient`: existing `external_id` values are queried before insert
+
+---
+
+## Auto-matching engine
+
+**File:** `src/lib/matching/score.ts` (pure, no side effects)
+
+`scoreJobAgainstProfile(profile, job)` returns `{ score: 0–100, label, reasons[] }`. Weights:
+
+| Signal | Max pts | How it scores |
+|---|---|---|
+| Role keyword overlap | 40 | tokens from `target_roles` matched against job title (worth more) and description |
+| Location / remote fit | 25 | full credit when remote-pref matches `is_remote`, or location string overlaps |
+| Salary band overlap | 15 | parses `job.salary_range` (e.g., `$80k–$100k`) and compares against `salary_min`/`salary_max` |
+| Experience level | 15 | matches level keywords (senior/lead/principal, mid, junior/entry) in title + description |
+| Industry mention | 5 | substring match between profile `industries[]` and job company/description |
+
+Threshold: `score ≥ 60` is included. Tier labels: `80+` → `strong`, `65–79` → `good`, `60–64` → `maybe`. The label is stored in `client_job_matches.score_label`.
+
+**Used by:**
+- `fetchJSearchJobsForClient` — scores every fetched job before assigning to the client; only inserts matches above threshold; flags `strong` matches as `rachel_recommended`
+- `runAutoMatchForClient` — admin-triggered (button on `/admin/watchlists/[clientId]`); walks every active job from the last 60 days, scores against the client's profile, inserts new matches above threshold (skips already-assigned jobs)
+
+**UI:** the score and label render as a badge on both the admin watchlist match list and the client `/dashboard/watchlist` page.
 
 ---
 

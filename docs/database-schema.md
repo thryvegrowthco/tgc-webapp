@@ -166,11 +166,42 @@ Join table connecting a client to job listings assigned to them.
 | `status` | `TEXT` | `'new'` | CHECK: `new`, `saved`, `interested`, `applied`, `not_a_fit`, `archived`, `interviewing`, `offer` |
 | `rachel_recommended` | `BOOLEAN` | `FALSE` | Rachel's highlight flag |
 | `client_notes` | `TEXT` | `NULL` | Not currently exposed in UI |
-| `application_date` | `DATE` | `NULL` | Not currently exposed in UI |
-| `interview_date` | `TIMESTAMPTZ` | `NULL` | Not currently exposed in UI |
+| `application_date` | `DATE` | `NULL` | Surfaced on `/dashboard/applications` when set |
+| `interview_date` | `TIMESTAMPTZ` | `NULL` | Surfaced on `/dashboard/applications` when set |
+| `score` | `INTEGER` | `NULL` | 0–100 score from the auto-matching engine (`src/lib/matching/score.ts`) |
+| `score_label` | `TEXT` | `NULL` | CHECK: `strong`, `good`, `maybe`. Set by auto-matcher; null for manually-added matches |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | Used by cron to find "new this week" matches |
 
 **Constraint:** `UNIQUE (client_id, job_id)` — a job can only be assigned to a client once. Upserts use `ON CONFLICT DO NOTHING`.
+
+---
+
+### `leads`
+
+Prospects captured from the public `JobWatchlistLeadForm` on `/services/job-alerts`. Distinct from `profiles` because leads don't have Supabase auth accounts yet.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `full_name` | `TEXT` | — | Required |
+| `email` | `TEXT` | — | Required, indexed |
+| `phone` | `TEXT` | `NULL` | — |
+| `current_role` | `TEXT` | `NULL` | — |
+| `target_role` | `TEXT` | `NULL` | — |
+| `location` | `TEXT` | `NULL` | — |
+| `remote_preference` | `TEXT` | `NULL` | CHECK: `remote`, `hybrid`, `onsite`, `any` |
+| `timeline` | `TEXT` | `NULL` | e.g., `actively_searching`, `next_3_months`, `next_6_months`, `exploring` |
+| `notes` | `TEXT` | `NULL` | Free-text from the lead |
+| `source` | `TEXT` | `'job_watchlist'` | Lead-source tracking |
+| `status` | `TEXT` | `'new'` | CHECK: `new`, `contacted`, `qualified`, `converted`, `lost` |
+| `admin_notes` | `TEXT` | `NULL` | Internal notes; visible only on `/admin/leads/[id]` |
+| `converted_profile_id` | `UUID` | `NULL` | FK to `profiles.id` once the lead becomes a client |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | Indexed DESC for the leads list |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | Updated on status / admin-notes changes |
+
+**Indexes:** `leads_status_idx`, `leads_email_idx`, `leads_created_at_idx`.
+
+**RLS:** authenticated admins can read/write. Public inserts go through `POST /api/leads` using the service-role client (bypasses RLS).
 
 ---
 
@@ -236,6 +267,7 @@ Email subscribers collected via the footer/blog newsletter form.
 | `watchlist_profiles` | None | SELECT own, INSERT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
 | `job_listings` | None | SELECT all | ALL | Full |
 | `client_job_matches` | None | SELECT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
+| `leads` | None | None | SELECT all, INSERT, UPDATE | Full (used by `/api/leads` for public inserts) |
 | `admin_client_notes` | None | None | ALL | Full |
 | `blog_posts` | SELECT published | SELECT published | ALL | Full |
 | `newsletter_subscribers` | INSERT only | None | ALL | Full |
