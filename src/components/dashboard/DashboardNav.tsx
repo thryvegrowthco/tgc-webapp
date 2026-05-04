@@ -7,6 +7,7 @@ import {
   Calendar,
   FileText,
   Bell,
+  Briefcase,
   User,
   CreditCard,
   LogOut,
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, exact: false },
   { label: "Job Watchlist", href: "/dashboard/watchlist", icon: Bell, exact: false },
+  { label: "Applications", href: "/dashboard/applications", icon: Briefcase, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: CreditCard, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: User, exact: false },
 ];
