@@ -21,6 +21,8 @@ type MatchRow = {
   job_id: string | null;
   status: string;
   rachel_recommended: boolean;
+  score: number | null;
+  score_label: string | null;
 };
 
 type JobRow = {
@@ -77,7 +79,7 @@ export default async function WatchlistPage() {
   // Fetch matches (excluding archived/not_a_fit) then fetch job details separately
   const { data: matchesRaw } = await supabase
     .from("client_job_matches")
-    .select("id, job_id, status, rachel_recommended")
+    .select("id, job_id, status, rachel_recommended, score, score_label")
     .eq("client_id", user.id)
     .not("status", "in", '("archived","not_a_fit")')
     .order("created_at", { ascending: false });
@@ -126,6 +128,15 @@ export default async function WatchlistPage() {
                       {match.rachel_recommended && (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
                           <Star className="h-3 w-3" /> Rachel&apos;s Pick
+                        </span>
+                      )}
+                      {match.score !== null && match.score_label && (
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          match.score_label === "strong" ? "bg-green-100 text-green-700"
+                          : match.score_label === "good" ? "bg-brand-100 text-brand-700"
+                          : "bg-neutral-100 text-neutral-600"
+                        }`}>
+                          {match.score}% match
                         </span>
                       )}
                     </div>

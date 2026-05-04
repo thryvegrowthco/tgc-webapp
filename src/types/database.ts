@@ -303,6 +303,8 @@ export type Database = {
           client_notes: string | null;
           application_date: string | null;
           interview_date: string | null;
+          score: number | null;
+          score_label: "strong" | "good" | "maybe" | null;
           created_at: string;
         };
         Insert: {
@@ -314,6 +316,8 @@ export type Database = {
           client_notes?: string | null;
           application_date?: string | null;
           interview_date?: string | null;
+          score?: number | null;
+          score_label?: "strong" | "good" | "maybe" | null;
           created_at?: string;
         };
         Update: {
@@ -325,6 +329,8 @@ export type Database = {
           client_notes?: string | null;
           application_date?: string | null;
           interview_date?: string | null;
+          score?: number | null;
+          score_label?: "strong" | "good" | "maybe" | null;
           created_at?: string;
         };
         Relationships: [];

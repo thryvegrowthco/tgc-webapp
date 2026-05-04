@@ -5,6 +5,7 @@ import { Star, ExternalLink, MapPin } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { WatchlistManager } from "@/components/admin/WatchlistManager";
+import { RunAutoMatchButton } from "@/components/admin/RunAutoMatchButton";
 
 export const metadata: Metadata = {
   title: "Manage Watchlist — Admin",
@@ -16,6 +17,8 @@ type MatchRow = {
   job_id: string | null;
   status: string;
   rachel_recommended: boolean;
+  score: number | null;
+  score_label: string | null;
   created_at: string;
 };
 
@@ -66,7 +69,7 @@ export default async function AdminWatchlistClientPage({
       .maybeSingle(),
     supabase
       .from("client_job_matches")
-      .select("id, job_id, status, rachel_recommended, created_at")
+      .select("id, job_id, status, rachel_recommended, score, score_label, created_at")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false }),
   ]);
@@ -173,6 +176,18 @@ export default async function AdminWatchlistClientPage({
       {/* WatchlistManager: add jobs, fetch from JSearch */}
       <WatchlistManager clientId={clientId} />
 
+      {/* Auto-match: score every active job against this client's profile */}
+      <div className="bg-white rounded-xl border border-neutral-200 p-5 flex items-center justify-between gap-4">
+        <div className="text-sm">
+          <p className="font-semibold text-neutral-900">Auto-match against existing jobs</p>
+          <p className="text-neutral-500 text-xs mt-0.5">
+            Scores every active job in the database against this client&apos;s preferences and
+            adds new matches above the threshold.
+          </p>
+        </div>
+        <RunAutoMatchButton clientId={clientId} />
+      </div>
+
       {/* Job matches */}
       <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
@@ -205,6 +220,11 @@ export default async function AdminWatchlistClientPage({
                         {match.rachel_recommended && (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
                             <Star className="h-3 w-3" /> Rachel&apos;s Pick
+                          </span>
+                        )}
+                        {match.score !== null && match.score_label && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${scoreLabelColor(match.score_label)}`}>
+                            {match.score}% · {match.score_label}
                           </span>
                         )}
                         {job.source === "jsearch" && (
@@ -248,4 +268,13 @@ export default async function AdminWatchlistClientPage({
       </div>
     </div>
   );
+}
+
+function scoreLabelColor(label: string): string {
+  switch (label) {
+    case "strong": return "bg-green-100 text-green-700";
+    case "good": return "bg-brand-100 text-brand-700";
+    case "maybe": return "bg-neutral-100 text-neutral-600";
+    default: return "bg-neutral-100 text-neutral-500";
+  }
 }
