@@ -55,6 +55,7 @@ export default async function AdminClientDetailPage({
     { data: bookingsRaw },
     { data: documentsRaw },
     { data: notesRaw },
+    { data: intakeRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -72,15 +73,44 @@ export default async function AdminClientDetailPage({
       .select("id, note, session_date, created_at")
       .eq("client_id", id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("client_profiles")
+      .select("location, timezone, pronouns, current_role, company, industry, years_experience, primary_goal, services_interested, preferred_contact_method, availability_notes, completed_at")
+      .eq("client_id", id)
+      .maybeSingle(),
   ]);
 
   type BookingRow = { id: string; service_type: string; status: string | null; amount_cents: number | null; created_at: string; slot_id: string | null };
   type DocRow = { id: string; filename: string; category: string | null; description: string | null; file_size_bytes: number | null; storage_path: string; created_at: string };
   type NoteRow = { id: string; note: string; session_date: string | null; created_at: string };
+  type IntakeRow = {
+    location: string | null;
+    timezone: string | null;
+    pronouns: string | null;
+    current_role: string | null;
+    company: string | null;
+    industry: string | null;
+    years_experience: string | null;
+    primary_goal: string | null;
+    services_interested: string[] | null;
+    preferred_contact_method: string | null;
+    availability_notes: string | null;
+    completed_at: string | null;
+  };
 
   const bookings = (bookingsRaw ?? []) as BookingRow[];
   const documents = (documentsRaw ?? []) as DocRow[];
   const notes = (notesRaw ?? []) as NoteRow[];
+  const intake = intakeRaw as IntakeRow | null;
+
+  const SERVICE_LABELS: Record<string, string> = {
+    coaching: "Career & Leadership Coaching",
+    interview_prep: "Interview Preparation",
+    resume: "Resume & Career Materials",
+    watchlist: "Job Alerts & Watchlists",
+    hr_consulting: "HR Consulting",
+    culture: "Culture & Engagement",
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -118,6 +148,56 @@ export default async function AdminClientDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Client intake */}
+      {intake && intake.completed_at ? (
+        <section className="bg-white rounded-xl border border-neutral-200">
+          <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
+            <h2 className="font-semibold text-neutral-900">Client intake</h2>
+            <span className="text-xs text-neutral-400">
+              Completed {new Date(intake.completed_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </span>
+          </div>
+          <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            {intake.location && <Field label="Location">{intake.location}</Field>}
+            {intake.timezone && <Field label="Time zone">{intake.timezone}</Field>}
+            {intake.pronouns && <Field label="Pronouns">{intake.pronouns}</Field>}
+            {intake.current_role && <Field label="Current role">{intake.current_role}</Field>}
+            {intake.industry && <Field label="Industry">{intake.industry}</Field>}
+            {intake.years_experience && <Field label="Years experience">{intake.years_experience}</Field>}
+            {intake.preferred_contact_method && (
+              <Field label="Preferred contact"><span className="capitalize">{intake.preferred_contact_method}</span></Field>
+            )}
+            {intake.services_interested && intake.services_interested.length > 0 && (
+              <Field label="Services interested" wide>
+                <div className="flex flex-wrap gap-1.5 mt-0.5">
+                  {intake.services_interested.map((s) => (
+                    <span key={s} className="text-xs font-medium bg-brand-50 text-brand-800 px-2 py-0.5 rounded-full">
+                      {SERVICE_LABELS[s] ?? s}
+                    </span>
+                  ))}
+                </div>
+              </Field>
+            )}
+            {intake.primary_goal && (
+              <Field label="Primary goal" wide>
+                <p className="text-neutral-700 whitespace-pre-wrap">{intake.primary_goal}</p>
+              </Field>
+            )}
+            {intake.availability_notes && (
+              <Field label="Availability" wide>
+                <p className="text-neutral-700 whitespace-pre-wrap">{intake.availability_notes}</p>
+              </Field>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="bg-neutral-50 border border-dashed border-neutral-200 rounded-xl px-6 py-5 text-sm text-neutral-500">
+          {intake
+            ? "Client started intake but hasn't finished yet."
+            : "Client hasn't completed intake yet."}
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column */}
@@ -245,6 +325,23 @@ export default async function AdminClientDetailPage({
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+  wide = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "sm:col-span-2" : undefined}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-0.5">{label}</p>
+      <div className="text-neutral-800">{children}</div>
     </div>
   );
 }

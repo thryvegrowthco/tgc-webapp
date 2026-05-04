@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Calendar, FileText, Bell, ArrowRight, BookOpen } from "lucide-react";
+import { Calendar, FileText, Bell, ArrowRight, BookOpen, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,6 +32,14 @@ export default async function DashboardPage() {
     .eq("client_id", user.id)
     .order("created_at", { ascending: false })
     .limit(3);
+
+  const { data: clientProfile } = await supabase
+    .from("client_profiles")
+    .select("completed_at")
+    .eq("client_id", user.id)
+    .maybeSingle();
+
+  const onboardingComplete = Boolean((clientProfile as { completed_at: string | null } | null)?.completed_at);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
@@ -70,6 +78,27 @@ export default async function DashboardPage() {
           Here&apos;s what&apos;s happening with your account.
         </p>
       </div>
+
+      {/* Onboarding soft prompt */}
+      {!onboardingComplete && (
+        <Link
+          href="/dashboard/onboarding"
+          className="block mb-6 rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5 hover:border-brand-300 hover:shadow-sm transition-all group"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-2.5 bg-brand-100 rounded-lg flex-shrink-0">
+              <Sparkles className="h-5 w-5 text-brand-700" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-brand-900">Tell Rachel a bit about you</p>
+              <p className="text-sm text-brand-700 mt-0.5 leading-relaxed">
+                A quick three-minute intake so we can hit the ground running on whichever services you&apos;re here for.
+              </p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-brand-600 mt-1 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+        </Link>
+      )}
 
       {/* Quick links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

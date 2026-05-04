@@ -431,6 +431,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      client_profiles: {
+        Row: {
+          id: string;
+          client_id: string;
+          location: string | null;
+          timezone: string | null;
+          pronouns: string | null;
+          current_role: string | null;
+          company: string | null;
+          industry: string | null;
+          years_experience: string | null;
+          primary_goal: string | null;
+          services_interested: string[] | null;
+          preferred_contact_method: "email" | "phone" | "text" | null;
+          availability_notes: string | null;
+          resume_document_id: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          location?: string | null;
+          timezone?: string | null;
+          pronouns?: string | null;
+          current_role?: string | null;
+          company?: string | null;
+          industry?: string | null;
+          years_experience?: string | null;
+          primary_goal?: string | null;
+          services_interested?: string[] | null;
+          preferred_contact_method?: "email" | "phone" | "text" | null;
+          availability_notes?: string | null;
+          resume_document_id?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          location?: string | null;
+          timezone?: string | null;
+          pronouns?: string | null;
+          current_role?: string | null;
+          company?: string | null;
+          industry?: string | null;
+          years_experience?: string | null;
+          primary_goal?: string | null;
+          services_interested?: string[] | null;
+          preferred_contact_method?: "email" | "phone" | "text" | null;
+          availability_notes?: string | null;
+          resume_document_id?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       leads: {
         Row: {
           id: string;
@@ -504,3 +564,4 @@ export type JobListing = Database["public"]["Tables"]["job_listings"]["Row"];
 export type ClientJobMatch = Database["public"]["Tables"]["client_job_matches"]["Row"];
 export type BlogPost = Database["public"]["Tables"]["blog_posts"]["Row"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type ClientProfile = Database["public"]["Tables"]["client_profiles"]["Row"];
