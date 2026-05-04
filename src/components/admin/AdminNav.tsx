@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Calendar,
   Users,
+  Inbox,
   FileEdit,
   Bell,
   BarChart2,
@@ -17,6 +18,7 @@ import { Logo } from "@/components/shared/Logo";
 
 const navItems = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard, exact: true },
+  { label: "Leads", href: "/admin/leads", icon: Inbox, exact: false },
   { label: "Bookings", href: "/admin/bookings", icon: Calendar, exact: false },
   { label: "Clients", href: "/admin/clients", icon: Users, exact: false },
   { label: "Blog", href: "/admin/content", icon: FileEdit, exact: false },

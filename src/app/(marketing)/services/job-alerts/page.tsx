@@ -4,6 +4,7 @@ import { CheckCircle2, ArrowRight, Bell, Search, User } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { Button } from "@/components/ui/button";
+import { JobWatchlistLeadForm } from "@/components/marketing/JobWatchlistLeadForm";
 
 export const metadata: Metadata = {
   title: "Job Alerts & Watchlists",
@@ -121,11 +122,29 @@ export default function JobAlertsPage() {
                 <p className="text-sm text-neutral-500 mt-1">Cancel anytime.</p>
                 <div className="mt-4">
                   <Button asChild size="sm">
-                    <Link href="/book">Get Started</Link>
+                    <Link href="#start">Get Started</Link>
                   </Button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Lead capture */}
+      <section id="start" className="py-20 bg-neutral-50 border-t border-neutral-100">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 mb-3">
+              Start My Watchlist
+            </h2>
+            <p className="text-neutral-600 leading-relaxed">
+              Tell me a little about what you&apos;re looking for and I&apos;ll be in touch
+              within a couple of business days to talk through next steps.
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 sm:p-8">
+            <JobWatchlistLeadForm />
           </div>
         </div>
       </section>

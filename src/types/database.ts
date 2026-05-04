@@ -425,6 +425,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      leads: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          phone: string | null;
+          current_role: string | null;
+          target_role: string | null;
+          location: string | null;
+          remote_preference: "remote" | "hybrid" | "onsite" | "any" | null;
+          timeline: string | null;
+          notes: string | null;
+          source: string;
+          status: "new" | "contacted" | "qualified" | "converted" | "lost";
+          admin_notes: string | null;
+          converted_profile_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email: string;
+          phone?: string | null;
+          current_role?: string | null;
+          target_role?: string | null;
+          location?: string | null;
+          remote_preference?: "remote" | "hybrid" | "onsite" | "any" | null;
+          timeline?: string | null;
+          notes?: string | null;
+          source?: string;
+          status?: "new" | "contacted" | "qualified" | "converted" | "lost";
+          admin_notes?: string | null;
+          converted_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string;
+          phone?: string | null;
+          current_role?: string | null;
+          target_role?: string | null;
+          location?: string | null;
+          remote_preference?: "remote" | "hybrid" | "onsite" | "any" | null;
+          timeline?: string | null;
+          notes?: string | null;
+          source?: string;
+          status?: "new" | "contacted" | "qualified" | "converted" | "lost";
+          admin_notes?: string | null;
+          converted_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -440,3 +497,4 @@ export type WatchlistProfile = Database["public"]["Tables"]["watchlist_profiles"
 export type JobListing = Database["public"]["Tables"]["job_listings"]["Row"];
 export type ClientJobMatch = Database["public"]["Tables"]["client_job_matches"]["Row"];
 export type BlogPost = Database["public"]["Tables"]["blog_posts"]["Row"];
+export type Lead = Database["public"]["Tables"]["leads"]["Row"];
