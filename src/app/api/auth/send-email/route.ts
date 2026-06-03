@@ -11,7 +11,47 @@ import {
 // Configured in: Supabase Dashboard → Authentication → Hooks → Send Email
 // The hook POSTs here whenever Supabase needs to send an auth email.
 
-function verifySignature(payload: string, signature: string, secret: string): boolean {
+// Extract the raw HMAC key bytes from a Supabase hook secret.
+// Supabase stores the secret as "v1,whsec_<base64>"; the HMAC key is the
+// base64-decoded portion after `whsec_`.
+function extractSecretBytes(secret: string): Buffer {
+  const afterPrefix = secret.replace(/^v1,/, "").replace(/^whsec_/, "");
+  return Buffer.from(afterPrefix, "base64");
+}
+
+// Verifies a Standard Webhooks signature — the format Supabase Auth Hooks use
+// since GA. Signature header format: "v1,<base64> v1,<base64> ..." (multiple
+// signatures may be present during key rotation). Signed payload is
+// `${webhook_id}.${webhook_timestamp}.${raw_body}`.
+function verifyStandardWebhook(
+  rawBody: string,
+  webhookId: string,
+  webhookTimestamp: string,
+  webhookSignature: string,
+  secret: string,
+): boolean {
+  try {
+    const secretBytes = extractSecretBytes(secret);
+    const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody}`;
+    const expected = createHmac("sha256", secretBytes).update(signedContent).digest("base64");
+    const expectedBuf = Buffer.from(expected, "base64");
+
+    for (const sig of webhookSignature.split(" ")) {
+      const [version, value] = sig.split(",");
+      if (version !== "v1" || !value) continue;
+      const providedBuf = Buffer.from(value, "base64");
+      if (providedBuf.length === expectedBuf.length && timingSafeEqual(providedBuf, expectedBuf)) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Legacy fallback: HMAC-SHA256 hex of the raw body, compared as `v1,<hex>`.
+function verifyLegacySignature(payload: string, signature: string, secret: string): boolean {
   try {
     const expected = createHmac("sha256", secret).update(payload).digest("hex");
     const expectedBuf = Buffer.from(`v1,${expected}`);
@@ -46,9 +86,23 @@ export async function POST(request: NextRequest) {
   }
 
   const rawBody = await request.text();
-  const signature = request.headers.get("x-supabase-signature") ?? "";
+  const webhookId = request.headers.get("webhook-id");
+  const webhookTimestamp = request.headers.get("webhook-timestamp");
+  const webhookSignature = request.headers.get("webhook-signature");
+  const legacySignature = request.headers.get("x-supabase-signature");
 
-  if (!verifySignature(rawBody, signature, secret)) {
+  let verified = false;
+  if (webhookId && webhookTimestamp && webhookSignature) {
+    verified = verifyStandardWebhook(rawBody, webhookId, webhookTimestamp, webhookSignature, secret);
+  } else if (legacySignature) {
+    verified = verifyLegacySignature(rawBody, legacySignature, secret);
+  }
+
+  if (!verified) {
+    console.error("Hook signature verification failed", {
+      hasStandardWebhookHeaders: Boolean(webhookId && webhookTimestamp && webhookSignature),
+      hasLegacyHeader: Boolean(legacySignature),
+    });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
