@@ -72,7 +72,8 @@ The **Add Availability** card at the top of the page lets you create many slots 
 - **Start date** — The first date from which slots will be generated. Days before this date are skipped.
 - **Recurring weekly** — Leave off to create slots for just the next occurrence of each selected day. Turn it on and pick how many weeks (1–12) to repeat. For example: "Mon and Wed, recurring 4 weeks" gives you 8 slots stretched across the next month.
 - **Time blocks** — One or more time ranges that get applied to every selected day. Click **Add time block** to enter multiple ranges in a single submission (e.g. 9–11am and 1–4pm on the same days).
-- **Service** — Optional. Leave as "Any service" and any service can book into these slots. Set it to a specific service (e.g., "Coaching") and only that service will see them.
+- **Split each block into 30-minute slots** — Optional checkbox below the time blocks. When on, each time range is sliced into 30-minute slots. So a single 9–11am block becomes four consultation-sized slots (9:00–9:30, 9:30–10:00, 10:00–10:30, 10:30–11:00). Designed for free 30-minute consultation calls but can be used for any short session type.
+- **Service** — Optional. Leave as "Any service" and any service can book into these slots. Pick "Consultation (30-min)" when you're setting up consultation-call inventory, or "Coaching", "Interview Prep", etc. for those services.
 
 The **Preview** panel below shows every slot that will be created before you save. The button label updates to "Create N slots" so you always know exactly what you're committing to.
 
@@ -82,9 +83,16 @@ Click the button — slots appear immediately in the "Open Slots" list below. If
 
 **Best practice:** Add slots at least one week in advance so clients can see and book them. The booking calendar only shows future dates that have open slots.
 
-### Deleting a Slot
+### Deleting Slots (Single or Bulk)
 
-Click the delete (trash) icon next to any open slot. You can only delete slots that have **not yet been booked**. If a client has already claimed a slot, the slot is locked and cannot be deleted — the booking must be handled separately.
+Slots in the **Open Slots** list are click-to-select. Click any slot pill — it highlights and a bar appears at the top of the list showing "**N slots selected — Clear selection · Delete**".
+
+- **Delete one:** Click the slot, then click **Delete** in the bar.
+- **Delete a whole day:** Click **Select day** in the date header — every slot on that day highlights — then **Delete**.
+- **Delete everything:** Click **Select all** at the top of the list, then **Delete**.
+- **Change your mind:** Click any selected slot to deselect, or click **Clear selection** to start over.
+
+A confirmation popup shows the count ("Delete 12 slots") before anything is removed. Booked slots are never shown in this list — they're locked and can't be deleted from here. If a slot you selected gets booked the instant before you confirm, it's skipped automatically and you'll see a message like "Deleted 11 slots (1 already booked — skipped)".
 
 ### What Happens When a Client Books
 

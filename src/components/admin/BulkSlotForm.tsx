@@ -11,6 +11,7 @@ import { addBulkAvailabilitySlots } from "@/app/actions/booking";
 
 const SERVICE_TYPES = [
   { value: "", label: "Any service" },
+  { value: "Consultation", label: "Consultation (30-min)" },
   { value: "Coaching", label: "Coaching" },
   { value: "Interview Prep", label: "Interview Prep" },
   { value: "Resume Materials", label: "Resume Materials" },
@@ -63,6 +64,32 @@ function formatDate(date: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// Walks a time block in `minutes`-long steps. Leftover < minutes at the end is dropped.
+function splitBlock(
+  block: { startTime: string; endTime: string },
+  minutes: number
+): Array<{ startTime: string; endTime: string }> {
+  if (!/^\d{2}:\d{2}$/.test(block.startTime) || !/^\d{2}:\d{2}$/.test(block.endTime)) return [];
+  const start = timeToMinutes(block.startTime);
+  const end = timeToMinutes(block.endTime);
+  const out: Array<{ startTime: string; endTime: string }> = [];
+  for (let cur = start; cur + minutes <= end; cur += minutes) {
+    out.push({ startTime: minutesToTime(cur), endTime: minutesToTime(cur + minutes) });
+  }
+  return out;
 }
 
 // Walks forward from `startDate` for `weeks * 7` days and collects dates whose
@@ -132,6 +159,7 @@ export function BulkSlotForm() {
     { id: newBlockId(), startTime: "09:00", endTime: "10:00" },
   ]);
   const [serviceType, setServiceType] = React.useState("");
+  const [splitInto30Min, setSplitInto30Min] = React.useState(false);
 
   const effectiveWeeks = recurring ? Math.max(1, Math.min(12, weeks)) : 1;
 
@@ -141,7 +169,26 @@ export function BulkSlotForm() {
   );
 
   const validation = validate(timeBlocks, selectedDays, startDate);
-  const slotCount = dates.length * timeBlocks.length;
+
+  // When splitting, each user block expands into N back-to-back 30-min sub-blocks.
+  const effectiveBlocks = React.useMemo(() => {
+    if (!splitInto30Min) return timeBlocks.map(({ startTime, endTime }) => ({ startTime, endTime }));
+    return timeBlocks.flatMap((b) => splitBlock(b, 30));
+  }, [splitInto30Min, timeBlocks]);
+
+  // Total minutes that won't fit into a 30-min slot — informational only.
+  const remainderMinutes = React.useMemo(() => {
+    if (!splitInto30Min) return 0;
+    return timeBlocks.reduce((sum, b) => {
+      if (!/^\d{2}:\d{2}$/.test(b.startTime) || !/^\d{2}:\d{2}$/.test(b.endTime)) return sum;
+      const start = timeToMinutes(b.startTime);
+      const end = timeToMinutes(b.endTime);
+      if (end <= start) return sum;
+      return sum + ((end - start) % 30);
+    }, 0);
+  }, [splitInto30Min, timeBlocks]);
+
+  const slotCount = dates.length * effectiveBlocks.length;
 
   function toggleDay(day: number) {
     setSelectedDays((prev) => {
@@ -176,6 +223,7 @@ export function BulkSlotForm() {
     setTimeBlocks([{ id: newBlockId(), startTime: "09:00", endTime: "10:00" }]);
     setRecurring(false);
     setWeeks(4);
+    setSplitInto30Min(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -188,7 +236,7 @@ export function BulkSlotForm() {
     setLoading(true);
     const result = await addBulkAvailabilitySlots({
       dates,
-      timeBlocks: timeBlocks.map(({ startTime, endTime }) => ({ startTime, endTime })),
+      timeBlocks: effectiveBlocks,
       serviceType: serviceType || null,
     });
     setLoading(false);
@@ -211,10 +259,10 @@ export function BulkSlotForm() {
     router.refresh();
   }
 
-  // Preview rendering — group dates and show per-date time blocks.
+  // Preview rendering — group dates and show per-date time blocks (post-split).
   const sortedBlocksForPreview = React.useMemo(
-    () => [...timeBlocks].sort((a, b) => a.startTime.localeCompare(b.startTime)),
-    [timeBlocks]
+    () => [...effectiveBlocks].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    [effectiveBlocks]
   );
 
   return (
@@ -346,6 +394,26 @@ export function BulkSlotForm() {
         >
           <Plus className="h-3.5 w-3.5" /> Add time block
         </button>
+
+        <div className="pt-2 border-t border-neutral-100 mt-2 space-y-1">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={splitInto30Min}
+              onChange={(e) => setSplitInto30Min(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
+            />
+            <span className="text-sm text-neutral-700">
+              Split each block into 30-minute slots
+              <span className="text-neutral-400"> — handy for consultation calls</span>
+            </span>
+          </label>
+          {splitInto30Min && remainderMinutes > 0 && (
+            <p className="text-xs text-neutral-500 pl-6">
+              Heads up: {remainderMinutes} minute{remainderMinutes === 1 ? "" : "s"} won&apos;t fit into a 30-minute slot and will be dropped.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Service type */}

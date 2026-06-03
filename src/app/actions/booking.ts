@@ -213,3 +213,36 @@ export async function deleteAvailabilitySlot(slotId: string): Promise<{ error?: 
   if (error) return { error: error.message };
   return {};
 }
+
+// Called from admin to delete many slots at once. Booked rows are filtered out
+// by the .eq("is_booked", false) guard — surfaced via the `skipped` count.
+export async function deleteAvailabilitySlotsBulk(
+  ids: string[]
+): Promise<{ error?: string; deleted?: number; skipped?: number }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "admin") return { error: "Unauthorized" };
+
+  if (!Array.isArray(ids) || ids.length === 0) return { error: "Nothing selected." };
+  if (ids.length > MAX_BULK_SLOTS) {
+    return { error: `Too many at once (${ids.length}). Limit is ${MAX_BULK_SLOTS}.` };
+  }
+
+  const { data, error } = await supabase
+    .from("availability_slots")
+    .delete()
+    .in("id", ids)
+    .eq("is_booked", false)
+    .select("id");
+
+  if (error) return { error: error.message };
+  const deleted = data?.length ?? 0;
+  return { deleted, skipped: ids.length - deleted };
+}
