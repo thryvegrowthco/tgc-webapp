@@ -983,6 +983,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      service_agreements: {
+        Row: {
+          id: string;
+          version_label: string;
+          title: string;
+          content: Json;
+          is_current: boolean;
+          published_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          version_label: string;
+          title: string;
+          content: Json;
+          is_current?: boolean;
+          published_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          version_label?: string;
+          title?: string;
+          content?: Json;
+          is_current?: boolean;
+          published_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      signed_service_agreements: {
+        Row: {
+          id: string;
+          client_id: string;
+          agreement_id: string;
+          version_label: string;
+          content_snapshot: Json;
+          signed_full_name: string;
+          signed_at: string;
+          ip_address: string | null;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          agreement_id: string;
+          version_label: string;
+          content_snapshot: Json;
+          signed_full_name: string;
+          signed_at?: string;
+          ip_address?: string | null;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          agreement_id?: string;
+          version_label?: string;
+          content_snapshot?: Json;
+          signed_full_name?: string;
+          signed_at?: string;
+          ip_address?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1011,6 +1077,8 @@ export type ClientMessage = Database["public"]["Tables"]["client_messages"]["Row
 export type EmailTemplate = Database["public"]["Tables"]["email_templates"]["Row"];
 export type AutomationLogEntry = Database["public"]["Tables"]["automation_log"]["Row"];
 export type AdminIntegration = Database["public"]["Tables"]["admin_integrations"]["Row"];
+export type ServiceAgreement = Database["public"]["Tables"]["service_agreements"]["Row"];
+export type SignedServiceAgreement = Database["public"]["Tables"]["signed_service_agreements"]["Row"];
 
 export type WorkflowStatus = Booking["workflow_status"];
 export type EmailTemplateKey =

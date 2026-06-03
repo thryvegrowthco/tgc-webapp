@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { signAgreement, getLatestSigningForUser, getCurrentAgreement } from "@/app/actions/legal";
 
 const SERVICES_ALLOWLIST = new Set([
   "coaching",
@@ -138,6 +139,30 @@ export async function saveOnboarding(formData: FormData) {
     await supabase.from("client_profiles").update(finalPayload).eq("client_id", user.id);
   } else {
     await supabase.from("client_profiles").insert(payload);
+  }
+
+  // ─── Service Agreement signing ───
+  // If the client hasn't already signed the currently-published version,
+  // record a signing now using the typed full name from the form.
+  const current = await getCurrentAgreement();
+  if (current) {
+    const latest = await getLatestSigningForUser(user.id);
+    const alreadySignedCurrent = latest?.version_label === current.version_label;
+
+    if (!alreadySignedCurrent) {
+      const signedFullName = trimOrNull(formData.get("signedFullName"));
+      const accepted = formData.get("agreementAccepted") === "on";
+      if (!signedFullName || signedFullName.length < 2) {
+        return { error: "Please type your full legal name on the Service Agreement step." };
+      }
+      if (!accepted) {
+        return { error: "Please check the box to confirm you agree to the Service Agreement." };
+      }
+      const signResult = await signAgreement(signedFullName);
+      if (signResult.error) {
+        return { error: signResult.error };
+      }
+    }
   }
 
   revalidatePath("/dashboard");

@@ -8,12 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { saveOnboarding } from "@/app/actions/onboarding";
 
-type StepKey = "about" | "work" | "goals" | "contact";
+type StepKey = "about" | "work" | "goals" | "contact" | "agreement";
 const STEPS: { key: StepKey; label: string }[] = [
   { key: "about", label: "About you" },
   { key: "work", label: "Your work" },
   { key: "goals", label: "Why you're here" },
   { key: "contact", label: "Working together" },
+  { key: "agreement", label: "Service Agreement" },
 ];
 
 const SERVICE_OPTIONS = [
@@ -45,6 +46,19 @@ export interface OnboardingInitial {
   preferredContactMethod: string | null;
   availabilityNotes: string | null;
   hasResume: boolean;
+
+  // Agreement signing
+  agreement: {
+    title: string;
+    versionLabel: string;
+    publishedAt: string | null;
+    bodyHtml: string;
+    alreadySignedVersion: string | null;
+    alreadySignedAt: string | null;
+    alreadySignedFullName: string | null;
+  } | null;
+
+  defaultFullName: string | null;
 }
 
 export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
@@ -52,6 +66,15 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
+
+  const hasSignedCurrent =
+    initial.agreement?.alreadySignedVersion === initial.agreement?.versionLabel &&
+    initial.agreement?.alreadySignedVersion != null;
+
+  const [signedFullName, setSignedFullName] = React.useState(
+    initial.agreement?.alreadySignedFullName ?? initial.defaultFullName ?? ""
+  );
+  const [agreementAccepted, setAgreementAccepted] = React.useState(hasSignedCurrent);
 
   function next() {
     setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
@@ -63,6 +86,21 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    // Client-side gate for signing
+    if (initial.agreement && !hasSignedCurrent) {
+      if (signedFullName.trim().length < 2) {
+        setError("Please type your full legal name to sign the Service Agreement.");
+        setStepIdx(STEPS.findIndex((s) => s.key === "agreement"));
+        return;
+      }
+      if (!agreementAccepted) {
+        setError("Please check the box to confirm you have read and agree to the Service Agreement.");
+        setStepIdx(STEPS.findIndex((s) => s.key === "agreement"));
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData(e.currentTarget);
@@ -73,7 +111,6 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
       }
       // On success the action redirects; nothing else to do here
     } catch (err) {
-      // Next.js redirects throw — that's expected on success
       if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
         return;
       }
@@ -104,7 +141,7 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
               >
                 {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
               </div>
-              <span className={`text-xs ${active ? "font-semibold text-brand-700" : "text-neutral-500"}`}>
+              <span className={`text-[10px] sm:text-xs ${active ? "font-semibold text-brand-700" : "text-neutral-500"}`}>
                 {s.label}
               </span>
             </li>
@@ -256,6 +293,81 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
           </div>
         </div>
 
+        {/* Step 5: Service Agreement */}
+        <div id="agreement" hidden={STEPS[stepIdx].key !== "agreement"} className="space-y-5">
+          <div>
+            <h2 className="font-display text-xl font-bold text-neutral-900 mb-1">Service Agreement</h2>
+            <p className="text-sm text-neutral-500">
+              {hasSignedCurrent
+                ? `You've already signed version ${initial.agreement?.versionLabel}. No action needed.`
+                : "Please read and sign before we get started."}
+            </p>
+          </div>
+
+          {initial.agreement ? (
+            <>
+              <div className="border border-neutral-200 rounded-xl bg-neutral-50 p-4 sm:p-6 max-h-[420px] overflow-y-auto">
+                <div className="prose prose-neutral prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: initial.agreement.bodyHtml }} />
+              </div>
+              <p className="text-xs text-neutral-500">
+                Version {initial.agreement.versionLabel}
+                {initial.agreement.publishedAt
+                  ? ` · Effective ${new Date(initial.agreement.publishedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                  : ""}
+                {" · "}
+                <a href="/legal/service-agreement" target="_blank" rel="noopener noreferrer" className="text-brand-700 underline underline-offset-2">
+                  Open in new tab
+                </a>
+              </p>
+
+              {hasSignedCurrent ? (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-900">
+                      Signed as &ldquo;{initial.agreement.alreadySignedFullName}&rdquo;
+                    </p>
+                    <p className="text-xs text-green-800 mt-0.5">
+                      {initial.agreement.alreadySignedAt &&
+                        `Recorded ${new Date(initial.agreement.alreadySignedAt).toLocaleString()}`}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signedFullName">Type your full legal name to sign</Label>
+                    <Input
+                      id="signedFullName"
+                      name="signedFullName"
+                      value={signedFullName}
+                      onChange={(e) => setSignedFullName(e.target.value)}
+                      placeholder="e.g. Jane Doe"
+                    />
+                  </div>
+
+                  <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 cursor-pointer hover:border-brand-200 transition-colors">
+                    <input
+                      type="checkbox"
+                      name="agreementAccepted"
+                      checked={agreementAccepted}
+                      onChange={(e) => setAgreementAccepted(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <span className="text-sm text-neutral-700 leading-relaxed">
+                      I have read and agree to the Thryve Growth Co. Service Agreement, version {initial.agreement.versionLabel}.
+                    </span>
+                  </label>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              No Service Agreement is currently published. Contact Rachel before continuing.
+            </div>
+          )}
+        </div>
+
         {error && (
           <p className="text-sm text-red-600 text-center">{error}</p>
         )}
@@ -275,7 +387,14 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button type="submit" disabled={submitting}>
+            <Button
+              type="submit"
+              disabled={
+                submitting ||
+                (!hasSignedCurrent && initial.agreement && (signedFullName.trim().length < 2 || !agreementAccepted)) ||
+                !initial.agreement
+              }
+            >
               {submitting ? "Saving..." : (<>Finish <CheckCircle2 className="h-4 w-4" /></>)}
             </Button>
           )}

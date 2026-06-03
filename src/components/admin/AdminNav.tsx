@@ -15,6 +15,7 @@ import {
   MailCheck,
   Plug,
   MessageSquare,
+  FileText,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ const navItems = [
   { label: "Messages", href: "/admin/messages", icon: MessageSquare, exact: false },
   { label: "Templates", href: "/admin/templates", icon: MailCheck, exact: false },
   { label: "Integrations", href: "/admin/integrations", icon: Plug, exact: false },
+  { label: "Legal", href: "/admin/legal", icon: FileText, exact: false },
   { label: "Blog", href: "/admin/content", icon: FileEdit, exact: false },
   { label: "Newsletter", href: "/admin/newsletter", icon: Mail, exact: false },
   { label: "Watchlists", href: "/admin/watchlists", icon: Bell, exact: false },

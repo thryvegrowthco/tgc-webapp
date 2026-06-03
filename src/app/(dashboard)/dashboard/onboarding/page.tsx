@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { generateHTML } from "@tiptap/html";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingWizard, type OnboardingInitial } from "@/components/dashboard/OnboardingWizard";
+import { getCurrentAgreement, getLatestSigningForUser } from "@/app/actions/legal";
+import { legalRenderExtensions } from "@/lib/legal/extensions";
 import type { ClientProfile } from "@/types/database";
+import type { JSONContent } from "@tiptap/react";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
@@ -15,8 +19,33 @@ export default async function OnboardingPage() {
     .select("*")
     .eq("client_id", user.id)
     .maybeSingle();
-
   const existing = existingRaw as ClientProfile | null;
+
+  // Fetch the user's profile to default the typed-name field
+  const { data: profileRaw } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const profile = profileRaw as { full_name: string | null } | null;
+
+  // Agreement + signing state
+  const [currentAgreement, latestSigning] = await Promise.all([
+    getCurrentAgreement(),
+    getLatestSigningForUser(user.id),
+  ]);
+
+  const agreement: OnboardingInitial["agreement"] = currentAgreement
+    ? {
+        title: currentAgreement.title,
+        versionLabel: currentAgreement.version_label,
+        publishedAt: currentAgreement.published_at,
+        bodyHtml: generateHTML(currentAgreement.content as JSONContent, legalRenderExtensions),
+        alreadySignedVersion: latestSigning?.version_label ?? null,
+        alreadySignedAt: latestSigning?.signed_at ?? null,
+        alreadySignedFullName: latestSigning?.signed_full_name ?? null,
+      }
+    : null;
 
   const initial: OnboardingInitial = {
     location: existing?.location ?? null,
@@ -31,6 +60,8 @@ export default async function OnboardingPage() {
     preferredContactMethod: existing?.preferred_contact_method ?? null,
     availabilityNotes: existing?.availability_notes ?? null,
     hasResume: Boolean(existing?.resume_document_id),
+    agreement,
+    defaultFullName: profile?.full_name ?? null,
   };
 
   const isUpdate = Boolean(existing?.completed_at);
@@ -50,8 +81,8 @@ export default async function OnboardingPage() {
         </h1>
         <p className="text-neutral-500 mt-2">
           {isUpdate
-            ? "Tweak anything that&apos;s changed and save when you&apos;re ready."
-            : "Tell me a bit about you so we can hit the ground running. Takes about three minutes."}
+            ? "Tweak anything that's changed and save when you're ready."
+            : "Tell me a bit about you so we can hit the ground running. Takes about four minutes."}
         </p>
       </div>
 

@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
 import { TimeSlotPicker, type TimeSlot } from "@/components/booking/TimeSlotPicker";
 import { createBookingCheckoutSession } from "@/app/actions/booking";
+import { signAgreement } from "@/app/actions/legal";
 import { BOOKABLE_SERVICES, SERVICE_SELECT_OPTIONS, type ServiceKey } from "@/lib/stripe/products";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +23,23 @@ const STEPS: { id: Step; label: string }[] = [
   { id: "details", label: "Your Info" },
 ];
 
-const CONTRACT_VERSION = process.env.NEXT_PUBLIC_CONTRACT_VERSION ?? "v1";
+const CONTRACT_VERSION_FALLBACK = process.env.NEXT_PUBLIC_CONTRACT_VERSION ?? "v1";
 
-export function BookingFlow() {
+export interface BookingAgreementState {
+  // Logged-in only: true if there's an authenticated user
+  isAuthenticated: boolean;
+  // The currently-published agreement (always present unless seed missing)
+  currentVersion: string | null;
+  // The user's most recent signing, if any
+  signedVersion: string | null;
+  signedAt: string | null;
+}
+
+interface BookingFlowProps {
+  agreementState: BookingAgreementState;
+}
+
+export function BookingFlow({ agreementState }: BookingFlowProps) {
   const [step, setStep] = React.useState<Step>("service");
   const [serviceKey, setServiceKey] = React.useState<ServiceKey | "">("");
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>();
@@ -31,7 +48,19 @@ export function BookingFlow() {
   const [selectedSlotId, setSelectedSlotId] = React.useState<string | undefined>();
   const [slotsLoading, setSlotsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [contractAccepted, setContractAccepted] = React.useState(false);
+
+  // Agreement gating state
+  const currentVersion = agreementState.currentVersion ?? CONTRACT_VERSION_FALLBACK;
+  const signedCurrent =
+    agreementState.signedVersion !== null && agreementState.signedVersion === agreementState.currentVersion;
+  const signedOutdated =
+    agreementState.signedVersion !== null && agreementState.signedVersion !== agreementState.currentVersion;
+  const needsFirstSign =
+    agreementState.isAuthenticated && agreementState.signedVersion === null;
+  const isGuest = !agreementState.isAuthenticated;
+
+  const [contractAccepted, setContractAccepted] = React.useState(signedCurrent);
+  const [reacceptName, setReacceptName] = React.useState("");
 
   const requiresSlot = serviceKey ? BOOKABLE_SERVICES.includes(serviceKey as ServiceKey) : true;
   const currentStepIndex = STEPS.findIndex((s) => s.id === step);
@@ -71,6 +100,25 @@ export function BookingFlow() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    // For outdated signings, record a new signature before checkout.
+    if (signedOutdated) {
+      if (reacceptName.trim().length < 2) {
+        setError("Please type your full legal name to accept the updated agreement.");
+        return;
+      }
+      if (!contractAccepted) {
+        setError("Please check the box to confirm you accept the updated agreement.");
+        return;
+      }
+      const signResult = await signAgreement(reacceptName);
+      if (signResult.error) {
+        setError(signResult.error);
+        return;
+      }
+      toast.success(`Recorded your acceptance of ${currentVersion}.`);
+    }
+
     setStep("submitting");
 
     const form = e.currentTarget;
@@ -83,7 +131,7 @@ export function BookingFlow() {
       phone: (form.elements.namedItem("phone") as HTMLInputElement).value,
       notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value,
       contractAccepted,
-      contractVersion: CONTRACT_VERSION,
+      contractVersion: currentVersion,
     });
 
     if (result?.error) {
@@ -282,28 +330,88 @@ export function BookingFlow() {
             )}
           </div>
 
-          {/* Service agreement clickwrap */}
-          <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 cursor-pointer hover:border-brand-200 transition-colors">
-            <input
-              type="checkbox"
-              checked={contractAccepted}
-              onChange={(e) => setContractAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
-              required
-            />
-            <span className="text-sm text-neutral-700 leading-relaxed">
-              I agree to the{" "}
-              <a
-                href="/legal/service-agreement.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-brand-700 font-medium underline underline-offset-2 hover:text-brand-800"
-              >
-                Service Agreement
-              </a>
-              , which covers scope, payment, cancellation, and confidentiality.
-            </span>
-          </label>
+          {/* Service agreement gating — varies by signing state */}
+          {needsFirstSign ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900">Sign the Service Agreement first</p>
+                <p className="text-sm text-amber-800 mt-0.5">
+                  You need to complete onboarding (including signing the agreement) before you can book.
+                </p>
+                <Button asChild size="sm" className="mt-2">
+                  <Link href="/dashboard/onboarding#agreement">Go to onboarding</Link>
+                </Button>
+              </div>
+            </div>
+          ) : signedOutdated ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+              <p className="text-sm text-blue-900">
+                <strong>The Service Agreement has been updated.</strong> You signed {agreementState.signedVersion}; the current version is {currentVersion}.{" "}
+                <a href="/legal/service-agreement" target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-2">
+                  View the updated agreement
+                </a>
+                . Please re-accept to continue.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="reacceptName" className="text-xs text-blue-900">Type your full legal name</Label>
+                <Input
+                  id="reacceptName"
+                  value={reacceptName}
+                  onChange={(e) => setReacceptName(e.target.value)}
+                  placeholder="e.g. Jane Doe"
+                  className="bg-white"
+                />
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={contractAccepted}
+                  onChange={(e) => setContractAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-blue-300 text-brand-600 focus:ring-brand-500"
+                />
+                <span className="text-sm text-blue-900 leading-relaxed">
+                  I have read and agree to the updated Service Agreement, version {currentVersion}.
+                </span>
+              </label>
+            </div>
+          ) : signedCurrent ? (
+            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-green-900">
+                  <strong>Service Agreement on file</strong> ({currentVersion}
+                  {agreementState.signedAt && `, signed ${new Date(agreementState.signedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}).{" "}
+                  <a href="/legal/service-agreement" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                    View
+                  </a>
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Guest checkout — traditional clickwrap with link to HTML route
+            <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 cursor-pointer hover:border-brand-200 transition-colors">
+              <input
+                type="checkbox"
+                checked={contractAccepted}
+                onChange={(e) => setContractAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                required
+              />
+              <span className="text-sm text-neutral-700 leading-relaxed">
+                I agree to the{" "}
+                <a
+                  href="/legal/service-agreement"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-700 font-medium underline underline-offset-2 hover:text-brand-800"
+                >
+                  Service Agreement
+                </a>
+                , which covers scope, payment, cancellation, and confidentiality.
+              </span>
+            </label>
+          )}
 
           <div className="flex gap-3">
             <Button
@@ -315,7 +423,16 @@ export function BookingFlow() {
             >
               Back
             </Button>
-            <Button type="submit" size="lg" className="flex-1" disabled={!contractAccepted}>
+            <Button
+              type="submit"
+              size="lg"
+              className="flex-1"
+              disabled={
+                needsFirstSign ||
+                (isGuest && !contractAccepted) ||
+                (signedOutdated && (!contractAccepted || reacceptName.trim().length < 2))
+              }
+            >
               Proceed to Payment
             </Button>
           </div>

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, Clock, CheckCircle2, ArrowRight } from "lucide-react";
-import { BookingFlow } from "@/components/booking/BookingFlow";
+import { BookingFlow, type BookingAgreementState } from "@/components/booking/BookingFlow";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentAgreement, getLatestSigningForUser } from "@/app/actions/legal";
 
 export const metadata: Metadata = {
   title: "Book a Call",
@@ -18,7 +20,20 @@ const whatToExpect = [
   "Confirmation email sent immediately after booking",
 ];
 
-export default function BookPage() {
+export default async function BookPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const [currentAgreement, latestSigning] = await Promise.all([
+    getCurrentAgreement(),
+    user ? getLatestSigningForUser(user.id) : Promise.resolve(null),
+  ]);
+  const agreementState: BookingAgreementState = {
+    isAuthenticated: Boolean(user),
+    currentVersion: currentAgreement?.version_label ?? null,
+    signedVersion: latestSigning?.version_label ?? null,
+    signedAt: latestSigning?.signed_at ?? null,
+  };
+
   return (
     <>
       {/* Hero */}
@@ -125,7 +140,7 @@ export default function BookPage() {
             {/* Booking flow */}
             <div className="lg:col-span-3 order-1 lg:order-2">
               <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8">
-                <BookingFlow />
+                <BookingFlow agreementState={agreementState} />
               </div>
             </div>
           </div>

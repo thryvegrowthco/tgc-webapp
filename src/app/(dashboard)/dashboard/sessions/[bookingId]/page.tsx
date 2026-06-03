@@ -182,7 +182,7 @@ export default async function SessionWorkspacePage({
                   Accepted {new Date(booking.contract_accepted_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
                 <a
-                  href="/legal/service-agreement.pdf"
+                  href="/legal/service-agreement"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-brand-700 hover:underline mt-1"
