@@ -3,6 +3,18 @@
     {
       "path": "/api/cron/job-alerts",
       "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/newsletter-send",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/newsletter-reengage",
+      "schedule": "0 14 * * 3"
+    },
+    {
+      "path": "/api/cron/newsletter-milestones",
+      "schedule": "0 14 * * *"
     }
   ]
 }

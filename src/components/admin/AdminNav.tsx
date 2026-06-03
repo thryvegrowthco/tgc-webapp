@@ -10,6 +10,7 @@ import {
   FileEdit,
   Bell,
   BarChart2,
+  Mail,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Bookings", href: "/admin/bookings", icon: Calendar, exact: false },
   { label: "Clients", href: "/admin/clients", icon: Users, exact: false },
   { label: "Blog", href: "/admin/content", icon: FileEdit, exact: false },
+  { label: "Newsletter", href: "/admin/newsletter", icon: Mail, exact: false },
   { label: "Watchlists", href: "/admin/watchlists", icon: Bell, exact: false },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart2, exact: false },
 ];
