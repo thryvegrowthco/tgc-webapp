@@ -48,15 +48,15 @@ interface NewsletterIssueFormProps {
   blogOptions: BlogOption[];
 }
 
-// Compute next Tuesday at 9 AM ET as a default for new schedules.
-// 9 AM ET is 13:00 UTC during EDT (Mar-Nov) and 14:00 UTC during EST.
-// We use 14:00 UTC year-round; close enough — the cron is hourly anyway.
-function nextTuesdayNineAmET(): string {
+// Compute next Tuesday at 9 AM in the editor's local time as a default for
+// new schedules. For Rachel (Central), this is 9 AM Central; for any other
+// admin it's 9 AM in their own zone. Stored as ISO UTC on save.
+function nextTuesdayNineAmLocal(): string {
   const now = new Date();
   const target = new Date(now);
-  target.setUTCHours(14, 0, 0, 0);
-  const daysUntilTuesday = (2 - target.getUTCDay() + 7) % 7;
-  target.setUTCDate(target.getUTCDate() + (daysUntilTuesday === 0 && target <= now ? 7 : daysUntilTuesday));
+  target.setHours(9, 0, 0, 0);
+  const daysUntilTuesday = (2 - target.getDay() + 7) % 7;
+  target.setDate(target.getDate() + (daysUntilTuesday === 0 && target <= now ? 7 : daysUntilTuesday));
   // datetime-local input expects YYYY-MM-DDTHH:mm in local time
   return toDatetimeLocal(target);
 }
@@ -80,7 +80,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   const [scheduledFor, setScheduledFor] = React.useState<string>(
     initialData.scheduledFor
       ? toDatetimeLocal(new Date(initialData.scheduledFor))
-      : nextTuesdayNineAmET()
+      : nextTuesdayNineAmLocal()
   );
 
   const [saving, setSaving] = React.useState(false);
@@ -369,7 +369,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
               disabled={isFinal}
             />
             <p className="text-xs text-neutral-500">
-              Default: next Tuesday 9 AM ET. Cron checks hourly.
+              Default: next Tuesday 9 AM Central. Cron checks hourly.
             </p>
           </div>
         )}
