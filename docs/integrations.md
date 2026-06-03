@@ -125,11 +125,22 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 2. Supabase dashboard → Authentication → Hooks → **Send Email**
 3. Set URL to `https://thryvegrowth.co/api/auth/send-email`
 4. Copy the generated secret → add to Vercel as `SUPABASE_HOOK_SECRET`
+5. Supabase dashboard → Authentication → Emails → **SMTP Settings** → enable Custom SMTP with Resend creds (host `smtp.resend.com`, port `465`, user `resend`, pass = `RESEND_API_KEY`). The hook bypasses SMTP at runtime, but enabling this flag removes Supabase's default **2 emails/hour** cap on auth emails.
+6. Supabase dashboard → Authentication → **Rate Limits** → raise "Rate limit for sending emails" to 30–100/hour to match real signup volume.
 
 **Hook handler:** `src/app/api/auth/send-email/route.ts`
-- Verifies the Supabase HMAC-SHA256 signature (`x-supabase-signature` header)
-- Routes to the correct template based on `email_action_type`
+- Verifies the Standard Webhooks signature (`webhook-id` + `webhook-timestamp` + `webhook-signature` headers) Supabase uses for current Auth Hooks. Signed payload is `${webhook_id}.${webhook_timestamp}.${raw_body}`; HMAC key is the base64-decoded portion of the secret after `whsec_`. Multiple space-separated signatures are accepted to support key rotation.
+- Legacy `x-supabase-signature` (raw-body HMAC-SHA256 hex) is honored as a fallback for pre-GA hooks.
+- Routes to the correct template based on `email_action_type`.
 - Constructs confirmation URL: `{APP_URL}/auth/confirm?token_hash=...&type=...&next=...`
+
+**Troubleshooting signup errors:**
+
+| Error message (returned to client) | Cause | Fix |
+|---|---|---|
+| `Hook requires authorization token` | Supabase project has the Send Email hook enabled but its secret is blank server-side | Dashboard → Auth → Hooks → Send Email → regenerate secret; copy to Vercel `SUPABASE_HOOK_SECRET`; redeploy |
+| `Email rate limit exceeded` | Hit Supabase's per-project email rate limit (default 2/hr on built-in SMTP) or the per-email signup throttle (~60s between attempts for the same address) | Enable Custom SMTP toggle (step 5 above) + raise Rate Limits "emails per hour" (step 6). For the per-email throttle, test with a fresh email or wait ~60s. |
+| `Unauthorized` (from `/api/auth/send-email` directly in logs) | Vercel's `SUPABASE_HOOK_SECRET` doesn't match the value in the Supabase dashboard hook config | Re-copy the secret from Supabase dashboard into Vercel and redeploy |
 
 **Emails sent:**
 
@@ -261,6 +272,7 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | `GET /api/cron/session-reminders` | `0 * * * *` | Hourly at :00 |
 | `GET /api/cron/auto-complete-sessions` | `30 * * * *` | Hourly at :30 |
 | `GET /api/cron/post-service-followup` | `0 16 * * *` | Daily 11am CDT / 10am CST |
+| `GET /api/cron/extend-availability` | `0 11 * * *` | Daily 6am CDT / 5am CST |
 
 ### Setting up a new job on cron-job.org
 

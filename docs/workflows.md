@@ -557,3 +557,74 @@ note on the 6-month and 1-year anniversary of each subscriber's signup.
 
 Tokens are 16-byte random hex stored in `newsletter_subscribers.unsubscribe_token`. No login required to use any of these.
 
+---
+
+## 8. Recurring Availability Flow
+
+```
+Rachel visits /admin/bookings → "My weekly schedule"
+        │
+        ▼
+WeeklyScheduleEditor (src/components/admin/WeeklyScheduleEditor.tsx)
+  Each row defines a weekly time block on a single day-of-week with optional
+  service_type and slot duration. Rachel saves per row.
+        │
+        ▼
+upsertPattern (src/app/actions/availability.ts)
+  1. Admin check
+  2. Validates HH:MM times + end > start
+  3. INSERT or UPDATE availability_patterns
+  4. Calls rebuildForward({ patternId, fromDate: today })
+        │
+        ▼
+rebuildForward (src/lib/availability/generate.ts)
+  1. DELETE availability_slots WHERE pattern_id = $id AND slot_date >= today
+                                 AND is_booked = false
+     (Booked slots are preserved — clients keep their existing sessions.)
+  2. materializePatterns: walks today..today+8wks, computes which dates match
+     each active pattern (skipping blackouts), splits each block by
+     slot_duration_minutes, upserts on UNIQUE (slot_date, start_time).
+        │
+        ▼
+revalidatePath("/admin/bookings") → page re-renders with new state.
+
+Daily 11:00 UTC (~5am CT): GET /api/cron/extend-availability (cron-job.org)
+  1. Verifies Bearer token (CRON_SECRET)
+  2. materializePatterns(now=today, weeks=8)
+  3. Logs to automation_log (event_key='availability_extended')
+  4. Returns { ok, created, scanned, window_start, window_end }
+```
+
+### 8b. Blackout dates
+
+```
+Rachel adds a blackout (date range + optional reason)
+        │
+        ▼
+addBlackout (src/app/actions/availability.ts)
+  1. Admin check + range validation
+  2. INSERT availability_blackouts
+  3. DELETE availability_slots WHERE slot_date BETWEEN start AND end
+                                  AND is_booked = false
+                                  AND pattern_id IS NOT NULL
+     (One-off slots from BulkSlotForm are left alone.)
+  4. COUNT(*) of already-booked slots in the range → returned so the UI can
+     warn Rachel which clients to reach out to
+        │
+        ▼
+revalidatePath → BlackoutManager shows the new entry + toast confirms counts.
+```
+
+Removing a blackout calls `removeBlackout`, which deletes the row and runs
+`rebuildForward(null, fromDate=blackoutStartOrToday)` to re-fill the
+previously-suppressed days.
+
+### 8c. Legacy bulk form
+
+The original `BulkSlotForm` is still mounted under a `<details>` on
+`/admin/bookings` ("Add one-off slots"). It calls `addBulkAvailabilitySlots`
+to insert discrete `availability_slots` rows with `pattern_id = NULL`. Those
+slots are unaffected by pattern/blackout logic and have to be deleted
+manually via `SlotList`.
+
+

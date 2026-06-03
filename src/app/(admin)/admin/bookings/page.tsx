@@ -4,6 +4,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { BulkSlotForm } from "@/components/admin/BulkSlotForm";
 import { SlotList } from "@/components/admin/SlotList";
+import { WeeklyScheduleEditor } from "@/components/admin/WeeklyScheduleEditor";
+import { BlackoutManager } from "@/components/admin/BlackoutManager";
+import { UpcomingAvailabilityGrid } from "@/components/admin/UpcomingAvailabilityGrid";
+import { getScheduleSnapshot } from "@/app/actions/availability";
 
 interface BookingRow {
   id: string;
@@ -33,6 +37,9 @@ export default async function AdminBookingsPage() {
   const supabase = await createClient();
 
   const today = new Date().toISOString().split("T")[0];
+
+  // Recurring schedule snapshot (patterns + blackouts)
+  const { patterns, blackouts } = await getScheduleSnapshot();
 
   // Upcoming unbooked slots
   const { data: openSlots } = await supabase
@@ -87,15 +94,52 @@ export default async function AdminBookingsPage() {
         <p className="text-sm text-neutral-500 mt-1">Manage availability and view incoming bookings.</p>
       </div>
 
-      {/* Add availability slots in bulk */}
-      <section className="bg-white rounded-xl border border-neutral-200 p-6">
-        <div className="mb-5">
-          <h2 className="font-semibold text-neutral-900">Add Availability</h2>
+      {/* Recurring weekly schedule (primary) */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-semibold text-neutral-900">My weekly schedule</h2>
           <p className="text-xs text-neutral-400 mt-0.5">
-            Pick days, set one or more time blocks, and (optionally) repeat weekly.
+            Set it once. Slots auto-generate 8 weeks ahead and extend daily so clients can always book.
           </p>
         </div>
-        <BulkSlotForm />
+        <WeeklyScheduleEditor initialPatterns={patterns} />
+      </section>
+
+      {/* Blackout dates (vacation / holidays) */}
+      <section className="bg-white rounded-xl border border-neutral-200 p-6">
+        <div className="mb-4">
+          <h2 className="font-semibold text-neutral-900">Blackout dates</h2>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            Days off &mdash; vacation, holidays, conferences. No slots are generated inside these ranges.
+          </p>
+        </div>
+        <BlackoutManager initialBlackouts={blackouts} />
+      </section>
+
+      {/* Read-only 4-week preview of what clients will see */}
+      <section className="bg-white rounded-xl border border-neutral-200 p-6">
+        <div className="mb-4">
+          <h2 className="font-semibold text-neutral-900">Next 4 weeks — what clients see</h2>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            A glanceable preview of the public booking calendar. Open slots in green, already booked in gray.
+          </p>
+        </div>
+        <UpcomingAvailabilityGrid />
+      </section>
+
+      {/* Add availability slots in bulk (legacy one-off feature) */}
+      <section className="bg-white rounded-xl border border-neutral-200 p-6">
+        <details>
+          <summary className="cursor-pointer list-none">
+            <span className="font-semibold text-neutral-900">Add one-off slots</span>
+            <p className="text-xs text-neutral-400 mt-0.5">
+              For irregular blocks that don&apos;t fit your recurring schedule above. Click to expand.
+            </p>
+          </summary>
+          <div className="mt-5">
+            <BulkSlotForm />
+          </div>
+        </details>
       </section>
 
       {/* Open (unbooked) slots */}

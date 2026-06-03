@@ -39,11 +39,58 @@ Rachel's bookable calendar slots. Clients see these when selecting a date/time o
 | `end_time` | `TIME` | — | — |
 | `service_type` | `TEXT` | `NULL` | If NULL, any service can book it |
 | `is_booked` | `BOOLEAN` | `FALSE` | Set to `TRUE` by the Stripe webhook; never set by client |
+| `pattern_id` | `UUID` | `NULL` | FK → `availability_patterns.id` (`ON DELETE SET NULL`). NULL = one-off slot created via `BulkSlotForm`; otherwise, this slot was materialized from a recurring pattern and is eligible for rebuild-forward replacement |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
-**Constraint:** `UNIQUE (slot_date, start_time)` — prevents duplicate slots at the same time.
+**Constraint:** `UNIQUE (slot_date, start_time)` — prevents duplicate slots at the same time. The pattern materialization routine relies on this for idempotency.
 
 **Key behavior:** `deleteAvailabilitySlot` in `src/app/actions/booking.ts` checks `is_booked` before deleting and refuses if the slot is taken.
+
+---
+
+### `availability_patterns`
+
+Recurring weekly availability. Each row is one time block on one day-of-week. Many rows compose Rachel's full weekly schedule. The daily `/api/cron/extend-availability` materializes active patterns into `availability_slots` rows for a rolling 8-week window.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `day_of_week` | `INT` | — | 0 = Sunday, 6 = Saturday; CHECK 0..6 |
+| `start_time` | `TIME` | — | Central wall-clock time |
+| `end_time` | `TIME` | — | Central wall-clock time; CHECK end > start |
+| `slot_duration_minutes` | `INT` | `NULL` | If NULL, the whole time block is one slot. Otherwise the block is split into N-minute slots (30 / 60 / 90) |
+| `service_type` | `TEXT` | `NULL` | NULL = any service; else one of the hardcoded SERVICE_TYPES |
+| `effective_from` | `DATE` | `CURRENT_DATE` | Inclusive |
+| `effective_until` | `DATE` | `NULL` | NULL = recurs forever |
+| `is_active` | `BOOLEAN` | `TRUE` | Soft delete via `deletePattern` sets this to FALSE and removes future unbooked slots |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | Bumped on every upsert |
+
+**Indexes:** `(is_active, day_of_week)` for the cron lookup; `(effective_from, effective_until)` for range checks.
+
+**RLS:** admin-only via `is_admin()`.
+
+**Key behavior:** `upsertPattern` and `togglePatternActive` both call `rebuildForward(patternId, today)` after writing the row, so changes appear immediately without waiting for the cron.
+
+---
+
+### `availability_blackouts`
+
+Vacation, holidays, conferences — date ranges during which no slots should be generated from patterns.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `start_date` | `DATE` | — | Inclusive |
+| `end_date` | `DATE` | — | Inclusive; CHECK end >= start |
+| `reason` | `TEXT` | `NULL` | Free-form ("Vacation", "Holiday") |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**Index:** `(start_date, end_date)`.
+
+**RLS:** admin-only via `is_admin()`.
+
+**Key behavior:** `addBlackout` deletes existing unbooked, pattern-derived slots in the range (one-off slots stay) and returns counts. Already-booked sessions inside the range are NOT removed — Rachel is warned via toast so she can reach out to the clients.
 
 ---
 

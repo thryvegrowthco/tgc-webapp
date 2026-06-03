@@ -61,6 +61,7 @@ export type Database = {
           end_time: string;
           service_type: string | null;
           is_booked: boolean;
+          pattern_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -70,6 +71,7 @@ export type Database = {
           end_time: string;
           service_type?: string | null;
           is_booked?: boolean;
+          pattern_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -79,6 +81,7 @@ export type Database = {
           end_time?: string;
           service_type?: string | null;
           is_booked?: boolean;
+          pattern_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1049,6 +1052,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      availability_patterns: {
+        Row: {
+          id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          slot_duration_minutes: number | null;
+          service_type: string | null;
+          effective_from: string;
+          effective_until: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          slot_duration_minutes?: number | null;
+          service_type?: string | null;
+          effective_from?: string;
+          effective_until?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          day_of_week?: number;
+          start_time?: string;
+          end_time?: string;
+          slot_duration_minutes?: number | null;
+          service_type?: string | null;
+          effective_from?: string;
+          effective_until?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      availability_blackouts: {
+        Row: {
+          id: string;
+          start_date: string;
+          end_date: string;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          start_date: string;
+          end_date: string;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          start_date?: string;
+          end_date?: string;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1079,6 +1148,8 @@ export type AutomationLogEntry = Database["public"]["Tables"]["automation_log"][
 export type AdminIntegration = Database["public"]["Tables"]["admin_integrations"]["Row"];
 export type ServiceAgreement = Database["public"]["Tables"]["service_agreements"]["Row"];
 export type SignedServiceAgreement = Database["public"]["Tables"]["signed_service_agreements"]["Row"];
+export type AvailabilityPattern = Database["public"]["Tables"]["availability_patterns"]["Row"];
+export type AvailabilityBlackout = Database["public"]["Tables"]["availability_blackouts"]["Row"];
 
 export type WorkflowStatus = Booking["workflow_status"];
 export type EmailTemplateKey =

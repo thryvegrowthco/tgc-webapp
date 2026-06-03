@@ -62,26 +62,49 @@ The `/admin` page shows four stat cards at the top and a recent bookings table b
 
 **URL:** `/admin/bookings`
 
-This is where you control what dates and times clients can book.
+This is where you control what dates and times clients can book. The page has four sections, top to bottom:
 
-### Adding Availability
+1. **My weekly schedule** — your recurring availability (the main one)
+2. **Blackout dates** — vacations and days off
+3. **Next 4 weeks — what clients see** — a glanceable preview
+4. **Add one-off slots** (collapsed) — for irregular blocks that don't fit the weekly pattern
 
-The **Add Availability** card at the top of the page lets you create many slots at once. Fill it in top to bottom:
+### Setting Your Weekly Schedule (the main thing)
 
-- **Days of the week** — Tap the day pills (Sun–Sat) to choose which days you want slots on. Use the **Weekdays**, **Weekends**, or **All days** quick links to set common groups in one click.
-- **Start date** — The first date from which slots will be generated. Days before this date are skipped.
-- **Recurring weekly** — Leave off to create slots for just the next occurrence of each selected day. Turn it on and pick how many weeks (1–12) to repeat. For example: "Mon and Wed, recurring 4 weeks" gives you 8 slots stretched across the next month.
-- **Time blocks** — One or more time ranges that get applied to every selected day. Click **Add time block** to enter multiple ranges in a single submission (e.g. 9–11am and 1–4pm on the same days).
-- **Split each block into 30-minute slots** — Optional checkbox below the time blocks. When on, each time range is sliced into 30-minute slots. So a single 9–11am block becomes four consultation-sized slots (9:00–9:30, 9:30–10:00, 10:00–10:30, 10:30–11:00). Designed for free 30-minute consultation calls but can be used for any short session type.
-- **Service** — Optional. Leave as "Any service" and any service can book into these slots. Pick "Consultation (30-min)" when you're setting up consultation-call inventory, or "Coaching", "Interview Prep", etc. for those services.
+The **My weekly schedule** section is built to be set up once and then mostly left alone. Each day of the week has its own card. Click **+ Add time block** on a day to add a new row, then fill in:
 
-The **Preview** panel below shows every slot that will be created before you save. The button label updates to "Create N slots" so you always know exactly what you're committing to.
+- **Start / End** — the hours that day is bookable (in your Central time)
+- **Service** — pick "Any service" or a specific service. When you pick a service, the *Each slot* column auto-fills with a sensible default (Coaching → 60 min, Consultation → 30 min). You can always override.
+- **Each slot** — controls how the block is split into bookable slots. Pick "Whole block" if the whole block is one session, or 30 / 60 / 90 min to chop it up.
 
-Click the button — slots appear immediately in the "Open Slots" list below. If some of the slots you tried to add already exist on the same date and start time, you'll see a message like "Created 6 slots (2 already existed)" — duplicates are skipped, no error.
+Click **Save** on the row. You'll see a green toast telling you how many slots were created.
 
-**Quick single slot:** Just pick one day, one time block, and leave Recurring off — it works exactly the same as adding a single slot did before.
+**The big difference from before:** these schedules are *recurring forever*. The system generates 8 weeks of slots from your schedule, and every morning at 5am Central a daily job extends the window by another day so you always have 8 weeks of openings live. You do not have to come back here every few months to re-create slots.
 
-**Best practice:** Add slots at least one week in advance so clients can see and book them. The booking calendar only shows future dates that have open slots.
+**Quick wins:**
+- Set up Monday once, then click **Copy Monday to weekdays** above the schedule to clone it to Tue–Fri. Adjust whatever's different, then save each row.
+- If you change a time block on a day that already has clients booked into the old times, **booked sessions stay** on the calendar exactly as they were. Only unbooked future slots get rebuilt to match.
+
+### Taking Time Off (Blackout Dates)
+
+The **Blackout dates** section is for vacations, holidays, conferences, sick days — any date range you don't want any slots generated for.
+
+Click **+ Add blackout dates**, pick a start and end date (or use the **This Friday / This week / Next week** quick chips), add an optional reason, and **Add blackout**.
+
+What happens immediately:
+- Any unbooked future slots inside that date range get removed
+- If any sessions are already booked inside that range, the toast warns you — those bookings stay on the calendar and you should reach out to those clients to reschedule
+- New slots stop being generated for those days
+
+To go back to normal, click the trash icon next to a blackout. Slots that were suppressed get re-generated automatically.
+
+### Previewing What Clients See
+
+The **Next 4 weeks** card shows a Mon–Sun grid of every slot in your calendar for the next four weeks. **Green** = open, ready to book. **Gray with strikethrough** = already booked. This is exactly what a client sees when they open `/book`. Use it as a sanity check after editing your schedule.
+
+### Adding One-Off Slots
+
+The **Add one-off slots** section at the bottom (click to expand) is the older bulk-add form. Use it for irregular blocks that don't fit your recurring schedule — e.g., "I happen to be free for two extra sessions next Saturday afternoon." Slots created this way are *not* tied to your recurring schedule and will stay until you delete them.
 
 ### Deleting Slots (Single or Bulk)
 
