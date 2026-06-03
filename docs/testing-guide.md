@@ -66,7 +66,7 @@ Note the port it picks — Next.js falls back to 3001 / 3002 / 3003 if 3000 is i
 
 - **Admin account** — yours. If you're not already admin:
   ```sql
-  update profiles set role = 'admin' where email = 'your-email@example.com';
+  update profiles set role = 'admin' where email = 'rachel@thryvegrowth.co';
   ```
 - **Test client account** — sign up via `/signup` with a different email. Use a `+test` alias of your real email if you want emails to actually arrive (e.g. `you+test@gmail.com`).
 

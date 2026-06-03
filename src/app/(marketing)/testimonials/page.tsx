@@ -108,7 +108,7 @@ export default function TestimonialsPage() {
 
           <div className="mt-16 text-center">
             <Button asChild size="lg">
-              <Link href="/book">
+              <Link href="/consultation">
                 Work with Rachel <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

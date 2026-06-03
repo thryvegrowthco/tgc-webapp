@@ -191,7 +191,7 @@ export function Header() {
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <Button asChild size="lg">
-                <Link href="/book">Book a Call</Link>
+                <Link href="/consultation">Book a Free 30-Minute Consultation Call</Link>
               </Button>
             </div>
 
@@ -299,7 +299,7 @@ export function Header() {
             {/* Mobile CTA */}
             <div className="px-4 pb-8 pt-2 border-t border-neutral-100">
               <Button asChild size="lg" className="w-full">
-                <Link href="/book">Book a Call</Link>
+                <Link href="/consultation">Book a Free 30-Minute Consultation Call</Link>
               </Button>
             </div>
           </div>

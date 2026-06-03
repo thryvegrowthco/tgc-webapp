@@ -14,8 +14,9 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 6. [Managing Job Watchlists](#6-managing-job-watchlists)
 7. [What Happens When Someone Books](#7-what-happens-when-someone-books)
 8. [Analytics](#8-analytics)
-9. [Known Limitations](#9-known-limitations)
-10. [Troubleshooting](#10-troubleshooting)
+9. [The Weekly Newsletter](#9-the-weekly-newsletter)
+10. [Known Limitations](#10-known-limitations)
+11. [Troubleshooting](#11-troubleshooting)
 
 ---
 
@@ -251,7 +252,7 @@ Each job in the client's list shows a status badge. **Clients update their own s
 
 ### The Weekly Job Alert Email
 
-Every Monday at approximately 4 AM Eastern / 3 AM Central, the system automatically emails every active subscriber a digest of jobs added to their list in the past 7 days.
+Every Monday at approximately 3 AM Central, the system automatically emails every active subscriber a digest of jobs added to their list in the past 7 days.
 
 You do not need to do anything to trigger this. If you want a client's new matches to be included in that week's digest, add them before Sunday night.
 
@@ -301,14 +302,105 @@ All figures update automatically as bookings and payments come in. There is no n
 
 ---
 
-## 9. Known Limitations
+## 9. The Weekly Newsletter
+
+The newsletter system lives at `/admin/newsletter`. It handles three things: collecting subscribers, writing your weekly email, and tracking how it performs.
+
+### How people subscribe
+
+The footer of every page has a quick email-only signup. The page at `thryvegrowth.co/newsletter` has a longer form where they also pick interests like "Leadership" or "Job Searching". The blog page has the quick form too.
+
+When someone subscribes, two things happen automatically:
+1. They get a warm welcome email from you (it explains what to expect, and reminds them they can hit reply anytime).
+2. Their contact is added to GoHighLevel with the tag `thryve-newsletter`.
+
+### The dashboard
+
+`/admin/newsletter` shows you:
+- **Active subscribers** — how many people are on the list right now.
+- **New (30 days)** — how many joined in the last month.
+- **Scheduled** — emails you've already written and queued to send.
+- **Total sent** — running count of emails delivered.
+- **Recently sent** — open and click rate for each of your last five issues.
+- **Idea inbox** — a free-form notepad. Jot down a headline or a half-thought; nothing is sent automatically. Use it as a parking lot.
+
+### Writing a new issue
+
+Click **New issue**. The editor opens pre-filled with a seven-section template:
+
+1. Opening Note from Rachel
+2. Weekly Motivation
+3. Featured Blog or Article
+4. Career or Leadership Tip
+5. Resource Spotlight
+6. Service or Offering Highlight
+7. Closing Thought
+
+You don't have to keep all seven — delete the ones you skip this week. The template is there so you never face a blank page.
+
+Fill in:
+- **Internal title** — just for you (e.g., "Week of June 2"). Subscribers never see it.
+- **Email subject** — what shows up in inboxes. Aim for under 60 characters.
+- **Inbox preview** — the line readers see in their inbox before they open. Treat it as a second chance at a headline.
+- **Body** — your content. The toolbar has H2 (section heading), H3 (subheading), bold, italic, bullet list, numbered list, quote, divider, link, and image.
+
+### The sidebar (right column)
+
+- **Status** — where the draft is in the workflow (Draft → Pending approval → Scheduled → Sent).
+- **Audience** — leave all boxes unchecked to send to everyone. Check specific interests to send only to people who picked those when they signed up.
+- **Featured blog** — pick one of your published posts to highlight. This is just a hint to you — you still need to mention it in the body.
+- **Send test to yourself** — type your email, hit "Send test", and a copy lands in your inbox. Always do this before scheduling.
+- **Schedule** — defaults to next Tuesday at 9 AM Central. Change it if you want a different day. The system checks for due newsletters every hour, so a 9:15 AM schedule will actually go out at 10 AM.
+- **Actions:**
+  - **Save draft** — saves your work, doesn't send anything.
+  - **Submit for approval** — moves the draft to a holding state for your own review (optional step).
+  - **Approve & schedule** — locks in the schedule. The send will happen automatically.
+  - **Send now** — sends immediately to everyone matching your audience filter. Use sparingly.
+
+### Preview
+
+Click **Open preview** in the sidebar to see how the email will look in an inbox. The header shows the fake "from", subject, and preview line; the body is the real rendered email.
+
+### Duplicate
+
+When you find a structure that works, hit **Duplicate** in the sidebar of any past issue. It creates a fresh draft with the same content, so you can edit instead of starting over.
+
+### Subscribers list
+
+`/admin/newsletter/subscribers` shows everyone on your list. Filter by interest (Leadership, Career Growth, etc.) or by Active/Unsubscribed. Search for a specific email. Click "Unsubscribe" next to a row to manually take someone off the list — useful if they reply asking you to remove them.
+
+### Tracking and re-engagement
+
+Once an email goes out, the system tracks opens, clicks, bounces, and complaints automatically. You see these on the issue's detail page and as percentages in the dashboard.
+
+Two automatic emails go out on a regular basis without you doing anything:
+
+- **"We missed you"** — once a week, sent to subscribers who haven't opened anything in 60 days. Gives them a friendly nudge to update preferences or unsubscribe. Capped at 50 per week so it never feels like a blast.
+- **Milestone thank-you** — on the 6-month and 1-year anniversary of someone subscribing, a short note from you thanking them.
+
+You don't need to write or schedule any of these.
+
+### Templates
+
+`/admin/newsletter/templates` lets you create alternate section layouts (e.g., a "monthly roundup" structure that's different from the weekly default). Mark one as "default" — that's the one that pre-fills every new issue. Most weeks you won't need to touch this.
+
+### Tips
+
+- Save the draft first, then send a test to yourself. Send tests don't count toward sent_count and don't trigger tracking.
+- The "Submit for approval" step is optional. If it's just you, go straight from Draft → Approve & schedule.
+- Once an issue is in `Sent` status, you can't edit it. Use Duplicate to start a new draft from it.
+- Tuesday 9 AM Central is the recommended default. You can override it per issue.
+
+---
+
+## 10. Known Limitations
 
 **User roles:**
 There is no button to make someone an admin or to downgrade an admin to a client. Any role changes require a developer to update the database directly.
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 **"A client says they didn't get a confirmation email"**
 Check your Resend dashboard for delivery status. Also ask the client to check their spam or junk folder. The email comes from `noreply@thryvegrowth.co`.

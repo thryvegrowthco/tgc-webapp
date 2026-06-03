@@ -135,7 +135,6 @@ export default function HRConsultingPage() {
       <SectionCTA
         heading="Let's Talk About Your Team"
         body="Every organization is different. Tell me what's going on and we'll figure out the right approach together."
-        primaryLabel="Book a Call"
         secondaryLabel="View All Services"
         secondaryHref="/services"
       />

@@ -176,7 +176,6 @@ export default function PackagesPage() {
       <SectionCTA
         heading="Not Sure Which Package Is Right?"
         body="Book a call and let's figure it out together. There's no obligation, just an honest conversation about what makes sense for your situation."
-        primaryLabel="Book a Call"
         secondaryLabel="View All Services"
         secondaryHref="/services"
       />

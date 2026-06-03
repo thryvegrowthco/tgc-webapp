@@ -178,7 +178,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <SectionCTA
         heading="Found This Useful?"
         body="If this resonated, a conversation might too. Book a call and let's talk about your specific situation."
-        primaryLabel="Book a Call"
         secondaryLabel="Read More"
         secondaryHref="/blog"
         variant="light"

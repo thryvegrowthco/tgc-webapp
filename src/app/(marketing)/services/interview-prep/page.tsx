@@ -130,6 +130,7 @@ export default function InterviewPrepPage() {
         heading="Have an Interview Coming Up?"
         body="Let's get you ready. Book a session and we'll make sure you walk in prepared."
         primaryLabel="Book a Session"
+        primaryHref="/book"
         secondaryLabel="View Pricing"
         secondaryHref="/investment"
       />

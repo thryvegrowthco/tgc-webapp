@@ -122,7 +122,6 @@ export default function CultureEngagementPage() {
       <SectionCTA
         heading="Ready to Build Something That Lasts?"
         body="Let's start with an honest conversation about where your culture is and where you want it to go."
-        primaryLabel="Book a Call"
         secondaryLabel="View All Services"
         secondaryHref="/services"
       />

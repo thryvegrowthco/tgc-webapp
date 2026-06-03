@@ -222,7 +222,6 @@ export default function ResourcesPage() {
       <SectionCTA
         heading="Need Something More Tailored?"
         body="If you want help putting these tools to use, or you need something built for your specific situation, book a call and let's talk."
-        primaryLabel="Book a Call"
         secondaryLabel="View All Services"
         secondaryHref="/services"
       />

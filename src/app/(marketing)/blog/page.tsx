@@ -135,7 +135,6 @@ export default async function BlogPage() {
       <SectionCTA
         heading="Want to Work Together?"
         body="The blog is one thing, but real growth happens in real conversations. Book a call and let's talk."
-        primaryLabel="Book a Call"
         secondaryLabel="View Services"
         secondaryHref="/services"
         variant="light"

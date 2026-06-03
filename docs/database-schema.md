@@ -241,17 +241,122 @@ Blog post content and metadata. Content is stored as Tiptap ProseMirror JSON.
 
 ### `newsletter_subscribers`
 
-Email subscribers collected via the footer/blog newsletter form.
+Email subscribers collected via the footer/blog/landing newsletter forms. Extended in migration `0009` with interest tags, engagement tracking, and a per-row unsubscribe token.
 
 | Column | Type | Default | Notes |
 |---|---|---|---|
 | `id` | `UUID` | `gen_random_uuid()` | — |
 | `email` | `TEXT` | — | UNIQUE |
-| `first_name` | `TEXT` | `NULL` | Not collected in current form UI |
-| `source` | `TEXT` | `NULL` | Tracks which form they used |
+| `first_name` | `TEXT` | `NULL` | Collected in the `variant="full"` form on `/newsletter` |
+| `source` | `TEXT` | `NULL` | Tracks which form they used (`footer`, `blog`, `newsletter-landing`) |
 | `ghl_contact_id` | `TEXT` | `NULL` | GoHighLevel contact ID after sync |
 | `subscribed_at` | `TIMESTAMPTZ` | `NOW()` | — |
-| `unsubscribed_at` | `TIMESTAMPTZ` | `NULL` | Nullable; not currently set via UI |
+| `unsubscribed_at` | `TIMESTAMPTZ` | `NULL` | Set by `/api/newsletter/unsubscribe/[token]` and the marketing unsubscribe page |
+| `interests` | `TEXT[]` | `'{}'` | Slugs from `src/lib/newsletter/interests.ts` (GIN-indexed) |
+| `last_engaged_at` | `TIMESTAMPTZ` | `NULL` | Updated by the Resend webhook on `email.opened` / `email.clicked` |
+| `last_sent_at` | `TIMESTAMPTZ` | `NULL` | Stamped by `sendIssue` after a successful batch |
+| `welcome_sent_at` | `TIMESTAMPTZ` | `NULL` | Idempotency for the welcome email |
+| `unsubscribe_token` | `TEXT` | `encode(gen_random_bytes(16),'hex')` | UNIQUE; used in unsubscribe + manage URLs |
+
+---
+
+### `newsletter_issues`
+
+One row per weekly newsletter draft → scheduled → sent.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `title` | `TEXT` | — | Rachel's internal name; not shown to subscribers |
+| `subject` | `TEXT` | `''` | Email subject line |
+| `preheader` | `TEXT` | `''` | Inbox-preview text |
+| `content` | `JSONB` | — | Tiptap ProseMirror JSON (`newsletterEditorExtensions`) |
+| `status` | `TEXT` | `'draft'` | `draft` → `pending_approval` → `scheduled` → `sending` → `sent` / `failed` |
+| `scheduled_for` | `TIMESTAMPTZ` | `NULL` | When the cron should send it |
+| `sent_at` | `TIMESTAMPTZ` | `NULL` | Stamped after a successful send |
+| `sent_count` | `INT` | `0` | Recipients delivered to in the last send |
+| `failed_count` | `INT` | `0` | Recipients that hit a send error |
+| `template_id` | `UUID` | `NULL` | Optional FK to `newsletter_templates` |
+| `target_interests` | `TEXT[]` | `'{}'` | Empty array = send to all; otherwise overlap-match subscribers |
+| `featured_blog_post_id` | `UUID` | `NULL` | Optional FK to `blog_posts` |
+| `author_id` | `UUID` | `NULL` | FK to `profiles` |
+| `approved_by` | `UUID` | `NULL` | FK to `profiles` (the admin who approved) |
+| `approved_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+Index: `(status, scheduled_for)` for the hourly cron's hot query.
+
+---
+
+### `newsletter_templates`
+
+Reusable section layouts. The migration seeds one row tagged `is_default = TRUE` with the 7-section Thryve structure.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `name` | `TEXT` | — | — |
+| `description` | `TEXT` | `NULL` | — |
+| `content` | `JSONB` | — | Tiptap JSON |
+| `is_default` | `BOOLEAN` | `FALSE` | Partial unique index ensures only one default |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+---
+
+### `newsletter_sends`
+
+Per-recipient ledger of every send. Required so Resend webhook events can be correlated back to the issue + subscriber via `resend_message_id`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `issue_id` | `UUID` | — | FK to `newsletter_issues` (cascade) |
+| `subscriber_id` | `UUID` | — | FK to `newsletter_subscribers` (cascade) |
+| `resend_message_id` | `TEXT` | `NULL` | UNIQUE — Resend's id from `resend.batch.send()` |
+| `status` | `TEXT` | `'sent'` | `sent`, `failed`, or `bounced` |
+| `error` | `TEXT` | `NULL` | Up to 500 chars of error message on failure |
+| `sent_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+---
+
+### `newsletter_events`
+
+Raw event log from the Resend webhook. `UNIQUE(resend_event_id)` makes the handler idempotent under retries.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `send_id` | `UUID` | `NULL` | FK to `newsletter_sends` (cascade) |
+| `subscriber_id` | `UUID` | `NULL` | FK to `newsletter_subscribers` (cascade) |
+| `issue_id` | `UUID` | `NULL` | FK to `newsletter_issues` (cascade) |
+| `event_type` | `TEXT` | — | `delivered`, `opened`, `clicked`, `bounced`, `complained`, `unsubscribed` |
+| `url` | `TEXT` | `NULL` | Populated for `clicked` events |
+| `user_agent` | `TEXT` | `NULL` | From the click payload |
+| `occurred_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `resend_event_id` | `TEXT` | `NULL` | UNIQUE |
+
+---
+
+### `newsletter_ideas`
+
+Lightweight idea inbox for Rachel — captured from the newsletter dashboard.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `body` | `TEXT` | — | The note itself |
+| `used_in_issue_id` | `UUID` | `NULL` | FK to `newsletter_issues` (optional, future use) |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+---
+
+### Views
+
+| View | Purpose |
+|---|---|
+| `newsletter_issue_stats` | Per-issue aggregate: `delivered`, `opened`, `clicked`, `unique_opens`, `unique_clicks`, `bounces`, `complaints`. Used by the admin dashboard and issue detail page. |
+| `newsletter_top_links` | Most-clicked URLs per issue. Sourced from `newsletter_events` where `event_type = 'clicked'`. |
 
 ---
 
@@ -270,7 +375,12 @@ Email subscribers collected via the footer/blog newsletter form.
 | `leads` | None | None | SELECT all, INSERT, UPDATE | Full (used by `/api/leads` for public inserts) |
 | `admin_client_notes` | None | None | ALL | Full |
 | `blog_posts` | SELECT published | SELECT published | ALL | Full |
-| `newsletter_subscribers` | INSERT only | None | ALL | Full |
+| `newsletter_subscribers` | INSERT only | None | ALL | Full (used by `/api/newsletter*` routes for public subscribe/unsubscribe/manage) |
+| `newsletter_issues` | None | None | ALL | Full |
+| `newsletter_templates` | None | None | ALL | Full |
+| `newsletter_sends` | None | None | ALL | Full |
+| `newsletter_events` | None | None | ALL | Full (writes from Resend webhook) |
+| `newsletter_ideas` | None | None | ALL | Full |
 
 Note: "Service role" (`createServiceClient()`) bypasses all RLS policies. Only used in the Stripe webhook and admin server actions where the caller is already verified.
 

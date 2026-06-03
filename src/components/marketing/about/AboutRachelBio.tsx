@@ -2,11 +2,10 @@ import { RachelPhoto } from "@/components/shared/RachelPhoto";
 
 const highlights = [
   "10+ years of hands-on HR leadership experience",
-  "Built and led HR departments from the ground up",
   "Coached individuals through career transitions and promotions",
   "Developed onboarding, performance, and retention programs",
   "Partnered with executives on culture and organizational design",
-  "SHRM-certified HR professional",
+  "PHR-certified HR professional",
 ];
 
 export function AboutRachelBio() {

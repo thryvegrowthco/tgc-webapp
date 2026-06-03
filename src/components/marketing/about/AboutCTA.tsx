@@ -28,9 +28,9 @@ export function AboutCTA() {
             size="xl"
             className="bg-white text-brand-700 hover:bg-brand-50"
           >
-            <Link href="/book">
+            <Link href="/consultation">
               <Calendar className="h-5 w-5" />
-              Book a Call
+              Book a Free 30-Minute Consultation Call
             </Link>
           </Button>
           <Button

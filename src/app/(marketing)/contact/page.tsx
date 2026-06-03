@@ -153,10 +153,10 @@ export default function ContactPage() {
                   about what you need.
                 </p>
                 <Link
-                  href="/book"
+                  href="/consultation"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-100 hover:text-white transition-colors"
                 >
-                  Book a call <ArrowRight className="h-4 w-4" />
+                  Book a Free 30-Minute Consultation Call <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

@@ -52,7 +52,7 @@ export function HomeHero() {
             {/* CTA buttons */}
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
-                <Link href="/book">
+                <Link href="/consultation">
                   Start Your Growth
                   <ArrowRight className="h-5 w-5" />
                 </Link>

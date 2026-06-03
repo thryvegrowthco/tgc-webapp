@@ -138,7 +138,6 @@ export default function CoachingPage() {
       <SectionCTA
         heading="Ready to Move Forward?"
         body="Let's start with a conversation. Tell me where you are and what you're trying to figure out."
-        primaryLabel="Book a Call"
         secondaryLabel="View Packages"
         secondaryHref="/packages"
       />

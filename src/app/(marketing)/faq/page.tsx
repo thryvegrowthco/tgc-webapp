@@ -178,8 +178,8 @@ export default function FAQPage() {
                 Send a message <ArrowRight className="h-4 w-4" />
               </Link>
               <span className="hidden sm:inline text-neutral-300">·</span>
-              <Link href="/book" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-800">
-                Book a call <ArrowRight className="h-4 w-4" />
+              <Link href="/consultation" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-800">
+                Book a Free 30-Minute Consultation Call <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
@@ -189,7 +189,6 @@ export default function FAQPage() {
       <SectionCTA
         heading="Ready to Get Started?"
         body="You've got the answers. Now let's put them to work."
-        primaryLabel="Book a Call"
         secondaryLabel="View Services"
         secondaryHref="/services"
         variant="light"

@@ -35,9 +35,9 @@ export function HomeFinalCTA() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="xl">
-            <Link href="/book">
+            <Link href="/consultation">
               <Calendar className="h-5 w-5" />
-              Book a Call
+              Book a Free 30-Minute Consultation Call
             </Link>
           </Button>
           <Button asChild size="xl" variant="outline">

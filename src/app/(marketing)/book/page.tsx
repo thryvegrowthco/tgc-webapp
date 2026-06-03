@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail, Clock, CheckCircle2 } from "lucide-react";
+import { Mail, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { BookingFlow } from "@/components/booking/BookingFlow";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Book a Call",
@@ -36,6 +37,18 @@ export default function BookPage() {
               Select your service, pick a time, and pay securely. You&apos;ll receive
               a confirmation email with everything you need.
             </p>
+
+            <div className="mt-6">
+              <p className="text-sm text-neutral-500 mb-3">
+                Not ready to commit yet?
+              </p>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/consultation">
+                  Try a free 30-minute consultation first
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>

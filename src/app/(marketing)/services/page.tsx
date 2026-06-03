@@ -210,7 +210,6 @@ export default function ServicesPage() {
       <SectionCTA
         heading="Not Sure Where to Start?"
         body="That's okay. Tell me what's going on and I'll help you figure out what makes sense. No pressure, no commitment."
-        primaryLabel="Book a Call"
         secondaryLabel="View Pricing"
         secondaryHref="/investment"
       />

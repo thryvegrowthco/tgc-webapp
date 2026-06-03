@@ -109,7 +109,6 @@ export default function ResumeMaterialsPage() {
       <SectionCTA
         heading="Ready to Rewrite Your Story?"
         body="Start with a call so I can understand your goals, then we'll figure out which option makes the most sense."
-        primaryLabel="Book a Call"
         secondaryLabel="View Full Pricing"
         secondaryHref="/investment"
       />
