@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Users, Mail, Send, TrendingUp, CalendarClock, Lightbulb } from "lucide-react";
+import { Plus, Users, Mail, Send, TrendingUp, CalendarClock, Lightbulb, FileEdit } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Button } from "@/components/ui/button";
 import { IdeaInbox } from "@/components/admin/IdeaInbox";
@@ -18,6 +18,14 @@ type IssueRow = {
   sent_at: string | null;
   scheduled_for: string | null;
   sent_count: number;
+};
+
+type DraftRow = {
+  id: string;
+  title: string;
+  subject: string;
+  status: string;
+  updated_at: string;
 };
 
 type StatRow = {
@@ -58,6 +66,14 @@ export default async function NewsletterDashboardPage() {
     .order("scheduled_for", { ascending: true })
     .limit(5);
   const scheduled = (scheduledRaw ?? []) as IssueRow[];
+
+  const { data: draftsRaw } = await supabase
+    .from("newsletter_issues")
+    .select("id, title, subject, status, updated_at")
+    .or("status.eq.draft,status.eq.pending_approval")
+    .order("updated_at", { ascending: false })
+    .limit(5);
+  const drafts = (draftsRaw ?? []) as DraftRow[];
 
   const { data: recentRaw } = await supabase
     .from("newsletter_issue_stats")
@@ -143,7 +159,48 @@ export default async function NewsletterDashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl border border-neutral-200">
+          <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
+            <h2 className="font-semibold text-neutral-900 flex items-center gap-2">
+              <FileEdit className="h-4 w-4 text-neutral-500" />
+              Drafts in progress
+            </h2>
+            <Link href="/admin/newsletter/issues" className="text-sm text-brand-700 font-medium hover:text-brand-800">
+              View all →
+            </Link>
+          </div>
+          {drafts.length === 0 ? (
+            <div className="px-6 py-8 text-sm text-neutral-400 text-center">
+              No drafts yet. <Link href="/admin/newsletter/issues/new" className="text-brand-700 hover:underline">Start one →</Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {drafts.map((issue) => (
+                <Link
+                  key={issue.id}
+                  href={`/admin/newsletter/issues/${issue.id}`}
+                  className="block px-6 py-4 hover:bg-neutral-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    {issue.status === "pending_approval" && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                        Pending
+                      </span>
+                    )}
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {issue.title || issue.subject || "(untitled)"}
+                    </p>
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Updated {new Date(issue.updated_at).toLocaleString()}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="bg-white rounded-xl border border-neutral-200">
           <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
             <h2 className="font-semibold text-neutral-900 flex items-center gap-2">
