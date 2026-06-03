@@ -155,6 +155,118 @@ export async function sendContactFormSubmission(data: ContactFormSubmission) {
   });
 }
 
+export interface ConsultationRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  timing?: string;
+  message: string;
+}
+
+export async function sendConsultationRequest(data: ConsultationRequest) {
+  const fullName = `${data.firstName} ${data.lastName}`.trim();
+  const messageHtml = escapeHtml(data.message).replace(/\n/g, "<br>");
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: "hello@thryvegrowth.co",
+    replyTo: data.email,
+    subject: `Free consultation request from ${fullName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: system-ui, sans-serif; color: #0f172a; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 16px; color: #203e35;">
+          New free consultation request
+        </h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px; width: 140px;">Name</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px;">${escapeHtml(fullName)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Email</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px;">
+              <a href="mailto:${escapeHtml(data.email)}" style="color: #203e35;">${escapeHtml(data.email)}</a>
+            </td>
+          </tr>
+          ${data.phone ? `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Phone</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px;">${escapeHtml(data.phone)}</td>
+          </tr>` : ""}
+          ${data.timing ? `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Preferred timing</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px;">${escapeHtml(data.timing)}</td>
+          </tr>` : ""}
+        </table>
+        <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 20px;">
+          <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">What they want to talk about</p>
+          <p style="margin: 0; font-size: 15px; color: #0f172a; line-height: 1.6;">${messageHtml}</p>
+        </div>
+        <p style="font-size: 13px; color: #64748b; margin-top: 24px;">
+          Reply directly to this email to schedule the call with ${escapeHtml(data.firstName || "them")}.
+        </p>
+      </body>
+      </html>
+    `,
+  });
+}
+
+export async function sendConsultationRequestAutoReply(data: ConsultationRequest) {
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: data.email,
+    subject: "I got your consultation request — talk soon",
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: system-ui, sans-serif; color: #0f172a; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="margin-bottom: 32px;">
+          <h1 style="font-size: 24px; font-weight: 700; color: #203e35; margin: 0 0 4px;">
+            Thryve Growth Co.
+          </h1>
+          <p style="color: #64748b; margin: 0; font-size: 14px;">Clarity. Accountability. Real Growth.</p>
+        </div>
+
+        <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
+            Got it — thanks for reaching out ✓
+          </h2>
+          <p style="color: #475569; margin: 0; font-size: 15px;">
+            Hi ${escapeHtml(data.firstName)}, I received your request for a free 30-minute consultation call.
+          </p>
+        </div>
+
+        <p style="font-size: 15px; color: #475569; line-height: 1.6;">
+          I'll personally review what you sent and get back to you within 1–2 business days with a couple of times that work for a call. No pressure, no sales pitch — just a real conversation about what's going on and whether I'm the right person to help.
+        </p>
+
+        <p style="font-size: 15px; color: #475569; line-height: 1.6;">
+          If anything urgent comes up before then, you can reach me directly at
+          <a href="mailto:hello@thryvegrowth.co" style="color: #203e35;">hello@thryvegrowth.co</a>.
+        </p>
+
+        <p style="font-size: 14px; color: #475569; margin-top: 24px;">
+          Talk soon,<br>
+          <strong>Rachel</strong><br>
+          <span style="color: #64748b;">Thryve Growth Co.</span>
+        </p>
+
+        <div style="border-top: 1px solid #e2e8f0; margin-top: 40px; padding-top: 20px;">
+          <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+            © ${new Date().getFullYear()} Thryve Growth Co. LLC ·
+            <a href="https://thryvegrowth.co" style="color: #94a3b8;">thryvegrowth.co</a>
+          </p>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendAdminBookingAlert(data: BookingConfirmationData) {
   return resend.emails.send({
     from: FROM_EMAIL,
