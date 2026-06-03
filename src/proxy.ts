@@ -25,9 +25,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated user hitting an auth route → redirect to dashboard
+  // Authenticated user hitting an auth route → send them to their landing page
   if (isAuthRoute && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const supabase = await import("@/lib/supabase/server").then((m) =>
+      m.createClient()
+    );
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const landing = (profile as { role: string } | null)?.role === "admin"
+      ? "/admin"
+      : "/dashboard";
+    return NextResponse.redirect(new URL(landing, request.url));
   }
 
   // Admin-only routes — redirect non-admins to dashboard
@@ -41,7 +52,7 @@ export async function proxy(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profile?.role !== "admin") {
+    if ((profile as { role: string } | null)?.role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }

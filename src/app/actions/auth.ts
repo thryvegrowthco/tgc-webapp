@@ -2,11 +2,27 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type AuthActionState = {
   error?: string;
   success?: string;
 };
+
+// Choose a landing route based on the user's role. Admins go to the admin
+// panel; everyone else goes to the client dashboard.
+async function landingPathFor(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<"/admin" | "/dashboard"> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  const role = (data as { role: string } | null)?.role;
+  return role === "admin" ? "/admin" : "/dashboard";
+}
 
 // ─── Sign Up ────────────────────────────────────────────────────────────────
 
@@ -73,13 +89,13 @@ export async function logIn(
     return { error: "Email and password are required." };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: "Invalid email or password." };
   }
 
-  redirect("/dashboard");
+  redirect(await landingPathFor(supabase, data.user.id));
 }
 
 // ─── Log Out ─────────────────────────────────────────────────────────────────
@@ -141,11 +157,11 @@ export async function updatePassword(
     return { error: "Password must be at least 8 characters." };
   }
 
-  const { error } = await supabase.auth.updateUser({ password });
+  const { data, error } = await supabase.auth.updateUser({ password });
 
   if (error) {
     return { error: error.message };
   }
 
-  redirect("/dashboard");
+  redirect(await landingPathFor(supabase, data.user.id));
 }
