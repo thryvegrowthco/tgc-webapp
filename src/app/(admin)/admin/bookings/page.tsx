@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Calendar } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
-import { AddSlotForm } from "@/components/admin/AddSlotForm";
+import { BulkSlotForm } from "@/components/admin/BulkSlotForm";
 import { SlotList } from "@/components/admin/SlotList";
 
 interface BookingRow {
@@ -87,10 +87,15 @@ export default async function AdminBookingsPage() {
         <p className="text-sm text-neutral-500 mt-1">Manage availability and view incoming bookings.</p>
       </div>
 
-      {/* Add availability slot */}
+      {/* Add availability slots in bulk */}
       <section className="bg-white rounded-xl border border-neutral-200 p-6">
-        <h2 className="font-semibold text-neutral-900 mb-5">Add Availability Slot</h2>
-        <AddSlotForm />
+        <div className="mb-5">
+          <h2 className="font-semibold text-neutral-900">Add Availability</h2>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            Pick days, set one or more time blocks, and (optionally) repeat weekly.
+          </p>
+        </div>
+        <BulkSlotForm />
       </section>
 
       {/* Open (unbooked) slots */}

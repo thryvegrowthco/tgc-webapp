@@ -119,8 +119,21 @@ export async function updateBookingStatus(
   return { success: true };
 }
 
-// Called from admin to add a single availability slot
-export async function addAvailabilitySlot(formData: FormData): Promise<{ error?: string; success?: boolean }> {
+export interface BulkSlotPayload {
+  dates: string[];                                              // YYYY-MM-DD
+  timeBlocks: Array<{ startTime: string; endTime: string }>;    // HH:MM 24-hour
+  serviceType: string | null;
+}
+
+const MAX_BULK_SLOTS = 500;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Called from admin to create availability slots in bulk (dates × time blocks).
+// Existing (slot_date, start_time) rows are skipped, not updated — surfaced via `skipped`.
+export async function addBulkAvailabilitySlots(
+  payload: BulkSlotPayload
+): Promise<{ error?: string; created?: number; skipped?: number }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
@@ -132,30 +145,50 @@ export async function addAvailabilitySlot(formData: FormData): Promise<{ error?:
     .single();
   if (profile?.role !== "admin") return { error: "Unauthorized" };
 
-  const slotDate = formData.get("slotDate") as string;
-  const startTime = formData.get("startTime") as string;
-  const endTime = formData.get("endTime") as string;
-  const serviceType = formData.get("serviceType") as string | null;
+  const { dates, timeBlocks, serviceType } = payload;
 
-  if (!slotDate || !startTime || !endTime) {
-    return { error: "Date, start time, and end time are required." };
+  if (!Array.isArray(dates) || dates.length === 0) {
+    return { error: "Pick at least one date." };
   }
-
-  const { error } = await supabase.from("availability_slots").insert({
-    slot_date: slotDate,
-    start_time: startTime,
-    end_time: endTime,
-    service_type: serviceType || null,
-  });
-
-  if (error) {
-    if (error.code === "23505") {
-      return { error: "A slot already exists at that date and time." };
+  if (!Array.isArray(timeBlocks) || timeBlocks.length === 0) {
+    return { error: "Add at least one time block." };
+  }
+  for (const date of dates) {
+    if (typeof date !== "string" || !DATE_RE.test(date)) {
+      return { error: `Invalid date: ${date}` };
     }
-    return { error: error.message };
+  }
+  for (const block of timeBlocks) {
+    if (!TIME_RE.test(block.startTime) || !TIME_RE.test(block.endTime)) {
+      return { error: "Time must be in HH:MM format." };
+    }
+    if (block.endTime <= block.startTime) {
+      return { error: "End time must be after start time." };
+    }
   }
 
-  return { success: true };
+  const rows = dates.flatMap((date) =>
+    timeBlocks.map((tb) => ({
+      slot_date: date,
+      start_time: tb.startTime,
+      end_time: tb.endTime,
+      service_type: serviceType || null,
+    }))
+  );
+
+  if (rows.length > MAX_BULK_SLOTS) {
+    return { error: `Too many slots at once (${rows.length}). Limit is ${MAX_BULK_SLOTS}.` };
+  }
+
+  const { data, error } = await supabase
+    .from("availability_slots")
+    .upsert(rows, { onConflict: "slot_date,start_time", ignoreDuplicates: true })
+    .select("id");
+
+  if (error) return { error: error.message };
+
+  const created = data?.length ?? 0;
+  return { created, skipped: rows.length - created };
 }
 
 // Called from admin to delete a slot

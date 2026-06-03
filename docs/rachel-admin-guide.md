@@ -64,16 +64,21 @@ The `/admin` page shows four stat cards at the top and a recent bookings table b
 
 This is where you control what dates and times clients can book.
 
-### Adding a Slot
+### Adding Availability
 
-Click "Add Slot" and fill in:
+The **Add Availability** card at the top of the page lets you create many slots at once. Fill it in top to bottom:
 
-- **Date** — The date of the appointment
-- **Start Time** — When the session starts (e.g., 10:00 AM)
-- **End Time** — When it ends (e.g., 11:00 AM)
-- **Service Type** — Optional. If you leave this blank, any service type can be booked into it. If you set it to a specific service (e.g., "Career & Leadership Coaching"), only clients booking that service will see it.
+- **Days of the week** — Tap the day pills (Sun–Sat) to choose which days you want slots on. Use the **Weekdays**, **Weekends**, or **All days** quick links to set common groups in one click.
+- **Start date** — The first date from which slots will be generated. Days before this date are skipped.
+- **Recurring weekly** — Leave off to create slots for just the next occurrence of each selected day. Turn it on and pick how many weeks (1–12) to repeat. For example: "Mon and Wed, recurring 4 weeks" gives you 8 slots stretched across the next month.
+- **Time blocks** — One or more time ranges that get applied to every selected day. Click **Add time block** to enter multiple ranges in a single submission (e.g. 9–11am and 1–4pm on the same days).
+- **Service** — Optional. Leave as "Any service" and any service can book into these slots. Set it to a specific service (e.g., "Coaching") and only that service will see them.
 
-Click Save. The slot will appear immediately in the "Open Slots" list.
+The **Preview** panel below shows every slot that will be created before you save. The button label updates to "Create N slots" so you always know exactly what you're committing to.
+
+Click the button — slots appear immediately in the "Open Slots" list below. If some of the slots you tried to add already exist on the same date and start time, you'll see a message like "Created 6 slots (2 already existed)" — duplicates are skipped, no error.
+
+**Quick single slot:** Just pick one day, one time block, and leave Recurring off — it works exactly the same as adding a single slot did before.
 
 **Best practice:** Add slots at least one week in advance so clients can see and book them. The booking calendar only shows future dates that have open slots.
 
