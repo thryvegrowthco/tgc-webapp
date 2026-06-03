@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Users, Mail, Send, TrendingUp, CalendarClock, Lightbulb, FileEdit } from "lucide-react";
+import { Plus, Users, Mail, Send, TrendingUp, CalendarClock, Lightbulb, FileEdit, MousePointerClick } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Button } from "@/components/ui/button";
 import { IdeaInbox } from "@/components/admin/IdeaInbox";
@@ -38,6 +38,9 @@ type StatRow = {
 };
 
 type IdeaRow = { id: string; body: string; created_at: string };
+
+type TopLinkRow = { url: string; click_count: number; issue_id: string };
+type AggregatedLink = { url: string; totalClicks: number; issuesCount: number };
 
 export default async function NewsletterDashboardPage() {
   const supabase = createServiceClient();
@@ -82,6 +85,11 @@ export default async function NewsletterDashboardPage() {
     .order("sent_at", { ascending: false })
     .limit(5);
   const recent = (recentRaw ?? []) as StatRow[];
+
+  const { data: topLinksRaw } = await supabase
+    .from("newsletter_top_links")
+    .select("url, click_count, issue_id");
+  const topLinks = aggregateTopLinks((topLinksRaw ?? []) as TopLinkRow[]);
 
   const { data: ideasRaw } = await supabase
     .from("newsletter_ideas")
@@ -279,6 +287,42 @@ export default async function NewsletterDashboardPage() {
       <div className="bg-white rounded-xl border border-neutral-200">
         <div className="px-6 py-4 border-b border-neutral-100">
           <h2 className="font-semibold text-neutral-900 flex items-center gap-2">
+            <MousePointerClick className="h-4 w-4 text-blue-600" />
+            Top clicked links
+          </h2>
+          <p className="text-xs text-neutral-500 mt-1">Most-clicked URLs across all your sent newsletters.</p>
+        </div>
+        {topLinks.length === 0 ? (
+          <div className="px-6 py-8 text-sm text-neutral-400 text-center">
+            No click data yet — once subscribers start clicking, top URLs will appear here.
+          </div>
+        ) : (
+          <div className="divide-y divide-neutral-100">
+            {topLinks.map((link) => (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-6 py-3 hover:bg-neutral-50 transition-colors"
+              >
+                <p className="text-sm font-medium text-neutral-900 truncate" title={link.url}>
+                  {truncateUrl(link.url, 70)}
+                </p>
+                <div className="flex items-center gap-3 text-xs text-neutral-500 mt-0.5">
+                  <span>{link.totalClicks} click{link.totalClicks !== 1 ? "s" : ""}</span>
+                  <span>·</span>
+                  <span>across {link.issuesCount} issue{link.issuesCount !== 1 ? "s" : ""}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-100">
+          <h2 className="font-semibold text-neutral-900 flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-yellow-500" />
             Idea inbox
           </h2>
@@ -290,4 +334,23 @@ export default async function NewsletterDashboardPage() {
       </div>
     </div>
   );
+}
+
+function aggregateTopLinks(rows: TopLinkRow[]): AggregatedLink[] {
+  const map = new Map<string, { totalClicks: number; issueIds: Set<string> }>();
+  for (const row of rows) {
+    const entry = map.get(row.url) ?? { totalClicks: 0, issueIds: new Set<string>() };
+    entry.totalClicks += row.click_count;
+    entry.issueIds.add(row.issue_id);
+    map.set(row.url, entry);
+  }
+  return Array.from(map.entries())
+    .map(([url, v]) => ({ url, totalClicks: v.totalClicks, issuesCount: v.issueIds.size }))
+    .sort((a, b) => b.totalClicks - a.totalClicks)
+    .slice(0, 5);
+}
+
+function truncateUrl(url: string, max: number): string {
+  if (url.length <= max) return url;
+  return url.slice(0, max - 1) + "…";
 }

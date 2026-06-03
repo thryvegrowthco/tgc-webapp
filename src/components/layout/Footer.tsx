@@ -21,6 +21,7 @@ const companyLinks = [
   { label: "Packages", href: "/packages" },
   { label: "Resources", href: "/resources" },
   { label: "FAQ", href: "/faq" },
+  { label: "Newsletter", href: "/newsletter" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];

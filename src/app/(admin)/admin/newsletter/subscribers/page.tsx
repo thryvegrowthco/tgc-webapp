@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Users, Download } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ManualUnsubscribeButton } from "@/components/admin/ManualUnsubscribeButton";
 import { NEWSLETTER_INTERESTS, labelForInterest } from "@/lib/newsletter/interests";
@@ -63,11 +64,16 @@ export default async function SubscribersPage({ searchParams }: PageProps) {
         >
           <ArrowLeft className="h-4 w-4" /> Back to newsletter
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-bold text-neutral-900">Subscribers</h1>
             <p className="text-sm text-neutral-500 mt-1">{rows.length} {status === "unsubscribed" ? "unsubscribed" : "active"}</p>
           </div>
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/admin/newsletter/subscribers/export${buildExportQuery({ interest, status, q })}`}>
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </a>
+          </Button>
         </div>
       </div>
 
@@ -198,4 +204,13 @@ function makeUrl(params: { interest?: string; status?: string; q?: string }): st
   if (params.q) sp.set("q", params.q);
   const qs = sp.toString();
   return `/admin/newsletter/subscribers${qs ? `?${qs}` : ""}`;
+}
+
+function buildExportQuery(params: { interest?: string; status?: string; q?: string }): string {
+  const sp = new URLSearchParams();
+  if (params.interest) sp.set("interest", params.interest);
+  if (params.status) sp.set("status", params.status);
+  if (params.q) sp.set("q", params.q);
+  const qs = sp.toString();
+  return qs ? `?${qs}` : "";
 }
