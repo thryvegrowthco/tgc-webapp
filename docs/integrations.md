@@ -111,7 +111,9 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **Env vars:**
 - `RESEND_API_KEY` — API key from Resend dashboard
+- `RESEND_WEBHOOK_SECRET` — Svix signing secret for the newsletter tracking webhook (see Webhook section below)
 - `SUPABASE_HOOK_SECRET` — shared secret for verifying Send Email hook requests (see Auth Hooks section in environment-variables.md)
+- `NEWSLETTER_BUSINESS_ADDRESS` — CAN-SPAM-required physical address rendered in newsletter footers
 
 **Where to get credentials:** Resend dashboard → API Keys
 
@@ -140,11 +142,27 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 | Booking confirmation (to client) | Stripe webhook on `checkout.session.completed` | `src/lib/email/resend.ts → sendBookingConfirmation` |
 | New booking alert (to Rachel) | Same webhook | `src/lib/email/resend.ts → sendAdminBookingAlert` |
 | Contact form submission (to Rachel) | `POST /api/contact` | `src/lib/email/resend.ts → sendContactFormSubmission` (sets `replyTo` to the submitter) |
-| Weekly job digest (to subscribers) | Vercel Cron every Monday 9AM UTC | `src/app/api/cron/job-alerts/route.ts` — inline plain text |
+| Weekly job digest (to subscribers) | cron-job.org every Monday 9AM UTC | `src/app/api/cron/job-alerts/route.ts` — inline plain text |
+| Newsletter welcome | `POST /api/newsletter` (first-time signup) | `src/lib/email/newsletter-welcome.ts → sendWelcomeEmail` |
+| Newsletter weekly issue | `/api/cron/newsletter-send` (hourly) → `sendIssue` | `src/lib/email/newsletter-send.ts` + `newsletter-render.ts` + `newsletter-template.ts` |
+| Newsletter test send (preview) | `POST /api/admin/newsletter/test-send` | Same renderer with placeholder values |
+| Newsletter re-engagement | `/api/cron/newsletter-reengage` weekly | `src/lib/email/newsletter-reengagement.ts → sendReengagementEmail` |
+| Newsletter milestone (6 mo / 1 yr) | `/api/cron/newsletter-milestones` daily | `src/lib/email/newsletter-reengagement.ts → sendMilestoneEmail` |
+| Unsubscribe feedback (to Rachel) | `POST /api/newsletter/feedback` from unsubscribe page | Plain text email via `resend.emails.send` |
+
+### Resend webhook (newsletter tracking)
+
+**Endpoint to register in Resend:** `https://thryvegrowth.co/api/webhooks/resend`
+
+**Events to enable:** `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`
+
+**Handler:** `src/app/api/webhooks/resend/route.ts` — verifies Svix signature using `RESEND_WEBHOOK_SECRET` (HMAC-SHA256 over `${svix-id}.${svix-timestamp}.${body}`), upserts into `newsletter_events` keyed by `resend_event_id` (idempotent under retries), and updates the subscriber's `last_engaged_at` on `opened`/`clicked` or `unsubscribed_at` on `bounced`/`complained`.
+
+**Newsletter sending pipeline:** Issues are rendered once per send via Tiptap → HTML (`@tiptap/html` with `newsletterRenderExtensions`), wrapped in the brand HTML shell (`src/lib/email/newsletter-template.ts`), then sent in batches of 100 via `resend.batch.send(...)` with a 1.1s pause between batches to stay under Resend's 10 req/s default rate limit. Each recipient gets a tokenized unsubscribe URL substituted into placeholders, plus `List-Unsubscribe` + `List-Unsubscribe-Post` headers (RFC 8058) so Gmail's native one-click unsubscribe works.
 
 **Lazy Proxy singleton:** Same pattern as Stripe — defers `new Resend(...)` until first access to avoid build failures.
 
-**Graceful degradation:** Email failures in the Stripe webhook are caught by `Promise.allSettled` — the booking record is still created even if the email fails. The cron logs errors but continues to the next subscriber on failure.
+**Graceful degradation:** Email failures in the Stripe webhook are caught by `Promise.allSettled` — the booking record is still created even if the email fails. The job-alerts cron logs errors but continues to the next subscriber. The newsletter send pipeline marks batches as failed in `newsletter_sends.status` but continues processing remaining batches; only marks the whole issue `'failed'` if zero batches succeed.
 
 ---
 
@@ -204,22 +222,64 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 ## Vercel
 
-**What it does:** Hosting, CI/CD, edge functions, analytics, and scheduled cron jobs.
+**What it does:** Hosting, CI/CD, edge functions, and analytics. Scheduled jobs live on cron-job.org (see next section) to stay within Vercel Hobby limits.
 
 **Analytics:**
 - `@vercel/analytics/next` is installed and the `<Analytics />` component is added to the root layout (`src/app/layout.tsx`)
 - No configuration required — automatically activates when deployed to Vercel
 - View analytics at `vercel.com` → your project → Analytics tab
 
-**Cron jobs:**
-- Configured in `vercel.json` at the project root
-- Current schedule: `0 9 * * 1` = every Monday at 9:00 AM UTC
-- Endpoint: `GET /api/cron/job-alerts`
-- Vercel sends `Authorization: Bearer {CRON_SECRET}` with every cron request
-- `CRON_SECRET` must be set in Vercel project settings (env var); if absent locally, the endpoint allows all requests (dev-safe)
-- To test locally, call the endpoint manually with the `Authorization` header
-
 **Env vars (Vercel-specific):**
-- `CRON_SECRET` — Any secret string; set in Vercel → Project → Environment Variables
+- `CRON_SECRET` — Any secret string; set in Vercel → Project → Environment Variables. The same value must be configured as a custom `Authorization: Bearer {CRON_SECRET}` header on every cron-job.org job.
 
 **Deployment:** Push to the main branch triggers automatic deployment. No manual steps.
+
+---
+
+## cron-job.org
+
+**What it does:** Free external scheduler. Pokes our `/api/cron/*` endpoints on a schedule by sending HTTPS GET requests with a Bearer token header. Replaces Vercel Cron so the project stays on the Vercel Hobby tier.
+
+**Why external:** Vercel Hobby caps cron jobs aggressively; cron-job.org's free tier allows up to 50 jobs with minute-level granularity — comfortably covers our 9.
+
+**Auth model:** Every cron route handler still calls `isAuthorized(request)` from `src/lib/cron/auth.ts`. That helper compares the `Authorization` header to `Bearer ${CRON_SECRET}`. cron-job.org sends the same header on every job invocation. Locally, with no `CRON_SECRET` set, the endpoint allows all requests (dev-safe).
+
+**Function timeout:** The Vercel Hobby plan caps function execution at 10 seconds. All current jobs finish well inside that. If a job ever exceeds it, split the work or upgrade the Vercel plan — cron-job.org just retries on failure.
+
+### Cron inventory (source of truth)
+
+All schedules are UTC. The right column shows the local Central time, which shifts by 1 hour across US DST.
+
+| Endpoint | UTC cron | Local Central time |
+|---|---|---|
+| `GET /api/cron/job-alerts` | `0 9 * * 1` | Mon 3am CDT / 4am CST |
+| `GET /api/cron/newsletter-send` | `0 * * * *` | Hourly at :00 |
+| `GET /api/cron/newsletter-reengage` | `0 14 * * 3` | Wed 9am CDT / 8am CST |
+| `GET /api/cron/newsletter-milestones` | `0 14 * * *` | Daily 9am CDT / 8am CST |
+| `GET /api/cron/intake-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST |
+| `GET /api/cron/intake-overdue-alert` | `0 15 * * *` | Daily 10am CDT / 9am CST |
+| `GET /api/cron/session-reminders` | `0 * * * *` | Hourly at :00 |
+| `GET /api/cron/auto-complete-sessions` | `30 * * * *` | Hourly at :30 |
+| `GET /api/cron/post-service-followup` | `0 16 * * *` | Daily 11am CDT / 10am CST |
+
+### Setting up a new job on cron-job.org
+
+For each endpoint above:
+
+1. cron-job.org → **Create cronjob**
+2. **Title**: copy the endpoint path (e.g., `Thryve – intake-reminders`)
+3. **URL**: `https://thryvegrowth.co/api/cron/<endpoint>` (production only; local dev still works without a `CRON_SECRET`)
+4. **Schedule**: paste the cron expression from the inventory table; confirm the timezone selector is **UTC**
+5. **Request method**: `GET`
+6. **Advanced → Headers**: add one header
+   - Name: `Authorization`
+   - Value: `Bearer <CRON_SECRET>` (paste the actual secret — same value as Vercel → Settings → Environment Variables → `CRON_SECRET`)
+7. **Advanced → Notifications**: enable failure notifications to Rachel's email
+8. **Save & enable**
+9. Use the **Test execution** button to confirm `200 OK` before relying on the schedule
+
+### Verification
+
+- `curl -i https://thryvegrowth.co/api/cron/intake-reminders` (no header) → `401 Unauthorized`
+- `curl -H "Authorization: Bearer $CRON_SECRET" https://thryvegrowth.co/api/cron/intake-reminders` → `200 OK` with JSON body
+- Idempotency: invoking any reminder job twice in the same window is a no-op (enforced by `automation_log` UNIQUE constraints and per-row `*_sent_at` columns)

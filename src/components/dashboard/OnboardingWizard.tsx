@@ -126,7 +126,7 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="timezone">Time zone</Label>
-              <Input id="timezone" name="timezone" placeholder="e.g. Central, ET, PT" defaultValue={initial.timezone ?? ""} />
+              <Input id="timezone" name="timezone" placeholder="e.g. CT, ET, PT" defaultValue={initial.timezone ?? ""} />
             </div>
           </div>
           <div className="space-y-1.5">

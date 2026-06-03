@@ -20,6 +20,8 @@ const STEPS: { id: Step; label: string }[] = [
   { id: "details", label: "Your Info" },
 ];
 
+const CONTRACT_VERSION = process.env.NEXT_PUBLIC_CONTRACT_VERSION ?? "v1";
+
 export function BookingFlow() {
   const [step, setStep] = React.useState<Step>("service");
   const [serviceKey, setServiceKey] = React.useState<ServiceKey | "">("");
@@ -29,6 +31,7 @@ export function BookingFlow() {
   const [selectedSlotId, setSelectedSlotId] = React.useState<string | undefined>();
   const [slotsLoading, setSlotsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [contractAccepted, setContractAccepted] = React.useState(false);
 
   const requiresSlot = serviceKey ? BOOKABLE_SERVICES.includes(serviceKey as ServiceKey) : true;
   const currentStepIndex = STEPS.findIndex((s) => s.id === step);
@@ -79,6 +82,8 @@ export function BookingFlow() {
       email: (form.elements.namedItem("email") as HTMLInputElement).value,
       phone: (form.elements.namedItem("phone") as HTMLInputElement).value,
       notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value,
+      contractAccepted,
+      contractVersion: CONTRACT_VERSION,
     });
 
     if (result?.error) {
@@ -277,6 +282,29 @@ export function BookingFlow() {
             )}
           </div>
 
+          {/* Service agreement clickwrap */}
+          <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 cursor-pointer hover:border-brand-200 transition-colors">
+            <input
+              type="checkbox"
+              checked={contractAccepted}
+              onChange={(e) => setContractAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+              required
+            />
+            <span className="text-sm text-neutral-700 leading-relaxed">
+              I agree to the{" "}
+              <a
+                href="/legal/service-agreement.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-700 font-medium underline underline-offset-2 hover:text-brand-800"
+              >
+                Service Agreement
+              </a>
+              , which covers scope, payment, cancellation, and confidentiality.
+            </span>
+          </label>
+
           <div className="flex gap-3">
             <Button
               type="button"
@@ -287,7 +315,7 @@ export function BookingFlow() {
             >
               Back
             </Button>
-            <Button type="submit" size="lg" className="flex-1">
+            <Button type="submit" size="lg" className="flex-1" disabled={!contractAccepted}>
               Proceed to Payment
             </Button>
           </div>

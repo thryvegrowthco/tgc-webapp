@@ -86,6 +86,18 @@ export async function saveWatchlistProfile(input: WatchlistProfileInput) {
     await supabase.from("watchlist_profiles").insert(payload);
   }
 
+  // Transition the Job Alerts booking row(s) for this user into intake_complete
+  // so they join the same workflow pipeline as other services. Filling out
+  // target_roles + industries IS the intake for Job Alerts subscribers.
+  if (input.targetRoles.length > 0 || input.industries.length > 0) {
+    await supabase
+      .from("bookings")
+      .update({ workflow_status: "intake_complete" })
+      .eq("client_id", user.id)
+      .eq("service_key", "job_alerts_monthly")
+      .eq("workflow_status", "intake_needed");
+  }
+
   redirect("/dashboard/watchlist");
 }
 

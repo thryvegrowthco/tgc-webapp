@@ -10,6 +10,7 @@ import {
   Briefcase,
   User,
   CreditCard,
+  MessageCircle,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { Logo } from "@/components/shared/Logo";
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, exact: true },
   { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
+  { label: "Messages", href: "/dashboard/messages", icon: MessageCircle, exact: false },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, exact: false },
   { label: "Job Watchlist", href: "/dashboard/watchlist", icon: Bell, exact: false },
   { label: "Applications", href: "/dashboard/applications", icon: Briefcase, exact: false },

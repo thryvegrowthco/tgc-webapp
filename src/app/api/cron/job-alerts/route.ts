@@ -1,4 +1,4 @@
-// Weekly job-alert digest — called by Vercel Cron (see vercel.json)
+// Weekly job-alert digest — called by cron-job.org (see docs/integrations.md).
 // Sends each active subscriber a digest of their new matches since last week.
 
 import type { NextRequest } from "next/server";

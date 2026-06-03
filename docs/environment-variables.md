@@ -52,7 +52,15 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 
 | Variable | Required | Source | Purpose |
 |---|---|---|---|
-| `RESEND_API_KEY` | Yes | Resend dashboard → API Keys | Sending transactional emails |
+| `RESEND_API_KEY` | Yes | Resend dashboard → API Keys | Sending transactional + newsletter emails |
+| `RESEND_WEBHOOK_SECRET` | Yes (prod) | Resend dashboard → Webhooks → your endpoint → Signing secret | Verifies `POST /api/webhooks/resend` events (Svix HMAC-SHA256). If absent, the handler logs a warning and skips verification — fine for local dev only. |
+
+### Newsletter
+
+| Variable | Required | Source | Purpose |
+|---|---|---|---|
+| `NEWSLETTER_BUSINESS_ADDRESS` | Yes (prod) | Rachel's business address | Rendered in every newsletter footer to satisfy CAN-SPAM. Example: `Thryve Growth Co. LLC · 123 Main St, Suite 200, Anywhere, ST 12345`. Defaults to `Thryve Growth Co. LLC · United States` if unset. |
+| `NEWSLETTER_PUBLIC_URL` | No | Your deployed domain | Optional override for unsubscribe/manage link prefixes. Falls back to `NEXT_PUBLIC_APP_URL` then `https://thryvegrowth.co`. |
 
 ### GoHighLevel (CRM)
 
@@ -83,13 +91,39 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 
 | Variable | Required | Source | Purpose |
 |---|---|---|---|
-| `CRON_SECRET` | Yes (prod) | Any random secret string | Protects `/api/cron/job-alerts` from unauthorized calls |
+| `CRON_SECRET` | Yes (prod) | Any random secret string | Protects all `/api/cron/*` endpoints (`job-alerts`, `newsletter-send`, `newsletter-reengage`, `newsletter-milestones`, `intake-reminders`, `intake-overdue-alert`, `session-reminders`, `auto-complete-sessions`, `post-service-followup`) from unauthorized calls. Configure this same secret as a custom `Authorization: Bearer <value>` header on each cron-job.org job — see `docs/integrations.md`. |
 | `NEXT_PUBLIC_APP_URL` | Yes | Your deployed domain | Used in email links, Stripe redirect URLs |
+| `ADMIN_EMAIL` | No | Rachel's preferred admin alert inbox | Recipient for booking alerts, intake digests, and prep summaries. Defaults to `hello@thryvegrowth.co` if absent. |
+
+### Service Agreement (Booking Clickwrap)
+
+| Variable | Required | Source | Purpose |
+|---|---|---|---|
+| `NEXT_PUBLIC_CONTRACT_VERSION` | Yes | You choose (e.g., `2026-06-01`) | Version string recorded on every booking's `contract_version` column. Bump whenever the meaningful PDF terms change so older bookings stay tied to the agreement they actually saw. |
+
+### Google Calendar OAuth
+
+Required only if you want bookings to auto-generate calendar events with Google Meet links. Without these, the system gracefully degrades: bookings get `meet_link_pending=true` and Rachel pastes the meet link manually via the admin UI.
+
+| Variable | Required | Source | Purpose |
+|---|---|---|---|
+| `GOOGLE_OAUTH_CLIENT_ID` | No | Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client | OAuth client ID |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | No | Same as above | OAuth client secret |
+| `GOOGLE_OAUTH_REDIRECT_URI` | No | Your deployed app | Must exactly match the redirect URI registered in Google Cloud. Format: `https://thryvegrowth.co/api/integrations/google/oauth/callback` |
+| `INTEGRATIONS_ENCRYPTION_KEY` | Yes (if Google OAuth used) | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` | 32-byte AES key (64 hex chars) used to encrypt access/refresh tokens at rest in `admin_integrations` |
+
+> **Google OAuth setup steps:**
+> 1. In Google Cloud Console, enable the Google Calendar API
+> 2. Create an OAuth 2.0 Client of type "Web application"
+> 3. Add `https://thryvegrowth.co/api/integrations/google/oauth/callback` (and `http://localhost:3000/...` for dev) as Authorized redirect URIs
+> 4. Copy the Client ID + Client Secret into the env vars above
+> 5. Set the redirect URI to match exactly
+> 6. Visit `/admin/integrations` and click Connect — Rachel does this once
 
 > **`CRON_SECRET` notes:**
 > - If absent in development, the cron endpoint allows all requests (intentional for local testing)
-> - In production, this MUST be set. Vercel automatically sends it as `Authorization: Bearer {CRON_SECRET}` with cron requests
-> - Set the same value in both your `.env.local` (for testing) and in Vercel environment variables
+> - In production, this MUST be set. cron-job.org is configured to send `Authorization: Bearer <CRON_SECRET>` with every job invocation; the value on cron-job.org must match the Vercel env var exactly
+> - Set the same value in both your `.env.local` (for testing) and in Vercel environment variables, then paste it again as the `Authorization` header value on each cron-job.org job
 > - Generate a random string: `openssl rand -hex 32`
 
 > **`NEXT_PUBLIC_APP_URL` examples:**

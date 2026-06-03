@@ -8,6 +8,19 @@ import { DocumentUploadForm } from "@/components/admin/DocumentUploadForm";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
 import { UpdateBookingStatusSelect } from "@/components/admin/UpdateBookingStatusSelect";
+import { IntakeFormView } from "@/components/intake/IntakeFormView";
+import { getSchemaForService } from "@/lib/intake/schemas";
+import { formatCentralDateTime } from "@/lib/time/central";
+
+const WORKFLOW_BADGES: Record<string, { label: string; className: string }> = {
+  booked: { label: "Booked", className: "bg-neutral-100 text-neutral-600" },
+  intake_needed: { label: "Intake needed", className: "bg-yellow-100 text-yellow-700" },
+  intake_complete: { label: "Intake complete", className: "bg-blue-100 text-blue-700" },
+  session_scheduled: { label: "Session scheduled", className: "bg-purple-100 text-purple-700" },
+  completed: { label: "Completed", className: "bg-green-100 text-green-700" },
+  follow_up_sent: { label: "Wrapped up", className: "bg-neutral-100 text-neutral-600" },
+  cancelled: { label: "Cancelled", className: "bg-red-100 text-red-700" },
+};
 
 export const metadata: Metadata = {
   title: "Client Detail — Admin",
@@ -56,10 +69,11 @@ export default async function AdminClientDetailPage({
     { data: documentsRaw },
     { data: notesRaw },
     { data: intakeRaw },
+    { data: intakeResponsesRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, service_type, status, amount_cents, created_at, slot_id")
+      .select("id, service_type, service_key, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, created_at, slot_id")
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -78,9 +92,33 @@ export default async function AdminClientDetailPage({
       .select("location, timezone, pronouns, current_position, company, industry, years_experience, primary_goal, services_interested, preferred_contact_method, availability_notes, completed_at")
       .eq("client_id", id)
       .maybeSingle(),
+    supabase
+      .from("intake_responses")
+      .select("booking_id, service_key, responses, submitted_at, last_saved_at")
+      .eq("client_id", id),
   ]);
 
-  type BookingRow = { id: string; service_type: string; status: string | null; amount_cents: number | null; created_at: string; slot_id: string | null };
+  type BookingRow = {
+    id: string;
+    service_type: string;
+    service_key: string | null;
+    status: string | null;
+    workflow_status: string;
+    amount_cents: number | null;
+    session_at: string | null;
+    intake_due_at: string | null;
+    meet_link: string | null;
+    meet_link_pending: boolean;
+    created_at: string;
+    slot_id: string | null;
+  };
+  type IntakeResponseRow = {
+    booking_id: string;
+    service_key: string;
+    responses: Record<string, unknown>;
+    submitted_at: string | null;
+    last_saved_at: string;
+  };
   type DocRow = { id: string; filename: string; category: string | null; description: string | null; file_size_bytes: number | null; storage_path: string; created_at: string };
   type NoteRow = { id: string; note: string; session_date: string | null; created_at: string };
   type IntakeRow = {
@@ -102,6 +140,8 @@ export default async function AdminClientDetailPage({
   const documents = (documentsRaw ?? []) as DocRow[];
   const notes = (notesRaw ?? []) as NoteRow[];
   const intake = intakeRaw as IntakeRow | null;
+  const intakeResponses = (intakeResponsesRaw ?? []) as IntakeResponseRow[];
+  const intakeByBooking = new Map(intakeResponses.map((r) => [r.booking_id, r]));
 
   const SERVICE_LABELS: Record<string, string> = {
     coaching: "Career & Leadership Coaching",
@@ -199,6 +239,40 @@ export default async function AdminClientDetailPage({
         </section>
       )}
 
+      {/* Per-booking intake responses */}
+      {intakeResponses
+        .filter((r) => r.submitted_at)
+        .map((row) => {
+          const booking = bookings.find((b) => b.id === row.booking_id);
+          const schema = getSchemaForService(row.service_key);
+          if (!schema) return null;
+          return (
+            <section
+              key={row.booking_id}
+              id={`intake-${row.booking_id}`}
+              className="bg-white rounded-xl border border-neutral-200"
+            >
+              <div className="px-6 py-4 border-b border-neutral-100">
+                <p className="text-xs uppercase tracking-wide text-neutral-500">
+                  Intake for {booking?.service_type ?? row.service_key}
+                </p>
+                {booking?.session_at && (
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Session: {formatCentralDateTime(booking.session_at, { dateStyle: "long", timeStyle: "short" })} CT
+                  </p>
+                )}
+              </div>
+              <div className="px-6 py-5">
+                <IntakeFormView
+                  schema={schema}
+                  responses={row.responses}
+                  submittedAt={row.submitted_at}
+                />
+              </div>
+            </section>
+          );
+        })}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column */}
         <div className="space-y-8">
@@ -211,29 +285,43 @@ export default async function AdminClientDetailPage({
               <p className="px-6 py-8 text-sm text-neutral-400 text-center">No bookings yet.</p>
             ) : (
               <div className="divide-y divide-neutral-100">
-                {bookings.map((b) => (
-                  <div key={b.id} className="px-6 py-3 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-neutral-900">{b.service_type}</p>
-                      <p className="text-xs text-neutral-400">
-                        {new Date(b.created_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
+                {bookings.map((b) => {
+                  const badge = WORKFLOW_BADGES[b.workflow_status] ?? WORKFLOW_BADGES.booked;
+                  const intakeRow = intakeByBooking.get(b.id);
+                  return (
+                    <div key={b.id} id={`booking-${b.id}`} className="px-6 py-3 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-neutral-900">{b.service_type}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.className}`}>
+                            {badge.label}
+                          </span>
+                          {intakeRow?.submitted_at && (
+                            <a href={`#intake-${b.id}`} className="text-[10px] font-medium text-brand-700 hover:underline">
+                              View intake ↓
+                            </a>
+                          )}
+                          <p className="text-xs text-neutral-400">
+                            {new Date(b.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <UpdateBookingStatusSelect
+                          bookingId={b.id}
+                          currentStatus={b.status ?? "pending"}
+                        />
+                        <span className="text-xs text-neutral-500">
+                          ${((b.amount_cents ?? 0) / 100).toFixed(0)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <UpdateBookingStatusSelect
-                        bookingId={b.id}
-                        currentStatus={b.status ?? "pending"}
-                      />
-                      <span className="text-xs text-neutral-500">
-                        ${((b.amount_cents ?? 0) / 100).toFixed(0)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>

@@ -14,6 +14,8 @@ export interface BookingFormData {
   email: string;
   phone?: string;
   notes?: string;
+  contractAccepted: boolean;
+  contractVersion: string;
 }
 
 export async function createBookingCheckoutSession(data: BookingFormData): Promise<{ error?: string }> {
@@ -22,6 +24,14 @@ export async function createBookingCheckoutSession(data: BookingFormData): Promi
 
   const product = SERVICES[data.serviceKey];
   if (!product) return { error: "Invalid service selected." };
+
+  // Service agreement must be accepted before checkout — legal record stored on booking.
+  if (!data.contractAccepted) {
+    return { error: "Please agree to the Service Agreement to continue." };
+  }
+  if (!data.contractVersion) {
+    return { error: "Contract version missing. Please refresh and try again." };
+  }
 
   const requiresSlot = BOOKABLE_SERVICES.includes(data.serviceKey);
   if (requiresSlot && !data.slotId) {
@@ -43,6 +53,7 @@ export async function createBookingCheckoutSession(data: BookingFormData): Promi
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const clientName = `${data.firstName} ${data.lastName}`;
+  const contractAcceptedAt = new Date().toISOString();
 
   // Build Stripe Checkout session
   const session = await stripe.checkout.sessions.create({
@@ -64,6 +75,8 @@ export async function createBookingCheckoutSession(data: BookingFormData): Promi
       clientPhone: data.phone ?? "",
       clientNotes: data.notes ?? "",
       userId: user?.id ?? "",
+      contractVersion: data.contractVersion,
+      contractAcceptedAt,
     },
     success_url: `${appUrl}/book/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/book?cancelled=1`,

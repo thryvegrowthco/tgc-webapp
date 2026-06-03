@@ -1,5 +1,6 @@
 // Hourly cron: send any scheduled newsletter issues whose scheduled_for has
-// arrived. See vercel.json for the schedule entry.
+// arrived. Triggered by cron-job.org — see docs/integrations.md for the
+// schedule inventory.
 
 import type { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";

@@ -131,7 +131,7 @@ Client sees jobs on /dashboard/watchlist
   → updateMatchStatus server action → updates client_job_matches.status
         │
         ▼
-Every Monday 9AM UTC: GET /api/cron/job-alerts (Vercel Cron)
+Every Monday 9AM UTC: GET /api/cron/job-alerts (cron-job.org)
   1. Verifies Bearer token (CRON_SECRET)
   2. Fetches all watchlist_profiles where subscription_status = 'active'
   3. For each subscriber:
@@ -393,29 +393,167 @@ ContactForm (src/components/shared/ContactForm.tsx)
 
 ---
 
-## 7. Newsletter Subscribe Flow
+## 6b. Free Consultation Request Flow
 
 ```
-Visitor submits Footer newsletter form (any marketing page)
-  OR visitor submits blog-page NewsletterForm (/blog)
+Visitor on /consultation → fills firstName, lastName, email, phone?, timing?, message → submits
         │
         ▼
-POST /api/newsletter with { email, firstName?, source }
-  source = "footer" | "blog"
+ConsultationForm (src/components/marketing/ConsultationForm.tsx)
+  POST /api/consultation with JSON payload
+        │
+        ▼
+/api/consultation route handler (src/app/api/consultation/route.ts)
+  1. Validate: firstName/lastName/email/message non-empty; email regex; field lengths
+     (message ≤ 5000, others ≤ 200); timing in allowed set if provided
+  2. Send admin alert via sendConsultationRequest (src/lib/email/resend.ts)
+       - to: hello@thryvegrowth.co, replyTo: submitter
+       - Subject: "Free consultation request from {fullName}"
+       - On Resend error → 500
+  3. Best-effort: sendConsultationRequestAutoReply to the submitter
+       (warm acknowledgement, 1–2 business day response promise)
+  4. Best-effort: syncContactToGHL with tags ["thryve-lead", "consultation-requested"]
+       - timing (when provided) written to consultation_timing custom field
+  5. Return { ok: true } → ConsultationForm shows "Request received!"
+```
+
+**Why separate from /book:** `/book` is the paid Stripe session selector. `/consultation` is the
+free-consult entry point — all primary marketing CTAs ("Book a Free 30-Minute Consultation Call"
+in Header, Home final CTA, AboutCTA, all SectionCTA usages, FAQ + contact inline links, HomeHero
+"Start Your Growth", testimonials "Work with Rachel") route here. Repeat customers / users who
+want a paid session directly can still reach `/book` from the consultation page sidebar, the
+dashboard, or the `/services/interview-prep` page.
+
+**Best-effort behavior:** Auto-reply and GHL sync are wrapped in their own try/catch — if either
+fails, the request still succeeds for the submitter because Rachel already has the admin alert.
+This matches the booking-flow philosophy of not blocking on non-critical side effects.
+
+---
+
+## 7. Newsletter Publishing Flow
+
+### 7a. Subscribe + welcome (subscriber-initiated)
+
+```
+Visitor submits NewsletterForm (footer, blog, or /newsletter landing page)
+        │
+        ▼
+POST /api/newsletter with { email, firstName?, source, interests[] }
         │
         ▼
 /api/newsletter route handler (src/app/api/newsletter/route.ts)
-  1. Validate + normalize email (trim, lowercase, regex)
-  2. Insert into newsletter_subscribers via service client
-       - Duplicate email (Postgres 23505) → returns { ok: true, alreadySubscribed: true }
-  3. Fire-and-forget syncNewsletterSubscriber to GoHighLevel
+  1. Normalize email (trim, lowercase, regex)
+  2. Sanitize interests against the 7-slug enum in src/lib/newsletter/interests.ts
+  3. Upsert into newsletter_subscribers
+       - New row: insert with interests + source
+       - Existing row: union(interests), clear unsubscribed_at
+  4. Fire-and-forget syncNewsletterSubscriber to GoHighLevel
        - Tags: ["thryve-newsletter"]
-       - Silently skips if GHL_API_KEY or GHL_LOCATION_ID absent
-  4. Return { ok: true }
+  5. If welcome_sent_at IS NULL:
+       - Send welcome email via sendWelcomeEmail (src/lib/email/newsletter-welcome.ts)
+       - Stamp welcome_sent_at to make this idempotent
+  6. Return { ok: true, alreadySubscribed: bool }
 ```
 
-**Notes:**
-- Both forms hit the same API route; no shared UI component (Footer uses dark theme + first-name field; blog form is light-theme single-field).
-- The `newsletter_subscribers` table has an RLS policy allowing anon INSERT, but the route uses the service client for simplicity and to future-proof against policy changes.
-- No confirmation email is sent today. If Rachel wants a welcome email in the future, add a Resend template in `src/lib/email/` and call it after the insert.
+The welcome email is warm and personal, lists the 7 content types, sets the weekly cadence expectation, and includes a tokenized unsubscribe link.
+
+### 7b. Authoring an issue (Rachel)
+
+```
+Rachel → /admin/newsletter/issues/new
+   New issue pre-fills from the default template (seeded in migration 0009).
+   Editor: NewsletterEditor (src/components/admin/NewsletterEditor.tsx) using
+   newsletterEditorExtensions from src/lib/newsletter/extensions.ts.
+
+Rachel fills in: internal title, subject, preheader, body, target_interests,
+optionally a featured blog post.
+
+Action buttons (server actions in src/app/actions/newsletter.ts):
+   - Save draft               → updateIssue, status stays 'draft'
+   - Send test                → POST /api/admin/newsletter/test-send
+                                renders + sends one copy to any email
+   - Submit for approval      → status → 'pending_approval'
+   - Approve & schedule       → approveAndSchedule(id, datetime)
+                                requires +5 minutes in the future
+                                status → 'scheduled', stamps approved_by/approved_at
+   - Send now                 → approveAndSendNow → sendIssue(id)
+   - Duplicate                → copies content into a new draft
+```
+
+The preview iframe at /admin/newsletter/issues/[id]/preview reads from
+`GET /api/admin/newsletter/preview/[id]` which renders the issue HTML using
+`renderIssueHTML` from src/lib/email/newsletter-render.ts.
+
+### 7c. Scheduled send (cron)
+
+```
+cron-job.org hits /api/cron/newsletter-send hourly ("0 * * * *")
+        │
+        ▼
+Route handler authenticates via CRON_SECRET
+        │
+        ▼
+SELECT FROM newsletter_issues
+  WHERE status='scheduled' AND scheduled_for <= NOW()
+        │
+        ▼
+For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
+  1. Lock: UPDATE status='sending' (atomic; safe under cron retries)
+  2. Render baseHtml + baseText once via renderIssueHTML / renderIssueText
+  3. Load matching recipients (interest-filtered, exclude unsubscribed)
+  4. Chunk to 100/batch. For each batch:
+       - Build per-recipient payload with first_name + tokenized
+         unsubscribe URL substituted into the rendered HTML
+       - Add List-Unsubscribe + List-Unsubscribe-Post headers (RFC 8058)
+       - resend.batch.send(payload)
+       - Insert newsletter_sends rows with resend_message_id
+       - Sleep 1.1s between batches (stays under Resend's 10 req/s)
+  5. UPDATE status='sent', sent_at, sent_count, failed_count
+  6. UPDATE last_sent_at on each delivered subscriber
+```
+
+Hourly cron precision means an issue scheduled for 9:15 AM sends at the next
+top-of-hour. Acceptable for a weekly newsletter; documented in `rachel-admin-guide.md`.
+
+### 7d. Engagement tracking (Resend webhook)
+
+```
+Resend delivers an email → fires email.delivered / opened / clicked / bounced / complained
+        │
+        ▼
+Resend POSTs to /api/webhooks/resend (Svix-signed)
+        │
+        ▼
+Webhook handler (src/app/api/webhooks/resend/route.ts):
+  1. Verify Svix signature using RESEND_WEBHOOK_SECRET (HMAC-SHA256)
+  2. Map event type → ('delivered'|'opened'|'clicked'|'bounced'|'complained')
+  3. Look up newsletter_sends WHERE resend_message_id = data.email_id
+  4. Insert newsletter_events row keyed by resend_event_id (UNIQUE) for idempotency
+  5. Side effects:
+       - opened|clicked: UPDATE subscribers.last_engaged_at = event time
+       - bounced|complained: UPDATE subscribers.unsubscribed_at = NOW()
+```
+
+### 7e. Re-engagement (cron)
+
+`/api/cron/newsletter-reengage` runs weekly on Wednesday 9 AM Central (`0 14 * * 3`).
+Finds subscribers where `last_sent_at < NOW() - 7 days` AND
+(`last_engaged_at IS NULL OR last_engaged_at < NOW() - 60 days`), capped at
+50 per run. Sends the canned "we miss you" email (`sendReengagementEmail`).
+
+### 7f. Milestones (cron)
+
+`/api/cron/newsletter-milestones` runs daily (`0 14 * * *`). Sends a thank-you
+note on the 6-month and 1-year anniversary of each subscriber's signup.
+
+### 7g. Unsubscribe + preferences
+
+| URL | Purpose |
+|---|---|
+| `/newsletter/unsubscribe/[token]` | Pretty marketing page. Visiting auto-unsubscribes (idempotent). Offers feedback textarea + resubscribe link. |
+| `POST /api/newsletter/unsubscribe/[token]` | Gmail one-click endpoint referenced in the `List-Unsubscribe` header. |
+| `/newsletter/manage/[token]` | Edit interests, see current status, resubscribe. |
+| `POST /api/newsletter/manage/[token]` | JSON endpoint backing the manage page. |
+
+Tokens are 16-byte random hex stored in `newsletter_subscribers.unsubscribe_token`. No login required to use any of these.
 

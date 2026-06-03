@@ -71,7 +71,7 @@ src/
 | `(admin)` | `/admin/*` | `AdminNav` sidebar; no public Header/Footer | Each page checks `profiles.role = 'admin'` via Supabase session |
 | `(dashboard)` | `/dashboard/*` | `DashboardNav` sidebar; no public Header/Footer | Each layout/page checks `supabase.auth.getUser()` |
 | `(auth)` | `/login`, `/signup`, `/reset-password` | Bare (no Header/Footer) | Public; `proxy.ts` redirects authenticated users to `/dashboard` |
-| `(marketing)` | `/`, `/about`, `/services`, `/blog`, `/book`, `/contact`, `/faq`, `/investment`, `/packages`, `/privacy`, `/resources`, `/testimonials`, `/terms` | `Header` + `Footer` from `(marketing)/layout.tsx` | Public |
+| `(marketing)` | `/`, `/about`, `/services`, `/blog`, `/book`, `/consultation`, `/contact`, `/faq`, `/investment`, `/packages`, `/privacy`, `/resources`, `/testimonials`, `/terms` | `Header` + `Footer` from `(marketing)/layout.tsx` | Public |
 
 **Dashboard pages:** `/dashboard` (overview), `/dashboard/bookings`, `/dashboard/documents`, `/dashboard/watchlist` (browsable matches), `/dashboard/watchlist/setup` (preferences wizard), `/dashboard/applications` (post-application tracker for matches with status `applied`/`interviewing`/`offer`/`not_a_fit`), `/dashboard/billing` (Stripe Customer Portal handoff), `/dashboard/profile`.
 
@@ -129,6 +129,7 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 | `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient` | Client actions + admin actions mixed in one file; each has its own auth check. `fetchJSearchJobsForClient` and `runAutoMatchForClient` apply the scoring engine in `src/lib/matching/score.ts` and only insert matches with score ≥ 60. |
 | `billing.ts` | `createPortalSession` | Looks up client's `stripe_subscription_id`, retrieves Stripe customer ID from the subscription, creates a Stripe Customer Portal session, and redirects. Used by `/dashboard/billing`. |
 | `leads.ts` | `updateLeadStatus`, `updateLeadAdminNotes` | Admin-only. Used on `/admin/leads/[id]`. |
+| `newsletter.ts` | `createIssue`, `updateIssue`, `submitForApproval`, `approveAndSchedule`, `approveAndSendNow`, `unscheduleIssue`, `duplicateIssue`, `deleteIssue`, `createTemplate`, `updateTemplate`, `deleteTemplate`, `manuallyUnsubscribe`, `saveIdea`, `deleteIdea` | Admin-only via `requireAdmin()`. Approval workflow enforces `scheduled_for` is at least 5 minutes in the future. `approveAndSendNow` calls `sendIssue` synchronously and returns sent/failed counts. |
 
 ---
 
@@ -186,23 +187,75 @@ Lightweight route handlers for marketing-page forms. Both accept JSON POST, retu
 
 | Route | Triggered by | What it does |
 |---|---|---|
-| `POST /api/newsletter` | Footer form + blog-page `NewsletterForm` | Validates email, inserts into `newsletter_subscribers` (via service client), calls `syncNewsletterSubscriber` for GHL. Duplicate email (Postgres `23505`) returns success. Body: `{ email, firstName?, source? }`. |
+| `POST /api/newsletter` | Footer + blog + `/newsletter` landing form | Validates email, sanitizes interests against the 7-slug enum, upserts into `newsletter_subscribers` (merges interests on existing email, clears `unsubscribed_at` on resubscribe), calls `syncNewsletterSubscriber` for GHL, and sends the welcome email (idempotent via `welcome_sent_at`). Body: `{ email, firstName?, source?, interests? }`. |
+| `GET / POST /api/newsletter/unsubscribe/[token]` | `List-Unsubscribe` header in every newsletter email | Marks subscriber `unsubscribed_at = NOW()` and logs an `unsubscribed` event. POST returns 200 for Gmail one-click (RFC 8058); GET redirects to `/newsletter/unsubscribe/[token]` for the pretty confirmation page. |
+| `POST /api/newsletter/manage/[token]` | `/newsletter/manage/[token]` page | Updates subscriber interests; if `resubscribe: true`, clears `unsubscribed_at`. Token is the only auth. |
+| `POST /api/newsletter/feedback` | Unsubscribe confirmation page feedback textarea | Sends Rachel a plain-text email with the subscriber's reason. Fire-and-forget. |
 | `POST /api/contact` | `/contact` page `ContactForm` | Validates all 5 fields, calls `sendContactFormSubmission` (Resend) with `replyTo` set to the submitter's email so Rachel can reply directly. Body: `{ firstName, lastName, email, subject, message }`. |
 | `POST /api/leads` | `/services/job-alerts` page `JobWatchlistLeadForm` | Validates input, inserts a row into `leads` via service client, fires two best-effort emails (admin notification to `hello@thryvegrowth.co`, thank-you to the lead). Body: `{ fullName, email, phone?, currentRole?, targetRole?, location?, remotePreference?, timeline?, notes? }`. |
+| `POST /api/consultation` | `/consultation` page `ConsultationForm` (`src/components/marketing/ConsultationForm.tsx`) | Validates required fields + timing whitelist, sends admin alert via `sendConsultationRequest` (Resend, `replyTo` = submitter). Best-effort: client auto-reply via `sendConsultationRequestAutoReply`, GHL sync via `syncContactToGHL` with tags `["thryve-lead", "consultation-requested"]`. Body: `{ firstName, lastName, email, phone?, timing?, message }`. |
 
 Both routes run server-side only; no auth required (public forms). The service client is used for `/api/newsletter` because `newsletter_subscribers` has an anon-insert RLS policy, but service client avoids any RLS surprises.
 
 ---
 
-## Cron Job
+## Cron Jobs
 
-**File:** `src/app/api/cron/job-alerts/route.ts`
+All cron endpoints share the same auth pattern (`Authorization: Bearer {CRON_SECRET}`, `isAuthorized()` allows all when the env var is unset for local testing). Schedules live in cron-job.org; see `docs/integrations.md` → "cron-job.org" for the inventory and per-job setup steps.
 
-- **Schedule:** Every Monday at 9:00 AM UTC (`0 9 * * 1` in `vercel.json`)
-- **Auth:** `Authorization: Bearer {CRON_SECRET}` header (sent automatically by Vercel Cron)
-- **Logic:** Fetches all `watchlist_profiles` with `subscription_status = 'active'` → for each, finds `client_job_matches` created in the last 7 days with `status = 'new'` → fetches job details → builds plain-text email digest → sends via Resend
-- Skips subscribers with 0 new matches — they don't receive an email that week
-- Logs sent count and any errors to server logs
+| Path | Schedule | Purpose |
+|---|---|---|
+| `/api/cron/job-alerts` | `0 9 * * 1` (Mon 9 AM UTC) | Weekly job match digest per active watchlist subscriber. |
+| `/api/cron/newsletter-send` | `0 * * * *` (hourly) | Fetches `newsletter_issues` where `status='scheduled' AND scheduled_for <= NOW()` and calls `sendIssue` for each. Hourly precision means a 9:15 AM schedule sends at 10 AM. |
+| `/api/cron/newsletter-reengage` | `0 14 * * 3` (Wed 9 AM Central) | Sends "we missed you" to subscribers inactive 60+ days (capped 50/run). |
+| `/api/cron/newsletter-milestones` | `0 14 * * *` (daily) | Sends thank-you emails on the 6-month and 1-year anniversary of signup. |
+
+---
+
+## Resend Webhook
+
+**File:** `src/app/api/webhooks/resend/route.ts`
+
+- **Auth:** Svix HMAC-SHA256 signature verification using `RESEND_WEBHOOK_SECRET`. Signed payload format: `${svix-id}.${svix-timestamp}.${body}`. Done manually (no `svix` dep) to keep the bundle small.
+- **Events handled:** `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`. Maps them to the matching `newsletter_events.event_type` values.
+- **Correlation:** Looks up `newsletter_sends` by `resend_message_id` (= Resend's `data.email_id`) to recover the `issue_id` + `subscriber_id` for the event row.
+- **Idempotency:** `UNIQUE(resend_event_id)` constraint on `newsletter_events` makes the handler safe under retries. Duplicate-key errors (`23505`) are swallowed.
+- **Side effects:** opens/clicks update `subscribers.last_engaged_at`; bounces/complaints set `unsubscribed_at`.
+
+---
+
+## Newsletter System
+
+**Server libraries:**
+- `src/lib/newsletter/interests.ts` — 7-slug enum, `sanitizeInterests()` validator, `labelForInterest()` lookup.
+- `src/lib/newsletter/extensions.ts` — shared Tiptap extension arrays (`newsletterEditorExtensions` for the editor, `newsletterRenderExtensions` for the server-side renderer). Must stay in sync — the renderer is a subset of the editor.
+- `src/lib/email/newsletter-template.ts` — `renderNewsletterShell()` brand HTML wrapper (inline styles, system-font stack, one mobile media query).
+- `src/lib/email/newsletter-render.ts` — `renderIssueHTML()`, `renderIssueText()`, `buildUnsubscribeUrl()`, `buildUnsubscribeApiUrl()`, `buildManageUrl()`.
+- `src/lib/email/newsletter-welcome.ts` — `sendWelcomeEmail()` warm intro email.
+- `src/lib/email/newsletter-reengagement.ts` — `sendReengagementEmail()`, `sendMilestoneEmail()`.
+- `src/lib/email/newsletter-send.ts` — `sendIssue(issueId)` send pipeline: locks issue, renders once, batches recipients to 100/req, calls `resend.batch.send`, writes `newsletter_sends`, throttles 1.1s between batches, updates `last_sent_at` on each delivered subscriber.
+
+**Components:**
+- `src/components/admin/NewsletterEditor.tsx` — Tiptap editor (shared extensions).
+- `src/components/admin/NewsletterIssueForm.tsx` — full composer (title/subject/preheader/body/audience/featured blog/schedule/actions).
+- `src/components/admin/NewsletterTemplateForm.tsx` — template CRUD form.
+- `src/components/admin/IdeaInbox.tsx` — quick-capture idea inbox on the dashboard.
+- `src/components/admin/DeleteIssueButton.tsx`, `ManualUnsubscribeButton.tsx` — small client-action buttons.
+- `src/components/marketing/UnsubscribeForm.tsx`, `ManagePreferencesForm.tsx` — public token-authenticated forms.
+
+**Admin pages** (`src/app/(admin)/admin/newsletter/`):
+- `page.tsx` — dashboard with subscriber stats, scheduled list, recently sent open/click rates, idea inbox.
+- `subscribers/page.tsx` — filterable table by interest + status with manual unsubscribe.
+- `issues/page.tsx` — list grouped by status (Drafts / Scheduled / Sent).
+- `issues/new/page.tsx` — composer pre-filled from the default template.
+- `issues/[id]/page.tsx` — composer with engagement stats when sent.
+- `issues/[id]/preview/page.tsx` — iframe preview using `/api/admin/newsletter/preview/[id]`.
+- `templates/page.tsx`, `templates/new/page.tsx`, `templates/[id]/page.tsx` — template CRUD.
+
+**Marketing pages** (`src/app/(marketing)/newsletter/`):
+- `page.tsx` — landing page with `<NewsletterForm variant="full">`.
+- `unsubscribe/[token]/page.tsx` — pretty confirmation with feedback form.
+- `manage/[token]/page.tsx` — interest editor + resubscribe.
 
 ---
 

@@ -11,6 +11,10 @@ import {
   Bell,
   BarChart2,
   Mail,
+  Workflow,
+  MailCheck,
+  Plug,
+  MessageSquare,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,8 +24,12 @@ import { Logo } from "@/components/shared/Logo";
 const navItems = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Leads", href: "/admin/leads", icon: Inbox, exact: false },
+  { label: "Sessions", href: "/admin/sessions", icon: Workflow, exact: false },
   { label: "Bookings", href: "/admin/bookings", icon: Calendar, exact: false },
   { label: "Clients", href: "/admin/clients", icon: Users, exact: false },
+  { label: "Messages", href: "/admin/messages", icon: MessageSquare, exact: false },
+  { label: "Templates", href: "/admin/templates", icon: MailCheck, exact: false },
+  { label: "Integrations", href: "/admin/integrations", icon: Plug, exact: false },
   { label: "Blog", href: "/admin/content", icon: FileEdit, exact: false },
   { label: "Newsletter", href: "/admin/newsletter", icon: Mail, exact: false },
   { label: "Watchlists", href: "/admin/watchlists", icon: Bell, exact: false },
