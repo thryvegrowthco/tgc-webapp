@@ -2,6 +2,32 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendTemplated } from "@/lib/email/render";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
+
+type DocumentCategory =
+  | "resume"
+  | "cover_letter"
+  | "notes"
+  | "worksheet"
+  | "template"
+  | "deliverable"
+  | "resume_rewrite"
+  | "hr_doc"
+  | "other";
+
+const DELIVERABLE_CATEGORIES: ReadonlySet<DocumentCategory> = new Set([
+  "deliverable",
+  "resume_rewrite",
+  "hr_doc",
+]);
+
+const DELIVERABLE_LABELS: Record<string, string> = {
+  deliverable: "deliverable",
+  resume_rewrite: "resume rewrite",
+  hr_doc: "HR document",
+};
 
 export async function uploadDocument(
   formData: FormData
@@ -46,25 +72,102 @@ export async function uploadDocument(
     return { error: uploadError.message };
   }
 
-  // Insert document record
-  const { error: dbError } = await serviceClient.from("documents").insert({
-    client_id: clientId,
-    uploaded_by: user.id,
-    filename: file.name,
-    storage_path: storagePath,
-    file_size_bytes: file.size,
-    category: category as "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "other" | null || null,
-    description: description || null,
-  });
+  const categoryValue: DocumentCategory | null =
+    category && isDocumentCategory(category) ? category : null;
 
-  if (dbError) {
+  // Insert document record
+  const { data: inserted, error: dbError } = await serviceClient
+    .from("documents")
+    .insert({
+      client_id: clientId,
+      uploaded_by: user.id,
+      filename: file.name,
+      storage_path: storagePath,
+      file_size_bytes: file.size,
+      category: categoryValue,
+      description: description || null,
+    })
+    .select("id")
+    .single();
+
+  if (dbError || !inserted) {
     // Clean up storage on db failure
     await serviceClient.storage.from("documents").remove([storagePath]);
     console.error("[uploadDocument] DB error:", dbError);
-    return { error: dbError.message };
+    return { error: dbError?.message ?? "Failed to record document." };
+  }
+
+  // When the category signals a finished deliverable, notify the client.
+  // Idempotency is handled by sendTemplated's automation_log — the event_key
+  // embeds the document id so each unique upload sends exactly once even if
+  // the action is retried.
+  if (categoryValue && DELIVERABLE_CATEGORIES.has(categoryValue)) {
+    await notifyDeliverableReady({
+      documentId: inserted.id,
+      clientId,
+      category: categoryValue,
+      filename: file.name,
+    });
   }
 
   return { success: true };
+}
+
+function isDocumentCategory(value: string): value is DocumentCategory {
+  return (
+    value === "resume" ||
+    value === "cover_letter" ||
+    value === "notes" ||
+    value === "worksheet" ||
+    value === "template" ||
+    value === "deliverable" ||
+    value === "resume_rewrite" ||
+    value === "hr_doc" ||
+    value === "other"
+  );
+}
+
+async function notifyDeliverableReady(args: {
+  documentId: string;
+  clientId: string;
+  category: DocumentCategory;
+  filename: string;
+}): Promise<void> {
+  const service = createServiceClient();
+  const { data: client } = await service
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", args.clientId)
+    .single();
+
+  if (!client?.email) return;
+
+  const clientName = client.full_name || client.email.split("@")[0] || "there";
+  const deliverableType = DELIVERABLE_LABELS[args.category] ?? "deliverable";
+
+  // Per-document idempotency. `sendTemplated`'s built-in dedupe only fires when
+  // a bookingId is supplied (the UNIQUE index on automation_log is partial on
+  // booking_id IS NOT NULL), so for the deliverable path we pre-check the log
+  // by the document-scoped event_key ourselves before sending.
+  const eventKey = `deliverable_ready_sent:${args.documentId}`;
+  const { data: existing } = await service
+    .from("automation_log")
+    .select("id")
+    .eq("event_key", eventKey)
+    .eq("status", "success")
+    .maybeSingle();
+  if (existing) return;
+
+  await sendTemplated("deliverable_ready", {
+    to: client.email,
+    clientId: args.clientId,
+    eventKey,
+    data: {
+      client_name: clientName,
+      deliverable_type: deliverableType,
+      deliverable_url: `${APP_URL}/dashboard/documents`,
+    },
+  });
 }
 
 export async function deleteDocument(

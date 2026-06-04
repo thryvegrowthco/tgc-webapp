@@ -267,19 +267,39 @@ export async function sendConsultationRequestAutoReply(data: ConsultationRequest
   });
 }
 
-export async function sendAdminBookingAlert(data: BookingConfirmationData) {
+export interface AdminBookingAlertOptions {
+  /** Override the subject. Defaults to "New Booking: {serviceType} from {clientName}". */
+  subject?: string;
+  /** Filenames the client uploaded with their intake. Rendered as a bullet list when present. */
+  uploadedFiles?: string[];
+}
+
+export async function sendAdminBookingAlert(
+  data: BookingConfirmationData,
+  options: AdminBookingAlertOptions = {}
+) {
+  const subject = options.subject ?? `New Booking: ${data.serviceType} from ${data.clientName}`;
+  const filesBlock =
+    options.uploadedFiles && options.uploadedFiles.length > 0
+      ? `<p style="margin:16px 0 6px;"><strong>Files uploaded:</strong></p>
+         <ul style="margin:0 0 0 18px;padding:0;">${options.uploadedFiles
+           .map((name) => `<li>${escapeHtml(name)}</li>`)
+           .join("")}</ul>`
+      : "";
+
   return resend.emails.send({
     from: FROM_EMAIL,
     to: "hello@thryvegrowth.co",
-    subject: `New Booking: ${data.serviceType} from ${data.clientName}`,
+    subject,
     html: `
       <p>New booking received:</p>
       <ul>
-        <li><strong>Client:</strong> ${data.clientName} (${data.clientEmail})</li>
-        <li><strong>Service:</strong> ${data.serviceType}</li>
-        <li><strong>Date:</strong> ${data.slotDate} at ${data.slotTime}</li>
-        <li><strong>Booking ID:</strong> ${data.bookingId}</li>
+        <li><strong>Client:</strong> ${escapeHtml(data.clientName)} (${escapeHtml(data.clientEmail)})</li>
+        <li><strong>Service:</strong> ${escapeHtml(data.serviceType)}</li>
+        <li><strong>Date:</strong> ${escapeHtml(data.slotDate)} at ${escapeHtml(data.slotTime)}</li>
+        <li><strong>Booking ID:</strong> ${escapeHtml(data.bookingId)}</li>
       </ul>
+      ${filesBlock}
     `,
   });
 }

@@ -6,6 +6,7 @@ import { sendTemplated } from "@/lib/email/render";
 import { sendAdminBookingAlert } from "@/lib/email/resend";
 import { getSchemaForService, validateResponses } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
+import { createAdminNotification } from "@/lib/notifications/admin";
 import type { Json } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
@@ -15,6 +16,29 @@ interface IntakeSubmitArgs {
   responses: Record<string, unknown>;
   /** True when the client clicked Submit (vs auto-save). */
   submit: boolean;
+}
+
+/**
+ * Walk the intake `responses` JSONB and collect every filename the client
+ * uploaded. Matches the file-shape produced by `IntakeFormView`: each upload
+ * is stored as `{ path, filename }` (or an array of those for multi-upload
+ * fields). Unknown shapes are skipped.
+ */
+function collectUploadedFilenames(responses: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  const visit = (value: unknown): void => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      for (const v of value) visit(v);
+      return;
+    }
+    if (typeof value === "object") {
+      const name = (value as { filename?: unknown }).filename;
+      if (typeof name === "string" && name.length > 0) out.push(name);
+    }
+  };
+  for (const value of Object.values(responses)) visit(value);
+  return out;
 }
 
 export async function saveIntake(args: IntakeSubmitArgs): Promise<{ error?: string; success?: boolean }> {
@@ -103,15 +127,66 @@ export async function saveIntake(args: IntakeSubmitArgs): Promise<{ error?: stri
       });
     }
 
-    // Notify Rachel that intake is ready.
-    await sendAdminBookingAlert({
-      clientName,
-      clientEmail,
-      serviceType: booking.service_type,
-      slotDate: sessionDate,
-      slotTime: sessionTime,
+    const uploadedFiles = collectUploadedFilenames(args.responses);
+
+    // Notify Rachel that intake is ready. Folding the uploaded-file list into
+    // the existing admin alert avoids spawning a second email per submission.
+    await sendAdminBookingAlert(
+      {
+        clientName,
+        clientEmail,
+        serviceType: booking.service_type,
+        slotDate: sessionDate,
+        slotTime: sessionTime,
+        bookingId: args.bookingId,
+      },
+      {
+        subject: `Intake submitted: ${booking.service_type} — ${clientName}`,
+        uploadedFiles,
+      }
+    ).catch(() => undefined);
+
+    // In-app notifications: one for the submission, one per uploaded file so
+    // Rachel can spot which materials arrived at a glance.
+    await createAdminNotification({
+      type: "intake_submitted",
+      title: `Intake submitted: ${clientName}`,
+      body: `${booking.service_type}${uploadedFiles.length ? ` · ${uploadedFiles.length} file${uploadedFiles.length === 1 ? "" : "s"}` : ""}`,
+      link: `/admin/clients/${user.id}#intake-${args.bookingId}`,
       bookingId: args.bookingId,
-    }).catch(() => undefined);
+      clientId: user.id,
+    });
+
+    for (const filename of uploadedFiles) {
+      await createAdminNotification({
+        type: "client_doc_upload",
+        title: `${clientName} uploaded ${filename}`,
+        body: booking.service_type,
+        link: `/admin/clients/${user.id}#intake-${args.bookingId}`,
+        bookingId: args.bookingId,
+        clientId: user.id,
+      });
+    }
+
+    // Auto-task: tee up the deliverable / session prep work. Due 12h before
+    // the session if scheduled, else 3 days out.
+    const taskDueAt = sessionAt
+      ? new Date(sessionAt.getTime() - 12 * 60 * 60 * 1000).toISOString()
+      : new Date(Date.now() + 3 * 86400000).toISOString();
+    await service
+      .from("admin_tasks")
+      .insert({
+        title: "Prepare deliverable / session",
+        description: `Intake complete for ${clientName} (${booking.service_type}).`,
+        due_at: taskDueAt,
+        related_booking_id: args.bookingId,
+        related_client_id: user.id,
+      })
+      .then((res) => {
+        if (res.error) {
+          console.error("[saveIntake] admin_tasks insert failed:", res.error);
+        }
+      });
   }
 
   return { success: true };

@@ -75,7 +75,9 @@ src/
 
 **Dashboard pages:** `/dashboard` (overview), `/dashboard/bookings`, `/dashboard/documents`, `/dashboard/watchlist` (browsable matches), `/dashboard/watchlist/setup` (preferences wizard), `/dashboard/applications` (post-application tracker for matches with status `applied`/`interviewing`/`offer`/`not_a_fit`), `/dashboard/billing` (Stripe Customer Portal handoff), `/dashboard/profile`.
 
-**Admin pages:** `/admin` (overview), `/admin/leads` (+ `/admin/leads/[id]`), `/admin/bookings`, `/admin/clients` (+ `/admin/clients/[id]`), `/admin/content` (blog), `/admin/watchlists` (+ `/admin/watchlists/[clientId]`), `/admin/analytics`.
+**Admin pages:** `/admin` (overview, now with a "Top tasks" widget above Recent Bookings), `/admin/tasks` (filter by upcoming/overdue/completed), `/admin/notifications` (full inbox), `/admin/leads` (+ `/admin/leads/[id]`), `/admin/bookings`, `/admin/clients` (+ `/admin/clients/[id]`, with per-client Tasks panel), `/admin/content` (blog), `/admin/watchlists` (+ `/admin/watchlists/[clientId]`), `/admin/analytics`.
+
+**Admin layout top bar:** `src/app/(admin)/admin/layout.tsx` renders a thin header above `<main>` that hosts the `NotificationBell` (`src/components/admin/NotificationBell.tsx`). The bell polls every 60s via `router.refresh()` to keep the unread count + dropdown fresh without Supabase Realtime.
 
 **Key architectural rule:** `Header` and `Footer` from `src/components/layout/` are rendered **only** inside `src/app/(marketing)/layout.tsx`. They do not appear in dashboard, admin, or auth pages. The root `layout.tsx` is a bare HTML shell (fonts, metadata, `<Toaster />`, `<Analytics />`).
 
@@ -93,7 +95,7 @@ const p = profile as { role: string } | null;
 if (p?.role !== "admin") redirect("/dashboard");
 ```
 
-The `requireAdmin()` helper in `src/app/actions/blog.ts` and `src/app/actions/watchlist.ts` encapsulates this pattern for server actions.
+Shared admin guard: `src/lib/auth/require.ts` exports `requireAdmin()` (non-throwing — returns `{ ok, userId } | { ok: false, error }`) and `requireAdminOrThrow()` (throws "Unauthorized"). Use the non-throwing form for actions whose return type is `{ error?, success? }`. Older inline `requireAdmin()` helpers in `blog.ts`, `watchlist.ts`, and `availability.ts` predate the shared lib and may be consolidated in a follow-up.
 
 ---
 
@@ -124,7 +126,10 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 |---|---|---|
 | `auth.ts` | `signUp`, `logIn`, `logOut`, `requestPasswordReset`, `updatePassword` | — |
 | `booking.ts` | `createBookingCheckoutSession`, `addBulkAvailabilitySlots`, `deleteAvailabilitySlot`, `deleteAvailabilitySlotsBulk`, `updateBookingStatus` | `createBookingCheckoutSession` refuses if slot is already booked; `addBulkAvailabilitySlots` accepts `{ dates, timeBlocks, serviceType }` and inserts the cartesian product via Supabase upsert with `ignoreDuplicates` against the `(slot_date, start_time)` unique index — returns `{ created, skipped }`. 500-row sanity cap. `deleteAvailabilitySlot` refuses if slot is booked. `deleteAvailabilitySlotsBulk(ids: string[])` mirrors the single-row guard with `.in("id", ids).eq("is_booked", false)` — booked rows are filtered out of the delete and surfaced via the `skipped` count. `updateBookingStatus` is admin-only with status allowlist |
-| `documents.ts` | `uploadDocument`, `deleteDocument`, `addClientNote` | Uses service client; cleans up Storage on DB insert failure |
+| `documents.ts` | `uploadDocument`, `deleteDocument`, `addClientNote` | Uses service client; cleans up Storage on DB insert failure. On categories `deliverable`/`resume_rewrite`/`hr_doc`, `uploadDocument` fires the `deliverable_ready` email to the client (idempotent via `automation_log` event_key `deliverable_ready_sent:{documentId}`). |
+| `intake.ts` | `saveIntake` | Client action gated by booking ownership. On submit: sends `intake_complete` email, folds uploaded filenames into the admin alert (`sendAdminBookingAlert` accepts an `uploadedFiles` option), writes `intake_submitted` + per-file `client_doc_upload` admin notifications, and inserts a `Prepare deliverable / session` auto-task. |
+| `notifications.ts` | `markNotificationRead`, `markAllNotificationsRead` | Admin-only via `requireAdmin()` from `src/lib/auth/require.ts`. Bumps `admin_notifications.read_at` and revalidates the `/admin` layout for the bell. |
+| `tasks.ts` | `createTask`, `updateTask`, `completeTask`, `uncompleteTask`, `deleteTask` | Admin-only via shared `requireAdmin()`. Revalidates `/admin`, `/admin/tasks`, and per-client pages. |
 | `blog.ts` | `createBlogPost`, `updateBlogPost`, `deleteBlogPost`, `uploadFeaturedImage` | `requireAdmin()` guard; slug uniqueness enforced in both create + update |
 | `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient` | Client actions + admin actions mixed in one file; each has its own auth check. `fetchJSearchJobsForClient` and `runAutoMatchForClient` apply the scoring engine in `src/lib/matching/score.ts` and only insert matches with score ≥ 60. |
 | `billing.ts` | `createPortalSession` | Looks up client's `stripe_subscription_id`, retrieves Stripe customer ID from the subscription, creates a Stripe Customer Portal session, and redirects. Used by `/dashboard/billing`. |
@@ -153,6 +158,9 @@ Stripe client is wrapped in a `Proxy` to defer initialization until first access
 - Validates signature with `stripe.webhooks.constructEvent`
 - Two handlers: `handleCheckoutCompleted` (mode: `payment`) and `handleSubscriptionCheckoutCompleted` (mode: `subscription`)
 - Uses service client (bypasses RLS)
+- Retrieves the PaymentIntent with `expand: ['latest_charge']` so the receipt email can render the card brand / last4 and link to Stripe's hosted receipt URL. Helper: `fetchPaymentMethodSummary`.
+- Looks up the latest `signed_service_agreements` row for the client; passes `signed_agreement_url = /dashboard/legal/signed/{id}` into the welcome email so the conditional contract link renders. Helper: `fetchSignedAgreementUrl`.
+- After booking insert: calls `createAdminNotification({ type: 'new_booking', ... })` and inserts a `Review intake when submitted` admin task (the unique partial index on `admin_tasks(related_booking_id) WHERE title = 'Review intake when submitted'` makes the insert idempotent across webhook retries).
 - All side effects (email, GHL sync) run in `Promise.allSettled` — failures do not block the 200 response
 - Handles `checkout.session.completed`, `customer.subscription.deleted` (sets `subscription_status = 'cancelled'`), and `customer.subscription.updated` (maps Stripe status to `'active'`/`'inactive'`/`'cancelled'`)
 
@@ -209,6 +217,12 @@ All cron endpoints share the same auth pattern (`Authorization: Bearer {CRON_SEC
 | `/api/cron/newsletter-send` | `0 * * * *` (hourly) | Fetches `newsletter_issues` where `status='scheduled' AND scheduled_for <= NOW()` and calls `sendIssue` for each. Hourly precision means a 9:15 AM schedule sends at 10 AM. |
 | `/api/cron/newsletter-reengage` | `0 14 * * 3` (Wed 9 AM Central) | Sends "we missed you" to subscribers inactive 60+ days (capped 50/run). |
 | `/api/cron/newsletter-milestones` | `0 14 * * *` (daily) | Sends thank-you emails on the 6-month and 1-year anniversary of signup. |
+| `/api/cron/intake-overdue-alert` | Daily | Emails Rachel a digest of overdue intakes AND inserts one `admin_notifications` row per booking. Idempotent via `automation_log` event_key `intake_overdue_alert_sent`. |
+| `/api/cron/session-reminders` | Hourly | T-24h client reminder (`session_reminder_24h` email) + T-2h Rachel prep summary. The T-24h branch also writes a `session_in_24h` row to `admin_notifications` so it surfaces in the bell. |
+| `/api/cron/post-service-followup` | Daily | Sends `post_service_followup` email 24h after `workflow_status = 'completed'`; transitions to `follow_up_sent`. |
+| `/api/cron/auto-complete-sessions` | Hourly | Marks `session_scheduled` → `completed` 24h+ past `session_at`. |
+| `/api/cron/intake-reminders` | Daily | T-48h and T-24h intake reminder emails. |
+| `/api/cron/extend-availability` | Daily | Materializes recurring patterns into `availability_slots` for the next 8 weeks. |
 
 ---
 

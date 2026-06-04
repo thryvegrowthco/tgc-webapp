@@ -7,14 +7,76 @@ import { sendTemplated } from "@/lib/email/render";
 import { syncBookingToGHL } from "@/lib/gohighlevel/client";
 import { createCalendarEvent } from "@/lib/google/calendar";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
+import { createAdminNotification } from "@/lib/notifications/admin";
 
 export const runtime = "nodejs";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? "hello@thryvegrowth.co";
 // For non-bookable services (resume, HR, etc.) intake is due 7 days after purchase.
 const NON_SLOT_INTAKE_DAYS = 7;
 // Job Alerts subscription: intake (watchlist setup) due in 3 days.
 const SUBSCRIPTION_INTAKE_DAYS = 3;
+
+interface PaymentMethodSummary {
+  cardBrand: string;
+  cardLast4: string;
+  receiptUrl: string;
+}
+
+/**
+ * Pull the user-facing payment-method info Stripe attaches to a session.
+ * Receipts read better with "Visa ending in 4242" + a link to the official
+ * Stripe-hosted receipt than with just a transaction ID. All fields default
+ * to empty strings so the receipt template's `{{#if}}` blocks hide them when
+ * Stripe doesn't surface them (test mode, ACH, etc.).
+ */
+async function fetchPaymentMethodSummary(
+  paymentIntentId: string | null
+): Promise<PaymentMethodSummary> {
+  const empty: PaymentMethodSummary = { cardBrand: "", cardLast4: "", receiptUrl: "" };
+  if (!paymentIntentId) return empty;
+
+  try {
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["latest_charge"],
+    });
+    const charge = pi.latest_charge as Stripe.Charge | null;
+    if (!charge) return empty;
+    const card = charge.payment_method_details?.card;
+    const brand = card?.brand ?? "";
+    return {
+      cardBrand: brand ? brand.charAt(0).toUpperCase() + brand.slice(1) : "",
+      cardLast4: card?.last4 ?? "",
+      receiptUrl: charge.receipt_url ?? "",
+    };
+  } catch (err) {
+    console.error("[Stripe Webhook] PaymentIntent retrieve failed:", err);
+    return empty;
+  }
+}
+
+/**
+ * Look up the client's latest signed service agreement, if any. The welcome
+ * email surfaces this so they can find their signed copy without hunting.
+ * Empty string when no agreement is on file — the welcome template's
+ * `{{#if signed_agreement_url}}` block hides the line in that case.
+ */
+async function fetchSignedAgreementUrl(
+  supabase: ReturnType<typeof createServiceClient>,
+  clientId: string | null
+): Promise<string> {
+  if (!clientId) return "";
+  const { data } = await supabase
+    .from("signed_service_agreements")
+    .select("id")
+    .eq("client_id", clientId)
+    .order("signed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return "";
+  return `${APP_URL}/dashboard/legal/signed/${data.id}`;
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -253,6 +315,40 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     bookingId: booking.id,
   };
 
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
+  const [paymentSummary, signedAgreementUrl] = await Promise.all([
+    fetchPaymentMethodSummary(paymentIntentId),
+    fetchSignedAgreementUrl(supabase, userId),
+  ]);
+
+  // In-app notification for the admin bell.
+  await createAdminNotification({
+    type: "new_booking",
+    title: `New booking: ${clientName || clientEmail || "Unknown client"}`,
+    body: `${serviceType}${sessionAt ? ` · ${slotDate} at ${slotTime}` : ""}`,
+    link: userId ? `/admin/clients/${userId}#booking-${booking.id}` : `/admin/bookings`,
+    bookingId: booking.id,
+    clientId: userId,
+  });
+
+  // Auto-create a "Review intake when submitted" task for Rachel. The unique
+  // partial index in migration 0013 makes this idempotent across webhook retries.
+  await supabase
+    .from("admin_tasks")
+    .insert({
+      title: "Review intake when submitted",
+      description: `Service: ${serviceType}. Intake due ${intakeDueDate}.`,
+      due_at: intakeDueAt,
+      related_booking_id: booking.id,
+      related_client_id: userId,
+    })
+    .then((res) => {
+      if (res.error && !res.error.message.includes("duplicate")) {
+        console.error("[Stripe Webhook] admin_tasks insert failed:", res.error);
+      }
+    });
+
   // Send receipt, welcome, admin alert, and GHL sync in parallel.
   // Failures are isolated; the webhook always returns 200.
   await Promise.allSettled([
@@ -270,9 +366,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           day: "numeric",
           year: "numeric",
         }),
-        transaction_id: typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : session.id,
+        transaction_id: paymentIntentId ?? session.id,
+        card_brand: paymentSummary.cardBrand,
+        card_last4: paymentSummary.cardLast4,
+        stripe_receipt_url: paymentSummary.receiptUrl,
+        support_email: SUPPORT_EMAIL,
       },
     }),
     sendTemplated("welcome", {
@@ -287,6 +385,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         session_workspace_url: sessionWorkspaceUrl,
         session_date: slotDate,
         meet_link: meetLink ?? "",
+        signed_agreement_url: signedAgreementUrl,
       },
     }),
     sendAdminBookingAlert(emailData),
@@ -400,6 +499,39 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
       { weekday: "long", month: "long", day: "numeric" }
     );
 
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+    const [paymentSummary, signedAgreementUrl] = await Promise.all([
+      fetchPaymentMethodSummary(paymentIntentId),
+      fetchSignedAgreementUrl(supabase, userId),
+    ]);
+
+    // In-app notification for the admin bell.
+    await createAdminNotification({
+      type: "new_booking",
+      title: `New subscription: ${clientName || clientEmail}`,
+      body: serviceType,
+      link: `/admin/clients/${userId}#booking-${bookingId}`,
+      bookingId,
+      clientId: userId,
+    });
+
+    // Auto-task: review the watchlist setup after the client submits intake.
+    await supabase
+      .from("admin_tasks")
+      .insert({
+        title: "Review intake when submitted",
+        description: `${serviceType} subscription. Intake due ${intakeDueDate}.`,
+        due_at: new Date(Date.now() + SUBSCRIPTION_INTAKE_DAYS * 86400000).toISOString(),
+        related_booking_id: bookingId,
+        related_client_id: userId,
+      })
+      .then((res) => {
+        if (res.error && !res.error.message.includes("duplicate")) {
+          console.error("[Stripe Webhook] admin_tasks insert failed:", res.error);
+        }
+      });
+
     await Promise.allSettled([
       sendTemplated("receipt", {
         to: clientEmail,
@@ -412,6 +544,10 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
           amount_formatted: `${amountFormatted}/month`,
           payment_date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
           transaction_id: subscriptionId ?? session.id,
+          card_brand: paymentSummary.cardBrand,
+          card_last4: paymentSummary.cardLast4,
+          stripe_receipt_url: paymentSummary.receiptUrl,
+          support_email: SUPPORT_EMAIL,
         },
       }),
       sendTemplated("welcome", {
@@ -426,6 +562,7 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
           session_workspace_url: `${APP_URL}/dashboard/watchlist/setup`,
           session_date: "",
           meet_link: "",
+          signed_agreement_url: signedAgreementUrl,
         },
       }),
     ]);

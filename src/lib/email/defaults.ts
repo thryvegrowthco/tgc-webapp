@@ -17,22 +17,44 @@ export interface DefaultTemplate {
 export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
   receipt: {
     subject: "Your receipt from Thryve Growth Co.",
-    placeholders: ["client_name", "service_type", "amount_formatted", "payment_date", "transaction_id"],
+    placeholders: [
+      "client_name",
+      "service_type",
+      "amount_formatted",
+      "payment_date",
+      "transaction_id",
+      "card_brand",
+      "card_last4",
+      "stripe_receipt_url",
+      "support_email",
+    ],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">Thanks for your payment. Here are the details for your records:</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;">
   <tr><td style="padding:8px 0;color:#64748b;">Service</td><td style="padding:8px 0;text-align:right;color:#0f172a;font-weight:600;">{{service_type}}</td></tr>
   <tr><td style="padding:8px 0;color:#64748b;">Amount</td><td style="padding:8px 0;text-align:right;color:#0f172a;font-weight:600;">{{amount_formatted}}</td></tr>
   <tr><td style="padding:8px 0;color:#64748b;">Date</td><td style="padding:8px 0;text-align:right;color:#0f172a;">{{payment_date}}</td></tr>
+  {{#if card_last4}}<tr><td style="padding:8px 0;color:#64748b;">Paid with</td><td style="padding:8px 0;text-align:right;color:#0f172a;">{{card_brand}} ending in {{card_last4}}</td></tr>{{/if}}
   <tr><td style="padding:8px 0;color:#64748b;">Transaction ID</td><td style="padding:8px 0;text-align:right;color:#0f172a;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;">{{transaction_id}}</td></tr>
 </table>
+{{#if stripe_receipt_url}}<p style="margin:0 0 24px;text-align:center;">
+  <a href="{{stripe_receipt_url}}" style="display:inline-block;background:#ffffff;color:#203e35;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;border:1px solid #203e35;">View Stripe receipt</a>
+</p>{{/if}}
 <p style="margin:0 0 16px;color:#475569;">A separate welcome email is on its way with next steps.</p>
-<p style="margin:0;color:#475569;">Questions? Reply to this email or write to <a href="mailto:hello@thryvegrowth.co" style="color:#203e35;">hello@thryvegrowth.co</a>.</p>`,
+<p style="margin:0;color:#475569;">Questions? Reply to this email or write to <a href="mailto:{{support_email}}" style="color:#203e35;">{{support_email}}</a>.</p>`,
   },
 
   welcome: {
     subject: "Welcome to Thryve Growth Co. — here's what comes next",
-    placeholders: ["client_name", "service_type", "intake_due_date", "session_workspace_url", "session_date", "meet_link"],
+    placeholders: [
+      "client_name",
+      "service_type",
+      "intake_due_date",
+      "session_workspace_url",
+      "session_date",
+      "meet_link",
+      "signed_agreement_url",
+    ],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">Thank you so much for booking <strong>{{service_type}}</strong>. I'm excited to support you.</p>
 <p style="margin:0 0 24px;">Before we get started, here's how the next few days will go:</p>
@@ -44,6 +66,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{session_workspace_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Open your session workspace</a>
 </p>
+{{#if signed_agreement_url}}<p style="margin:0 0 16px;color:#475569;">Your signed service agreement is <a href="{{signed_agreement_url}}" style="color:#203e35;">on file here</a> for your records.</p>{{/if}}
 <p style="margin:0 0 16px;color:#475569;"><strong>Need to reschedule?</strong> Reply to this email at least 24 hours before our session and we'll find a new time. Cancellations within 24 hours are non-refundable.</p>
 <p style="margin:0;color:#475569;">Direct. Honest. Practical.<br/>— Rachel</p>`,
   },

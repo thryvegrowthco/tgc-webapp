@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Calendar, Users, CheckCircle2, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
+import { AddTaskForm } from "@/components/admin/AddTaskForm";
+import type { AdminTask } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Admin — Thryve Growth Co.",
@@ -48,8 +51,22 @@ export default async function AdminOverviewPage() {
 
   const recentBookings = (recentRaw ?? []) as RecentBooking[];
 
+  // Top 5 open tasks for the home widget.
+  const { data: openTasksRaw } = await supabase
+    .from("admin_tasks")
+    .select("id, title, description, due_at, completed_at, related_booking_id, related_client_id, created_by, created_at")
+    .is("completed_at", null)
+    .order("due_at", { ascending: true, nullsFirst: false })
+    .limit(5);
+  const openTasks = (openTasksRaw ?? []) as AdminTask[];
+
   // Fetch related profiles and slots
-  const clientIds = [...new Set(recentBookings.map((b) => b.client_id).filter(Boolean))] as string[];
+  const clientIds = [
+    ...new Set([
+      ...recentBookings.map((b) => b.client_id),
+      ...openTasks.map((t) => t.related_client_id),
+    ].filter(Boolean)),
+  ] as string[];
   const slotIds = [...new Set(recentBookings.map((b) => b.slot_id).filter(Boolean))] as string[];
 
   let profiles: ProfileRow[] = [];
@@ -66,6 +83,13 @@ export default async function AdminOverviewPage() {
 
   const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
   const slotMap = Object.fromEntries(slots.map((s) => [s.id, s]));
+
+  const tasksWithClient: TaskListItem[] = openTasks.map((t) => ({
+    ...t,
+    clientName: t.related_client_id
+      ? profileMap[t.related_client_id]?.full_name ?? profileMap[t.related_client_id]?.email ?? null
+      : null,
+  }));
 
   const stats = [
     {
@@ -134,6 +158,30 @@ export default async function AdminOverviewPage() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Tasks */}
+      <div className="bg-white rounded-xl border border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-semibold text-neutral-900">Top tasks</h2>
+            <p className="text-xs text-neutral-400 mt-0.5">Your next 5 open items by due date.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/admin/tasks" className="text-sm text-brand-700 font-medium hover:text-brand-800">
+              View all →
+            </Link>
+          </div>
+        </div>
+        <div className="px-4 py-2">
+          <TaskList
+            tasks={tasksWithClient}
+            emptyMessage="No open tasks. Add one below to track your next steps."
+          />
+        </div>
+        <div className="px-6 py-4 border-t border-neutral-100">
+          <AddTaskForm triggerLabel="Add task" />
+        </div>
       </div>
 
       {/* Recent Bookings */}

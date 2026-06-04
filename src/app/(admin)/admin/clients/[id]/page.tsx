@@ -9,8 +9,11 @@ import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
 import { UpdateBookingStatusSelect } from "@/components/admin/UpdateBookingStatusSelect";
 import { IntakeFormView } from "@/components/intake/IntakeFormView";
+import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
+import { AddTaskForm } from "@/components/admin/AddTaskForm";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { formatCentralDateTime } from "@/lib/time/central";
+import type { AdminTask } from "@/types/database";
 
 const WORKFLOW_BADGES: Record<string, { label: string; className: string }> = {
   booked: { label: "Booked", className: "bg-neutral-100 text-neutral-600" },
@@ -30,6 +33,9 @@ export const metadata: Metadata = {
 const categoryLabels: Record<string, string> = {
   resume: "Resume",
   cover_letter: "Cover Letter",
+  deliverable: "Deliverable",
+  resume_rewrite: "Resume Rewrite",
+  hr_doc: "HR Document",
   notes: "Session Notes",
   worksheet: "Worksheet",
   template: "Template",
@@ -70,6 +76,7 @@ export default async function AdminClientDetailPage({
     { data: notesRaw },
     { data: intakeRaw },
     { data: intakeResponsesRaw },
+    { data: tasksRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -96,6 +103,13 @@ export default async function AdminClientDetailPage({
       .from("intake_responses")
       .select("booking_id, service_key, responses, submitted_at, last_saved_at")
       .eq("client_id", id),
+    supabase
+      .from("admin_tasks")
+      .select("id, title, description, due_at, completed_at, related_booking_id, related_client_id, created_by, created_at")
+      .eq("related_client_id", id)
+      .order("completed_at", { ascending: true, nullsFirst: true })
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(50),
   ]);
 
   type BookingRow = {
@@ -142,6 +156,12 @@ export default async function AdminClientDetailPage({
   const intake = intakeRaw as IntakeRow | null;
   const intakeResponses = (intakeResponsesRaw ?? []) as IntakeResponseRow[];
   const intakeByBooking = new Map(intakeResponses.map((r) => [r.booking_id, r]));
+  const tasks = (tasksRaw ?? []) as AdminTask[];
+  const clientDisplayName = client.full_name ?? client.email;
+  const tasksWithClient: TaskListItem[] = tasks.map((t) => ({
+    ...t,
+    clientName: clientDisplayName,
+  }));
 
   const SERVICE_LABELS: Record<string, string> = {
     coaching: "Career & Leadership Coaching",
@@ -360,8 +380,30 @@ export default async function AdminClientDetailPage({
           </section>
         </div>
 
-        {/* Right column — Documents */}
+        {/* Right column — Tasks + Documents */}
         <div className="space-y-8">
+          <section className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h2 className="font-semibold text-neutral-900">Tasks</h2>
+                <p className="text-xs text-neutral-400 mt-0.5">Open items for this client.</p>
+              </div>
+              <Link href="/admin/tasks" className="text-xs text-brand-700 hover:underline">
+                All tasks →
+              </Link>
+            </div>
+            <div className="px-4 py-2">
+              <TaskList
+                tasks={tasksWithClient}
+                hideClientLink
+                emptyMessage="No tasks for this client yet."
+              />
+            </div>
+            <div className="px-6 py-4 border-t border-neutral-100">
+              <AddTaskForm clientId={id} triggerLabel="Add task" />
+            </div>
+          </section>
+
           <section className="bg-white rounded-xl border border-neutral-200">
             <div className="px-6 py-4 border-b border-neutral-100">
               <h2 className="font-semibold text-neutral-900">Documents</h2>

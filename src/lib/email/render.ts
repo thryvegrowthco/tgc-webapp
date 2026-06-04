@@ -19,9 +19,28 @@ import type { EmailTemplateKey, Json } from "@/types/database";
 
 type Placeholders = Record<string, string | number | undefined | null>;
 
-/** Replace every `{{key}}` occurrence in `input` with `data[key]`. Missing keys become empty strings. */
+/** True if the value should render as "present" inside an `{{#if}}` block. */
+function isTruthyPlaceholder(value: string | number | undefined | null): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "number") return true;
+  return value.length > 0;
+}
+
+/**
+ * Replace `{{key}}` placeholders with `data[key]` and strip / keep `{{#if key}}...{{/if}}`
+ * blocks based on whether `data[key]` is non-empty. Missing keys render as empty strings.
+ *
+ * Conditional blocks must not nest. They render their inner contents (still subject to
+ * `{{key}}` substitution) when the named key has a non-empty value, and disappear entirely
+ * otherwise. This keeps templates editable in admin without exposing a full Handlebars runtime.
+ */
 function interpolate(input: string, data: Placeholders): string {
-  return input.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_match, key: string) => {
+  const withConditionals = input.replace(
+    /\{\{#if\s+([\w.]+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/g,
+    (_match, key: string, inner: string) => (isTruthyPlaceholder(data[key]) ? inner : "")
+  );
+
+  return withConditionals.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_match, key: string) => {
     const value = data[key];
     if (value === undefined || value === null) return "";
     return String(value);

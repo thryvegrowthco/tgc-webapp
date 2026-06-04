@@ -7,6 +7,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 const categoryLabels: Record<string, string> = {
   resume: "Resume",
   cover_letter: "Cover Letter",
+  deliverable: "Deliverable",
+  resume_rewrite: "Resume Rewrite",
+  hr_doc: "HR Document",
   notes: "Session Notes",
   worksheet: "Worksheet",
   template: "Template",

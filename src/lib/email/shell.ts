@@ -2,17 +2,33 @@
 // Templates store INNER body HTML only; this wraps it with the header, cream
 // card frame, and footer. Keeps the visual identity consistent across all
 // transactional mail and lets Rachel edit copy without touching layout.
+//
+// Mobile audit: the viewport meta + media query below let the layout collapse
+// gracefully on narrow inboxes (iPhone Mail, Gmail iOS) without changing how
+// it renders on desktop.
 
 export function renderShell(innerHtml: string): string {
   return `<!DOCTYPE html>
 <html>
-<body style="font-family:system-ui,-apple-system,sans-serif;color:#0f172a;background:#ffffff;max-width:600px;margin:0 auto;padding:40px 20px;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    @media (max-width:640px) {
+      .thryve-body { padding:24px 16px !important; }
+      .thryve-card { padding:20px !important; }
+      table { width:100% !important; }
+      .thryve-cta a { display:block !important; box-sizing:border-box !important; width:100% !important; }
+    }
+  </style>
+</head>
+<body class="thryve-body" style="font-family:system-ui,-apple-system,sans-serif;color:#0f172a;background:#ffffff;max-width:600px;margin:0 auto;padding:40px 20px;">
   <div style="margin-bottom:32px;">
     <h1 style="font-size:24px;font-weight:700;color:#203e35;margin:0 0 4px;">Thryve Growth Co.</h1>
     <p style="color:#64748b;margin:0;font-size:14px;">Clarity. Accountability. Real Growth.</p>
   </div>
 
-  <div style="background:#f5ece3;border:1px solid #e8ddd3;border-radius:12px;padding:32px;margin-bottom:24px;font-size:15px;line-height:1.6;">
+  <div class="thryve-card thryve-cta" style="background:#f5ece3;border:1px solid #e8ddd3;border-radius:12px;padding:32px;margin-bottom:24px;font-size:15px;line-height:1.6;">
     ${innerHtml}
   </div>
 

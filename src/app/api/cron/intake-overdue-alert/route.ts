@@ -9,6 +9,7 @@ import { resend, FROM_EMAIL } from "@/lib/email/resend";
 import { renderShell } from "@/lib/email/shell";
 import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { formatCentralDateTime } from "@/lib/time/central";
+import { createAdminNotification } from "@/lib/notifications/admin";
 
 export const runtime = "nodejs";
 
@@ -98,7 +99,9 @@ export async function GET(request: NextRequest) {
     html: renderShell(innerHtml),
   });
 
-  // Log one row per booking for idempotency
+  // Log one row per booking for idempotency, and mirror the alert into the
+  // admin notification feed so Rachel can clear them from the bell, not just
+  // her inbox.
   for (const b of pending) {
     await supabase.from("automation_log").upsert(
       {
@@ -110,6 +113,17 @@ export async function GET(request: NextRequest) {
       },
       { onConflict: "event_key,booking_id" }
     );
+
+    const client = b.client_id ? profileMap.get(b.client_id) : null;
+    const clientLabel = client?.full_name || client?.email || "Unknown client";
+    await createAdminNotification({
+      type: "intake_overdue",
+      title: `Intake overdue: ${clientLabel}`,
+      body: b.service_type,
+      link: `/admin/clients/${b.client_id}#booking-${b.id}`,
+      bookingId: b.id,
+      clientId: b.client_id,
+    });
   }
 
   return Response.json({ ok: true, overdue: overdue.length, new_alerts: pending.length });

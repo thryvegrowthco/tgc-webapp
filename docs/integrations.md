@@ -55,6 +55,8 @@ All integrations are configured via environment variables. See `docs/environment
 **Webhook endpoint to register in Stripe:** `https://thryvegrowth.co/api/webhooks/stripe`
 **Events to enable:** `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
 
+**PaymentIntent expand:** Both checkout handlers call `stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] })` so the receipt email can render `payment_method_details.card.brand`, `last4`, and the Stripe-hosted `receipt_url`. The receipt template uses `{{#if card_last4}}` and `{{#if stripe_receipt_url}}` blocks so missing values render as empty — important for test mode + non-card payments (ACH, etc.).
+
 **Lazy Proxy singleton:** The Stripe client is wrapped in a JavaScript `Proxy` that defers `new Stripe(...)` until first access. This prevents `next build` from failing when `STRIPE_SECRET_KEY` is not set in the build environment.
 
 **Adding a new service:**

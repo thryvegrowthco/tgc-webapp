@@ -57,11 +57,17 @@ handleCheckoutCompleted (src/app/api/webhooks/stripe/route.ts)
   1. Verifies Stripe signature
   2. Reads metadata from session
   3. Fetches slot date/time for email
-  4. Inserts bookings row (status: 'confirmed')
+  4. Inserts bookings row (status: 'confirmed', workflow_status: 'intake_needed')
   5. Updates availability_slots.is_booked = true
   6. Inserts payments row
-  7. Promise.allSettled([
-       sendBookingConfirmation(client email),
+  7. Creates Google Calendar event + Meet link (best-effort; sets meet_link_pending on failure)
+  8. Pulls payment-method summary from Stripe PaymentIntent (card brand/last4 + receipt_url)
+  9. Looks up the client's latest signed_service_agreements row (welcome email contract link)
+ 10. createAdminNotification({ type: 'new_booking', ... }) — surfaces in the bell
+ 11. Inserts admin_tasks row "Review intake when submitted" (idempotent via unique partial index)
+ 12. Promise.allSettled([
+       sendTemplated("receipt", { ..., card_brand, card_last4, stripe_receipt_url, support_email }),
+       sendTemplated("welcome", { ..., signed_agreement_url }),
        sendAdminBookingAlert(Rachel's email),
        syncBookingToGHL(GHL contact upsert)
      ]) ← failures don't block the 200 response
@@ -628,3 +634,97 @@ slots are unaffected by pattern/blackout logic and have to be deleted
 manually via `SlotList`.
 
 
+
+---
+
+## 9. Intake Submission Flow
+
+```
+Client opens /dashboard/sessions/[bookingId]
+        │
+        ▼
+IntakeForm component (built from src/lib/intake/schemas.ts[booking.service_key])
+  Auto-saves on field blur via saveIntake({ submit: false })
+        │
+        ▼
+Client clicks Submit
+        │
+        ▼
+saveIntake (src/app/actions/intake.ts)
+  1. Verifies booking ownership
+  2. Validates responses against the service schema
+  3. Upserts intake_responses (sets submitted_at)
+  4. Transitions bookings.workflow_status → 'intake_complete'
+  5. sendTemplated("intake_complete", ...) — client confirmation email
+  6. sendAdminBookingAlert(..., { subject, uploadedFiles }) — Rachel's email lists files
+  7. createAdminNotification({ type: 'intake_submitted', ... }) — bell
+  8. createAdminNotification({ type: 'client_doc_upload', ... }) — one per uploaded file
+  9. Inserts admin_tasks row "Prepare deliverable / session"
+       (due_at = session_at − 12h if scheduled, else now + 3 days)
+```
+
+Uploaded files are detected by walking the `responses` JSONB for `{ path, filename }` shapes — the same parser shape used by `IntakeFormView` in the admin panel.
+
+---
+
+## 10. Admin Notifications
+
+In-app alternative to email-only triage. One Postgres row per event in `admin_notifications`, surfaced two ways:
+
+- **Bell** in the admin top bar — last 20 rows + unread count badge. Polls every 60s via `router.refresh()`.
+- **Inbox** at `/admin/notifications` — latest 200, grouped Today / Yesterday / Earlier this week / Older.
+
+| Trigger source | type | Key |
+|---|---|---|
+| Stripe webhook (one-time + subscription) | `new_booking` | createAdminNotification on booking insert |
+| `saveIntake` on submit | `intake_submitted` | one per submission |
+| `saveIntake` on submit (per file) | `client_doc_upload` | one per uploaded filename |
+| `/api/cron/intake-overdue-alert` | `intake_overdue` | one per overdue booking; idempotent via `automation_log` event_key `intake_overdue_alert_sent` |
+| `/api/cron/session-reminders` T-24h branch | `session_in_24h` | guarded by `bookings.session_reminder_sent_at` |
+
+The bell mutates state via two server actions in `src/app/actions/notifications.ts`:
+- `markNotificationRead(id)` — sets `read_at = NOW()`
+- `markAllNotificationsRead()` — sets `read_at = NOW()` for all unread
+
+Both revalidate the `/admin` layout so the badge and dropdown reflect new state on the next render.
+
+---
+
+## 11. Admin Tasks
+
+Rachel's to-do list, modeled as a single `admin_tasks` table with optional FKs to a booking and a client.
+
+**Auto-creation:**
+- Stripe webhook → "Review intake when submitted" (due = `intake_due_at`). Idempotent via the unique partial index `admin_tasks(related_booking_id) WHERE title = 'Review intake when submitted'`.
+- `saveIntake` on submit → "Prepare deliverable / session" (due = `session_at − 12h` or `now + 3 days`).
+
+**Manual creation:** the `AddTaskForm` client component renders on `/admin`, `/admin/tasks`, and `/admin/clients/[id]` (pre-fills `relatedClientId`).
+
+**Filters on `/admin/tasks`** (driven by `searchParams.filter`):
+- `upcoming` (default) — `completed_at IS NULL`, ordered by `due_at NULLS LAST`
+- `overdue` — `completed_at IS NULL AND due_at < now()`
+- `completed` — `completed_at IS NOT NULL`, ordered by `completed_at DESC`
+
+**Server actions** (`src/app/actions/tasks.ts`, all gated on shared `requireAdmin()`):
+`createTask`, `updateTask`, `completeTask`, `uncompleteTask`, `deleteTask`. Each revalidates `/admin`, `/admin/tasks`, and the related client page when applicable.
+
+---
+
+## 12. Deliverable Upload Notification
+
+```
+Admin uploads a document on /admin/clients/[id]
+DocumentUploadForm.tsx → uploadDocument server action
+        │
+        ▼
+uploadDocument (src/app/actions/documents.ts)
+  1. Validates admin role
+  2. Uploads file to Storage bucket 'documents'
+  3. Inserts documents row with the chosen category
+  4. If category in ('deliverable', 'resume_rewrite', 'hr_doc'):
+       a. Pre-checks automation_log for event_key 'deliverable_ready_sent:{documentId}'
+       b. If not present: sendTemplated("deliverable_ready", { client_name, deliverable_type, deliverable_url })
+       c. sendTemplated logs the row → next retry is a no-op
+```
+
+The pre-check is necessary because `sendTemplated`'s built-in idempotency is keyed on `(event_key, booking_id)` with a partial UNIQUE that requires `booking_id IS NOT NULL`. Deliverable uploads aren't tied to a booking, so the dedupe relies entirely on the document-scoped event_key.

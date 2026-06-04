@@ -147,11 +147,11 @@ Metadata for files uploaded by admin to a client. Actual file lives in Supabase 
 | `filename` | `TEXT` | — | Display filename |
 | `storage_path` | `TEXT` | — | Key in Supabase Storage (e.g., `{clientId}/{ts}-{name}`) |
 | `file_size_bytes` | `INT` | `NULL` | — |
-| `category` | `TEXT` | `NULL` | CHECK: `resume`, `cover_letter`, `notes`, `worksheet`, `template`, `other` |
+| `category` | `TEXT` | `NULL` | CHECK: `resume`, `cover_letter`, `notes`, `worksheet`, `template`, `deliverable`, `resume_rewrite`, `hr_doc`, `other` |
 | `description` | `TEXT` | `NULL` | Optional admin note about the file |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
-**Key behavior:** Download uses a 60-minute signed URL via `GET /api/documents/download`. Deletion removes both the DB row and the Storage object.
+**Key behavior:** Download uses a 60-minute signed URL via `GET /api/documents/download`. Deletion removes both the DB row and the Storage object. When the admin uploads with category `deliverable`, `resume_rewrite`, or `hr_doc`, `uploadDocument` server action also fires the `deliverable_ready` email to the client (per-document idempotency via `automation_log` event_key `deliverable_ready_sent:{documentId}`).
 
 ---
 
@@ -398,6 +398,55 @@ Lightweight idea inbox for Rachel — captured from the newsletter dashboard.
 
 ---
 
+### `admin_notifications`
+
+One row per notable event Rachel should see in-app. Mirrors the email alerts but lets her clear from the bell instead of triaging her inbox. Added in migration `0013_admin_ops.sql`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `type` | `TEXT` | — | CHECK: `new_booking`, `intake_submitted`, `client_doc_upload`, `intake_overdue`, `session_in_24h` |
+| `title` | `TEXT` | — | Headline shown in the bell + inbox |
+| `body` | `TEXT` | `NULL` | Optional supporting line |
+| `link` | `TEXT` | `NULL` | Where clicking the row sends Rachel (usually `/admin/clients/{id}#...`) |
+| `related_booking_id` | `UUID` | `NULL` | FK to `bookings.id` (ON DELETE SET NULL) |
+| `related_client_id` | `UUID` | `NULL` | FK to `profiles.id` (ON DELETE SET NULL) |
+| `read_at` | `TIMESTAMPTZ` | `NULL` | When Rachel marked it read (NULL = unread) |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**Indexes:** partial index on `created_at DESC WHERE read_at IS NULL` for the unread-count query; full index on `created_at DESC` for the inbox.
+
+**Writers:** Stripe webhook (`new_booking`), `saveIntake` action (`intake_submitted`, `client_doc_upload`), intake-overdue cron (`intake_overdue`), session-reminders cron (`session_in_24h`). Helper: `src/lib/notifications/admin.ts → createAdminNotification`.
+
+---
+
+### `admin_tasks`
+
+Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/or a client so they surface in the right context. Added in migration `0013_admin_ops.sql`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `title` | `TEXT` | — | Short headline; shown in the task list |
+| `description` | `TEXT` | `NULL` | Optional notes |
+| `due_at` | `TIMESTAMPTZ` | `NULL` | Sortable in the upcoming/overdue filters |
+| `completed_at` | `TIMESTAMPTZ` | `NULL` | NULL = open |
+| `related_booking_id` | `UUID` | `NULL` | FK to `bookings.id` (ON DELETE SET NULL) |
+| `related_client_id` | `UUID` | `NULL` | FK to `profiles.id` (ON DELETE SET NULL) |
+| `created_by` | `UUID` | `NULL` | FK to `profiles.id`; NULL for system-created auto-tasks |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**Indexes:**
+- partial index on `due_at NULLS LAST WHERE completed_at IS NULL` for the upcoming list
+- partial index on `(related_client_id, completed_at) WHERE related_client_id IS NOT NULL` for client detail page
+- **unique** partial index on `related_booking_id WHERE title = 'Review intake when submitted'` — makes the Stripe webhook's auto-task insert idempotent via `ON CONFLICT DO NOTHING`
+
+**Auto-creation:**
+- Stripe webhook → "Review intake when submitted" (due = `intake_due_at`)
+- `saveIntake` action on submit → "Prepare deliverable / session" (due = session_at − 12h, else +3 days)
+
+---
+
 ### Views
 
 | View | Purpose |
@@ -428,6 +477,8 @@ Lightweight idea inbox for Rachel — captured from the newsletter dashboard.
 | `newsletter_sends` | None | None | ALL | Full |
 | `newsletter_events` | None | None | ALL | Full (writes from Resend webhook) |
 | `newsletter_ideas` | None | None | ALL | Full |
+| `admin_notifications` | None | None | ALL | Full |
+| `admin_tasks` | None | None | ALL | Full |
 
 Note: "Service role" (`createServiceClient()`) bypasses all RLS policies. Only used in the Stripe webhook and admin server actions where the caller is already verified.
 

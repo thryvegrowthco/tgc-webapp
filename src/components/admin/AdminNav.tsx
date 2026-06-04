@@ -17,6 +17,8 @@ import {
   MessageSquare,
   FileText,
   LogOut,
+  CheckSquare,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logOut } from "@/app/actions/auth";
@@ -24,6 +26,8 @@ import { Logo } from "@/components/shared/Logo";
 
 const navItems = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard, exact: true },
+  { label: "Tasks", href: "/admin/tasks", icon: CheckSquare, exact: false },
+  { label: "Notifications", href: "/admin/notifications", icon: Bell, exact: false },
   { label: "Leads", href: "/admin/leads", icon: Inbox, exact: false },
   { label: "Sessions", href: "/admin/sessions", icon: Workflow, exact: false },
   { label: "Bookings", href: "/admin/bookings", icon: Calendar, exact: false },
@@ -34,7 +38,7 @@ const navItems = [
   { label: "Legal", href: "/admin/legal", icon: FileText, exact: false },
   { label: "Blog", href: "/admin/content", icon: FileEdit, exact: false },
   { label: "Newsletter", href: "/admin/newsletter", icon: Mail, exact: false },
-  { label: "Watchlists", href: "/admin/watchlists", icon: Bell, exact: false },
+  { label: "Watchlists", href: "/admin/watchlists", icon: Briefcase, exact: false },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart2, exact: false },
 ];
 

@@ -15,8 +15,9 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 7. [What Happens When Someone Books](#7-what-happens-when-someone-books)
 8. [Analytics](#8-analytics)
 9. [The Weekly Newsletter](#9-the-weekly-newsletter)
-10. [Known Limitations](#10-known-limitations)
-11. [Troubleshooting](#11-troubleshooting)
+10. [Notifications and Tasks](#10-notifications-and-tasks)
+11. [Known Limitations](#11-known-limitations)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
@@ -36,7 +37,7 @@ Once logged in, you will always land at `/admin` unless you bookmarked a specifi
 
 ## 2. The Dashboard Overview
 
-The `/admin` page shows four stat cards at the top and a recent bookings table below.
+The `/admin` page shows four stat cards at the top, a Top Tasks panel, and a recent bookings table below.
 
 **Stat cards:**
 
@@ -46,6 +47,10 @@ The `/admin` page shows four stat cards at the top and a recent bookings table b
 | Total Bookings | Every booking ever recorded, in any status |
 | Confirmed | Bookings that have been paid and are scheduled |
 | Pending | Bookings that exist but haven't been fully confirmed — this should usually be 0; if it's not, check the bookings section |
+
+**Top tasks panel:** Your next 5 open items, sorted by due date. Overdue items show in red. You can check a task off here without leaving the home page, or click "Add task" to jot down something you don't want to forget. The full list lives at the Tasks page in the left nav.
+
+**The bell at the top right:** New bookings, intake submissions, document uploads, overdue intakes, and upcoming sessions all show up here. The red number is how many you haven't read. Click the bell to see the latest 20, or "View all" to see the full inbox.
 
 **Booking status definitions** (used throughout the admin panel):
 
@@ -429,14 +434,54 @@ You don't need to write or schedule any of these.
 
 ---
 
-## 10. Known Limitations
+## 10. Notifications and Tasks
+
+**Notifications (the bell):**
+Look up at the top right of any admin page. The bell shows you everything that's happened recently that you might want to act on:
+
+- New bookings
+- A client submitted their intake form
+- A client uploaded a document
+- An intake form is overdue
+- A session is coming up in 24 hours
+
+The red number is how many you haven't read yet. Click the bell to see the latest 20 in a quick dropdown. Click any row to jump to that client or booking. Use "Mark all read" to clear the number. To see everything that ever came in, click the Notifications page in the left nav — it groups them by Today / Yesterday / This week / Older.
+
+**Tasks (your to-do list):**
+The Tasks page in the left nav is where you keep track of what you need to do next. Some tasks get added automatically:
+
+- When a client books, you get a task to "Review intake when submitted."
+- When a client submits their intake, you get a task to "Prepare deliverable / session." It's due 12 hours before the session if there's one scheduled, or 3 days out if it's a resume / HR project.
+
+You can also add your own tasks anytime — from the home page, from the Tasks page, or from a specific client's page (a task added there is automatically linked to that client).
+
+Each task has a checkbox. Click it to mark the task done. Done tasks move to the Completed tab. You can also click the small trash icon to delete a task that's no longer relevant.
+
+The three tabs across the top are how you filter what you see:
+
+- **Upcoming** — everything that's not done yet
+- **Overdue** — anything past its due date that's not done yet (these also show in red on the home page)
+- **Completed** — what you've already finished
+
+**Documents that notify the client automatically:**
+When you upload a document on a client's page, the category dropdown has three options labeled "(notifies client)":
+
+- **Deliverable** — for anything you want to call generic finished work
+- **Resume Rewrite** — for a finished rewrite
+- **HR Document** — for HR consulting deliverables
+
+If you pick one of those, the client gets the "Your deliverable is ready" email automatically — you don't have to send anything separately. The other categories (Resume, Cover Letter, Notes, Worksheet, Template, Other) don't trigger an email.
+
+---
+
+## 11. Known Limitations
 
 **User roles:**
 There is no button to make someone an admin or to downgrade an admin to a client. Any role changes require a developer to update the database directly.
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 **"A client says they didn't get a confirmation email"**
 Check your Resend dashboard for delivery status. Also ask the client to check their spam or junk folder. The email comes from `noreply@thryvegrowth.co`.

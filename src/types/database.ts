@@ -235,7 +235,7 @@ export type Database = {
           filename: string;
           storage_path: string;
           file_size_bytes: number | null;
-          category: "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "other" | null;
+          category: "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "deliverable" | "resume_rewrite" | "hr_doc" | "other" | null;
           description: string | null;
           created_at: string;
         };
@@ -246,7 +246,7 @@ export type Database = {
           filename: string;
           storage_path: string;
           file_size_bytes?: number | null;
-          category?: "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "other" | null;
+          category?: "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "deliverable" | "resume_rewrite" | "hr_doc" | "other" | null;
           description?: string | null;
           created_at?: string;
         };
@@ -257,7 +257,7 @@ export type Database = {
           filename?: string;
           storage_path?: string;
           file_size_bytes?: number | null;
-          category?: "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "other" | null;
+          category?: "resume" | "cover_letter" | "notes" | "worksheet" | "template" | "deliverable" | "resume_rewrite" | "hr_doc" | "other" | null;
           description?: string | null;
           created_at?: string;
         };
@@ -1118,6 +1118,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_notifications: {
+        Row: {
+          id: string;
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h";
+          title: string;
+          body: string | null;
+          link: string | null;
+          related_booking_id: string | null;
+          related_client_id: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h";
+          title: string;
+          body?: string | null;
+          link?: string | null;
+          related_booking_id?: string | null;
+          related_client_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h";
+          title?: string;
+          body?: string | null;
+          link?: string | null;
+          related_booking_id?: string | null;
+          related_client_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_tasks: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          due_at: string | null;
+          completed_at: string | null;
+          related_booking_id: string | null;
+          related_client_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          due_at?: string | null;
+          completed_at?: string | null;
+          related_booking_id?: string | null;
+          related_client_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string | null;
+          due_at?: string | null;
+          completed_at?: string | null;
+          related_booking_id?: string | null;
+          related_client_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1150,6 +1222,9 @@ export type ServiceAgreement = Database["public"]["Tables"]["service_agreements"
 export type SignedServiceAgreement = Database["public"]["Tables"]["signed_service_agreements"]["Row"];
 export type AvailabilityPattern = Database["public"]["Tables"]["availability_patterns"]["Row"];
 export type AvailabilityBlackout = Database["public"]["Tables"]["availability_blackouts"]["Row"];
+export type AdminNotification = Database["public"]["Tables"]["admin_notifications"]["Row"];
+export type AdminNotificationType = AdminNotification["type"];
+export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
 
 export type WorkflowStatus = Booking["workflow_status"];
 export type EmailTemplateKey =

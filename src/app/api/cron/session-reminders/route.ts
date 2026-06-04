@@ -13,6 +13,7 @@ import { renderShell } from "@/lib/email/shell";
 import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime, formatCentralDateTime } from "@/lib/time/central";
+import { createAdminNotification } from "@/lib/notifications/admin";
 
 export const runtime = "nodejs";
 
@@ -106,6 +107,18 @@ export async function GET(request: NextRequest) {
           .update({ session_reminder_sent_at: now.toISOString() })
           .eq("id", booking.id);
         clientReminders++;
+
+        // Surface the upcoming session in Rachel's bell so she sees it
+        // alongside the client's reminder. session_reminder_sent_at gates
+        // duplicates — this branch only runs once per booking.
+        await createAdminNotification({
+          type: "session_in_24h",
+          title: `Session tomorrow: ${profile.full_name || profile.email}`,
+          body: `${booking.service_type} · ${formatCentralDateTime(sessionAt, { weekday: "long", hour: "numeric", minute: "2-digit" })} CT`,
+          link: `/admin/clients/${booking.client_id}#booking-${booking.id}`,
+          bookingId: booking.id,
+          clientId: booking.client_id,
+        });
       }
     }
 
