@@ -3,6 +3,7 @@ import { RachelPhoto } from "@/components/shared/RachelPhoto";
 const highlights = [
   "10+ years of hands-on HR leadership experience",
   "Coached individuals through career transitions and promotions",
+  "Coached and mentored professionals to develop their strengths, overcome challenges, and advance their careers",
   "Developed onboarding, performance, and retention programs",
   "Partnered with executives on culture and organizational design",
   "PHR-certified HR professional",
