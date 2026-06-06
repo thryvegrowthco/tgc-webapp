@@ -420,6 +420,31 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 
 ---
 
+### `resources`
+
+Catalog backing the public `/resources` page. Each row is a downloadable or purchasable template/worksheet. Added in migration `0014_resources.sql`. Hardcoded array previously inlined at the top of the page; moved to Postgres so Rachel can toggle each on/off and edit copy from `/admin/resources` without a deploy.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `slug` | `TEXT` | — | UNIQUE; stable identifier used in URLs and seeds |
+| `category` | `TEXT` | — | Free-form; the public page filters/displays the 3 categories defined in the page's `categories` array |
+| `title` | `TEXT` | — | Display title |
+| `description` | `TEXT` | — | Card body |
+| `price` | `TEXT` | — | Free-form display string (`"Free"`, `"$19"`, etc.) |
+| `cta_type` | `TEXT` | — | CHECK: `Buy Now`, `Download` — preserves the button-style hint for when URLs are wired in later |
+| `enabled` | `BOOLEAN` | `FALSE` | Controls public visibility |
+| `sort_order` | `INT` | `0` | Lower numbers render first; seed steps by 10 |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `updated_by` | `UUID` | `NULL` | FK to `profiles.id` ON DELETE SET NULL |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**RLS:** anonymous + clients can `SELECT` rows where `enabled = TRUE` (the public marketing page is unauthenticated); admins have full access.
+
+**Current state:** all 8 seed rows are `enabled = false`. Until Rachel flips the first toggle, `/resources` shows a "More resources coming soon" panel. When enabled, the public card displays a muted "Coming soon" badge in place of the Buy/Download button — URL wiring is a separate follow-up.
+
+---
+
 ### `admin_tasks`
 
 Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/or a client so they surface in the right context. Added in migration `0013_admin_ops.sql`.
@@ -479,6 +504,7 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 | `newsletter_ideas` | None | None | ALL | Full |
 | `admin_notifications` | None | None | ALL | Full |
 | `admin_tasks` | None | None | ALL | Full |
+| `resources` | SELECT enabled | SELECT enabled | ALL | Full |
 
 Note: "Service role" (`createServiceClient()`) bypasses all RLS policies. Only used in the Stripe webhook and admin server actions where the caller is already verified.
 

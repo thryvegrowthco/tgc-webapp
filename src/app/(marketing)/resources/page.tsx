@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Download, FileText, Briefcase, Users, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, FileText, Briefcase, Users, Sparkles } from "lucide-react";
 import { SectionCTA } from "@/components/shared/SectionCTA";
+import { createClient } from "@/lib/supabase/server";
+import type { Resource } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Resources",
@@ -28,66 +29,19 @@ const categories = [
   },
 ];
 
-const resources = [
-  {
-    category: "Career & Job Search",
-    title: "Resume Template Pack",
-    description: "Three clean, modern resume templates designed for clarity and easy customization.",
-    price: "$19",
-    type: "Buy Now",
-  },
-  {
-    category: "Career & Job Search",
-    title: "Cover Letter Starter Kit",
-    description: "A simple framework plus three editable examples for different career moments.",
-    price: "$15",
-    type: "Buy Now",
-  },
-  {
-    category: "Career & Job Search",
-    title: "Interview Prep Workbook",
-    description: "STAR method guidance, common questions, and space to draft your strongest answers.",
-    price: "Free",
-    type: "Download",
-  },
-  {
-    category: "Leadership & Coaching",
-    title: "Career Vision Worksheet",
-    description: "A reflection guide to help you get clear on what you want and what's getting in the way.",
-    price: "Free",
-    type: "Download",
-  },
-  {
-    category: "Leadership & Coaching",
-    title: "First 90 Days Leadership Plan",
-    description: "A structured template for new leaders stepping into a role with intention.",
-    price: "$25",
-    type: "Buy Now",
-  },
-  {
-    category: "HR & Team Operations",
-    title: "Onboarding Checklist Template",
-    description: "A simple, repeatable onboarding flow that helps new hires feel set up for success.",
-    price: "$19",
-    type: "Buy Now",
-  },
-  {
-    category: "HR & Team Operations",
-    title: "Performance Review Toolkit",
-    description: "Review templates, prep prompts, and conversation guides for honest, useful reviews.",
-    price: "$29",
-    type: "Buy Now",
-  },
-  {
-    category: "HR & Team Operations",
-    title: "Team Values Worksheet",
-    description: "A guided exercise for naming the values your team actually wants to live by.",
-    price: "Free",
-    type: "Download",
-  },
-];
+export default async function ResourcesPage() {
+  // RLS on `resources` restricts anonymous reads to enabled rows automatically;
+  // the .eq("enabled", true) here is defensive + lets us share a typed array
+  // with the rendering branch below.
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from("resources")
+    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, updated_at, updated_by, created_at")
+    .eq("enabled", true)
+    .order("sort_order", { ascending: true })
+    .order("title", { ascending: true });
+  const resources = (rows ?? []) as Resource[];
 
-export default function ResourcesPage() {
   return (
     <>
       {/* Hero */}
@@ -146,7 +100,7 @@ export default function ResourcesPage() {
         </div>
       </section>
 
-      {/* Resource Grid */}
+      {/* Resource Grid OR Coming-soon empty state */}
       <section className="py-16 lg:py-20 bg-neutral-50 border-t border-neutral-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mb-10">
@@ -154,48 +108,45 @@ export default function ResourcesPage() {
               Templates and Tools
             </h2>
             <p className="text-neutral-600 leading-relaxed">
-              Pick what you need, download instantly, and start putting it to use today.
+              {resources.length > 0
+                ? "Pick what you need. New templates are being added as we build them out."
+                : "We’re putting the finishing touches on the first batch — check back soon."}
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {resources.map((res) => (
-              <div
-                key={res.title}
-                className="flex flex-col rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="h-4 w-4 text-brand-600" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
-                    {res.category}
-                  </span>
+
+          {resources.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {resources.map((res) => (
+                <div
+                  key={res.id}
+                  className="flex flex-col rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="h-4 w-4 text-brand-600" />
+                    <span className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                      {res.category}
+                    </span>
+                  </div>
+                  <h3 className="font-display text-lg font-semibold text-neutral-900 mb-2">
+                    {res.title}
+                  </h3>
+                  <p className="text-sm text-neutral-600 leading-relaxed mb-6 flex-1">
+                    {res.description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-display text-xl font-bold text-brand-700">
+                      {res.price}
+                    </span>
+                    <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-100 px-3 py-1.5 rounded-full">
+                      Coming soon
+                    </span>
+                  </div>
                 </div>
-                <h3 className="font-display text-lg font-semibold text-neutral-900 mb-2">
-                  {res.title}
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-6 flex-1">
-                  {res.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="font-display text-xl font-bold text-brand-700">
-                    {res.price}
-                  </span>
-                  <Button size="sm" variant={res.type === "Download" ? "outline" : "default"}>
-                    {res.type === "Download" ? (
-                      <>
-                        <Download className="h-4 w-4" />
-                        Download
-                      </>
-                    ) : (
-                      <>
-                        Buy Now
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <ComingSoonPanel />
+          )}
         </div>
       </section>
 
@@ -226,5 +177,32 @@ export default function ResourcesPage() {
         secondaryHref="/services"
       />
     </>
+  );
+}
+
+function ComingSoonPanel() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="rounded-2xl border border-neutral-200 bg-white px-8 py-12 text-center shadow-sm">
+        <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-brand-100 text-brand-700 mb-5">
+          <FileText className="h-6 w-6" />
+        </div>
+        <h3 className="font-display text-xl sm:text-2xl font-semibold text-neutral-900 mb-3">
+          More resources coming soon
+        </h3>
+        <p className="text-neutral-600 leading-relaxed mb-6">
+          We&apos;re building practical templates and tools, the same ones we use
+          with clients every day. They&apos;ll show up here as they&apos;re ready.
+          In the meantime, if you have a specific challenge you&apos;d like help
+          with, let&apos;s talk.
+        </p>
+        <Link
+          href="/consultation"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-800"
+        >
+          Book a free 30-minute consultation <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+    </div>
   );
 }

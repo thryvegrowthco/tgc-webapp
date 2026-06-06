@@ -1154,6 +1154,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      resources: {
+        Row: {
+          id: string;
+          slug: string;
+          category: string;
+          title: string;
+          description: string;
+          price: string;
+          cta_type: "Buy Now" | "Download";
+          enabled: boolean;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          category: string;
+          title: string;
+          description: string;
+          price: string;
+          cta_type: "Buy Now" | "Download";
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          category?: string;
+          title?: string;
+          description?: string;
+          price?: string;
+          cta_type?: "Buy Now" | "Download";
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       admin_tasks: {
         Row: {
           id: string;
@@ -1225,6 +1270,8 @@ export type AvailabilityBlackout = Database["public"]["Tables"]["availability_bl
 export type AdminNotification = Database["public"]["Tables"]["admin_notifications"]["Row"];
 export type AdminNotificationType = AdminNotification["type"];
 export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
+export type Resource = Database["public"]["Tables"]["resources"]["Row"];
+export type ResourceCtaType = Resource["cta_type"];
 
 export type WorkflowStatus = Booking["workflow_status"];
 export type EmailTemplateKey =

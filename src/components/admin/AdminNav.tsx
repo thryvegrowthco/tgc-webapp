@@ -19,6 +19,7 @@ import {
   LogOut,
   CheckSquare,
   Briefcase,
+  FileBox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logOut } from "@/app/actions/auth";
@@ -37,6 +38,7 @@ const navItems = [
   { label: "Integrations", href: "/admin/integrations", icon: Plug, exact: false },
   { label: "Legal", href: "/admin/legal", icon: FileText, exact: false },
   { label: "Blog", href: "/admin/content", icon: FileEdit, exact: false },
+  { label: "Resources", href: "/admin/resources", icon: FileBox, exact: false },
   { label: "Newsletter", href: "/admin/newsletter", icon: Mail, exact: false },
   { label: "Watchlists", href: "/admin/watchlists", icon: Briefcase, exact: false },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart2, exact: false },

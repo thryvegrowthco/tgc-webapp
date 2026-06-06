@@ -16,8 +16,9 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 8. [Analytics](#8-analytics)
 9. [The Weekly Newsletter](#9-the-weekly-newsletter)
 10. [Notifications and Tasks](#10-notifications-and-tasks)
-11. [Known Limitations](#11-known-limitations)
-12. [Troubleshooting](#12-troubleshooting)
+11. [Resources](#11-resources)
+12. [Known Limitations](#12-known-limitations)
+13. [Troubleshooting](#13-troubleshooting)
 
 ---
 
@@ -478,14 +479,32 @@ If you pick one of those, the client gets the "Your deliverable is ready" email 
 
 ---
 
-## 11. Known Limitations
+## 11. Resources
+
+**URL:** `/admin/resources`
+
+The Resources page in your left nav is where you control what shows up on your public `/resources` page (the "Templates and Tools" section of your site).
+
+Every template or worksheet in the catalog has a row here. On the right side of each row you'll see a small switch. Flip the switch ON to make that resource visible on your public page; OFF to hide it.
+
+When **nothing** is switched on, the public `/resources` page replaces the templates section with a "More resources coming soon" panel. That's the state you're in today — none of the templates are built yet, so everything is hidden.
+
+**Editing a resource:**
+Click "Edit" on any row to change the title, description, category, price (use "Free" or "$19" style), CTA type (Buy Now vs Download), or the sort order. Save and the public page updates instantly.
+
+**A note on the Buy / Download button:**
+Right now, when you flip a resource ON, the public card shows a muted "Coming soon" badge where the Buy or Download button used to be. That's intentional — none of the resources have a real download URL or purchase link wired up yet. When you actually finish building one (a real PDF, a Stripe price for a paid template, a Gumroad link, etc.), ping your developer to swap the badge for a working button. The Edit form already remembers whether the resource is supposed to be a "Buy Now" or a "Download" so the developer knows what to wire up.
+
+---
+
+## 12. Known Limitations
 
 **User roles:**
 There is no button to make someone an admin or to downgrade an admin to a client. Any role changes require a developer to update the database directly.
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 **"A client says they didn't get a confirmation email"**
 Check your Resend dashboard for delivery status. Also ask the client to check their spam or junk folder. The email comes from `noreply@thryvegrowth.co`.
