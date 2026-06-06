@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getIntegrationStatus } from "@/lib/google/calendar";
 import { Button } from "@/components/ui/button";
 import { DisconnectGoogleButton } from "@/components/admin/DisconnectGoogleButton";
+import { TrackingPixelCard } from "@/components/admin/TrackingPixelCard";
+import type { TrackingPixel } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Integrations — Admin",
@@ -33,6 +35,13 @@ export default async function AdminIntegrationsPage({
 
   const { connected, error, detail } = await searchParams;
   const status = await getIntegrationStatus().catch(() => ({ connected: false, accountEmail: null, connectedAt: null }));
+
+  const { data: pixelsRaw } = await supabase
+    .from("tracking_pixels")
+    .select("id, provider, name, description, id_placeholder, pixel_id, enabled, sort_order, updated_at, updated_by, created_at")
+    .order("sort_order", { ascending: true });
+  const pixels = (pixelsRaw ?? []) as TrackingPixel[];
+  const liveCount = pixels.filter((p) => p.enabled && p.pixel_id && p.pixel_id.length > 0).length;
 
   return (
     <div className="max-w-3xl">
@@ -109,6 +118,35 @@ export default async function AdminIntegrationsPage({
         <code className="bg-neutral-100 px-1 rounded">GOOGLE_OAUTH_REDIRECT_URI</code>, and{" "}
         <code className="bg-neutral-100 px-1 rounded">INTEGRATIONS_ENCRYPTION_KEY</code>.
       </p>
+
+      {/* Visitor tracking */}
+      <div className="mt-12">
+        <div className="mb-5">
+          <h2 className="font-display text-xl font-bold text-neutral-900">Visitor Tracking</h2>
+          <p className="text-sm text-neutral-500 mt-1">
+            Paste a tracking ID into any card and toggle it on. Scripts only fire after a visitor accepts the cookie consent banner on the public site — anyone who declines never sees a tracker.
+          </p>
+          {pixels.length > 0 && (
+            <p className="text-xs text-neutral-400 mt-2">
+              {liveCount === 0
+                ? "Nothing live yet — the /privacy page still reads “no third-party tracking.”"
+                : `${liveCount} ${liveCount === 1 ? "pixel is" : "pixels are"} currently live on the public site.`}
+            </p>
+          )}
+        </div>
+
+        {pixels.length === 0 ? (
+          <div className="bg-white rounded-xl border border-neutral-200 px-6 py-12 text-center text-sm text-neutral-500">
+            No tracking pixels configured. Apply the 0015_tracking_pixels migration to seed the six supported providers.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {pixels.map((p) => (
+              <TrackingPixelCard key={p.id} pixel={p} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

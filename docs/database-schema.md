@@ -420,6 +420,35 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 
 ---
 
+### `tracking_pixels`
+
+Catalog of visitor tracking + conversion pixels (GA4, GTM, Meta, Google Ads, LinkedIn Insight, Microsoft Clarity). Added in migration `0015_tracking_pixels.sql`. Pixel IDs are not secrets — they appear in any page source the moment the script fires — so the column is plain `TEXT`, no encryption.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `provider` | `TEXT` | — | UNIQUE; one of `google_analytics_4`, `google_tag_manager`, `meta_pixel`, `google_ads`, `linkedin_insight`, `microsoft_clarity` (see `src/lib/tracking/scripts.ts` `PROVIDER_SCRIPTS` map) |
+| `name` | `TEXT` | — | Friendly display name used on `/admin/integrations` |
+| `description` | `TEXT` | — | One-line blurb shown in the admin card |
+| `id_placeholder` | `TEXT` | `NULL` | Format hint shown as the text-input placeholder |
+| `pixel_id` | `TEXT` | `NULL` | Rachel pastes this in admin. `NULL` until configured. |
+| `enabled` | `BOOLEAN` | `FALSE` | Public visibility toggle |
+| `sort_order` | `INT` | `0` | Lower numbers render first in admin + privacy disclosure |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `updated_by` | `UUID` | `NULL` | FK to `profiles.id` ON DELETE SET NULL |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**RLS:** anonymous + clients can `SELECT` rows where `enabled = TRUE AND pixel_id IS NOT NULL AND length(trim(pixel_id)) > 0` (draft state is never exposed). Admins have full access.
+
+**Consumed by:**
+- `src/components/tracking/TrackingPixels.tsx` (server component) — pulls live rows and hands them to the client gate
+- `src/app/(marketing)/privacy/page.tsx` — dynamic Cookies section reads the same set to list active third-party services + opt-out links
+- `src/app/(admin)/admin/integrations/page.tsx` — admin index lists all rows (including disabled) for editing
+
+**Consent gate:** scripts only inject after the visitor accepts the `CookieConsent` banner (writes `cookie_consent` to `localStorage`). The DB never knows about consent — it's a pure browser-side decision.
+
+---
+
 ### `resources`
 
 Catalog backing the public `/resources` page. Each row is a downloadable or purchasable template/worksheet. Added in migration `0014_resources.sql`. Hardcoded array previously inlined at the top of the page; moved to Postgres so Rachel can toggle each on/off and edit copy from `/admin/resources` without a deploy.
@@ -505,6 +534,7 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 | `admin_notifications` | None | None | ALL | Full |
 | `admin_tasks` | None | None | ALL | Full |
 | `resources` | SELECT enabled | SELECT enabled | ALL | Full |
+| `tracking_pixels` | SELECT live | SELECT live | ALL | Full |
 
 Note: "Service role" (`createServiceClient()`) bypasses all RLS policies. Only used in the Stripe webhook and admin server actions where the caller is already verified.
 

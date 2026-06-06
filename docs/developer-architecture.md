@@ -79,7 +79,12 @@ src/
 
 **Admin layout top bar:** `src/app/(admin)/admin/layout.tsx` renders a thin header above `<main>` that hosts the `NotificationBell` (`src/components/admin/NotificationBell.tsx`). The bell polls every 60s via `router.refresh()` to keep the unread count + dropdown fresh without Supabase Realtime.
 
-**Key architectural rule:** `Header` and `Footer` from `src/components/layout/` are rendered **only** inside `src/app/(marketing)/layout.tsx`. They do not appear in dashboard, admin, or auth pages. The root `layout.tsx` is a bare HTML shell (fonts, metadata, `<Toaster />`, `<Analytics />`).
+**Key architectural rule:** `Header` and `Footer` from `src/components/layout/` are rendered **only** inside `src/app/(marketing)/layout.tsx`. They do not appear in dashboard, admin, or auth pages. The root `layout.tsx` is a bare HTML shell (fonts, metadata, `<Toaster />`, `<Analytics />`, `<TrackingPixels />`, `<CookieConsent />`).
+
+**Visitor tracking triad** (`src/components/tracking/`):
+- `TrackingPixels.tsx` — async server component; queries `tracking_pixels WHERE enabled = TRUE AND pixel_id IS NOT NULL` via the anon-RLS-gated client. Fails open with no scripts if the table is missing or Supabase is unreachable, so a tracking outage never breaks the root layout.
+- `TrackingScripts.tsx` — `"use client"`; reads `cookie_consent` from `localStorage` on mount, listens for the `thryve:consent-change` custom event, and renders the per-provider `<Script>` tags via `buildScripts()` from `src/lib/tracking/scripts.ts` **only when consent === "accepted"`.
+- `CookieConsent.tsx` — `"use client"`; bottom-left banner shown when no decision is recorded. Accept / Reject both write to `localStorage` and dispatch `thryve:consent-change` so `TrackingScripts` re-renders without a reload. Hydration-safe via a `mounted` flag.
 
 **Toast notifications:** `sonner` (`<Toaster />`) is placed in the root layout body so it is available across all route groups (admin, dashboard, and marketing). Import `toast` from `"sonner"` in any client component to call `toast.success(...)` or `toast.error(...)`.
 
@@ -131,6 +136,7 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 | `notifications.ts` | `markNotificationRead`, `markAllNotificationsRead` | Admin-only via `requireAdmin()` from `src/lib/auth/require.ts`. Bumps `admin_notifications.read_at` and revalidates the `/admin` layout for the bell. |
 | `tasks.ts` | `createTask`, `updateTask`, `completeTask`, `uncompleteTask`, `deleteTask` | Admin-only via shared `requireAdmin()`. Revalidates `/admin`, `/admin/tasks`, and per-client pages. |
 | `resources.ts` | `toggleResource`, `updateResource` | Admin-only via shared `requireAdmin()`. Powers `/admin/resources` toggles + edit form; both calls revalidate `/resources` so the public page reflects changes immediately. |
+| `tracking-pixels.ts` | `toggleTrackingPixel`, `updateTrackingPixel` | Admin-only via shared `requireAdmin()`. Powers the Visitor Tracking cards on `/admin/integrations`. Calls `revalidatePath("/", "layout")` so every public page re-fetches the live pixel set on the next request, and bumps `/privacy` so its dynamic Cookies section stays in sync. |
 | `blog.ts` | `createBlogPost`, `updateBlogPost`, `deleteBlogPost`, `uploadFeaturedImage` | `requireAdmin()` guard; slug uniqueness enforced in both create + update |
 | `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient` | Client actions + admin actions mixed in one file; each has its own auth check. `fetchJSearchJobsForClient` and `runAutoMatchForClient` apply the scoring engine in `src/lib/matching/score.ts` and only insert matches with score ≥ 60. |
 | `billing.ts` | `createPortalSession` | Looks up client's `stripe_subscription_id`, retrieves Stripe customer ID from the subscription, creates a Stripe Customer Portal session, and redirects. Used by `/dashboard/billing`. |

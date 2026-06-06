@@ -1154,6 +1154,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      tracking_pixels: {
+        Row: {
+          id: string;
+          provider: string;
+          name: string;
+          description: string;
+          id_placeholder: string | null;
+          pixel_id: string | null;
+          enabled: boolean;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider: string;
+          name: string;
+          description: string;
+          id_placeholder?: string | null;
+          pixel_id?: string | null;
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider?: string;
+          name?: string;
+          description?: string;
+          id_placeholder?: string | null;
+          pixel_id?: string | null;
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       resources: {
         Row: {
           id: string;
@@ -1272,6 +1314,14 @@ export type AdminNotificationType = AdminNotification["type"];
 export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
 export type Resource = Database["public"]["Tables"]["resources"]["Row"];
 export type ResourceCtaType = Resource["cta_type"];
+export type TrackingPixel = Database["public"]["Tables"]["tracking_pixels"]["Row"];
+export type TrackingProvider =
+  | "google_analytics_4"
+  | "google_tag_manager"
+  | "meta_pixel"
+  | "google_ads"
+  | "linkedin_insight"
+  | "microsoft_clarity";
 
 export type WorkflowStatus = Booking["workflow_status"];
 export type EmailTemplateKey =

@@ -241,6 +241,7 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 - `@vercel/analytics/next` is installed and the `<Analytics />` component is added to the root layout (`src/app/layout.tsx`)
 - No configuration required — automatically activates when deployed to Vercel
 - View analytics at `vercel.com` → your project → Analytics tab
+- Vercel Analytics is always on (no consent gate) — it doesn't drop tracking cookies, just an aggregate page-view counter
 
 **Env vars (Vercel-specific):**
 - `CRON_SECRET` — Any secret string; set in Vercel → Project → Environment Variables. The same value must be configured as a custom `Authorization: Bearer {CRON_SECRET}` header on every cron-job.org job.
@@ -297,3 +298,30 @@ For each endpoint above:
 - `curl -i https://thryvegrowth.co/api/cron/intake-reminders` (no header) → `401 Unauthorized`
 - `curl -H "Authorization: Bearer $CRON_SECRET" https://thryvegrowth.co/api/cron/intake-reminders` → `200 OK` with JSON body
 - Idempotency: invoking any reminder job twice in the same window is a no-op (enforced by `automation_log` UNIQUE constraints and per-row `*_sent_at` columns)
+
+---
+
+## Visitor Tracking Pixels
+
+**What it does:** Lets Rachel run real visitor analytics + conversion tracking on the public marketing site. Six providers are supported out of the box; each is configured by pasting an ID into a card on `/admin/integrations` and flipping a toggle. Scripts only fire after the visitor accepts the cookie consent banner — see the consent gate in `src/components/tracking/TrackingScripts.tsx`.
+
+**Provider catalog** (see `src/lib/tracking/scripts.ts` `PROVIDER_SCRIPTS` for the exact `<Script>` shape each one renders):
+
+| Provider key | Name | Where to find the ID | Format |
+|---|---|---|---|
+| `google_analytics_4` | Google Analytics 4 | `analytics.google.com` → Admin → Data Streams → your stream → "Measurement ID" | `G-XXXXXXXXXX` |
+| `google_tag_manager` | Google Tag Manager | `tagmanager.google.com` → top-right next to your account/container name | `GTM-XXXXXXX` |
+| `meta_pixel` | Meta Pixel | `business.facebook.com` → Events Manager → your pixel → top of page | 15–16 digit number |
+| `google_ads` | Google Ads | `ads.google.com` → Tools → Measurement → Conversions → conversion source | `AW-XXXXXXXXX` (optionally `AW-XXXXXXXXX/LABEL` for conversion-specific tags) |
+| `linkedin_insight` | LinkedIn Insight | `linkedin.com/campaignmanager` → Analyze → Insight Tag → "Partner ID" | 7–8 digit number |
+| `microsoft_clarity` | Microsoft Clarity | `clarity.microsoft.com` → your project → Settings → Setup → "Project ID" | ~10 character alphanumeric |
+
+**Adding a new provider:** add an entry to `PROVIDER_SCRIPTS` in `src/lib/tracking/scripts.ts` (snippet + opt-out URL) and an `INSERT` row to the next migration. No other code changes needed — admin UI, public injection, and privacy disclosure are all data-driven.
+
+**Cookie consent gate:** the `cookie_consent` localStorage key has three states — unset (banner visible), `"accepted"` (scripts fire), `"rejected"` (scripts stay off). `CookieConsent.tsx` writes the value and dispatches the `thryve:consent-change` custom event. `TrackingScripts.tsx` listens for both that and the cross-tab `storage` event so updates are immediate.
+
+**Privacy policy stays in sync:** `/privacy` is now an async server component that lists every live pixel + a per-provider opt-out link, all sourced from the same `tracking_pixels` table. When Rachel toggles a pixel on or off, the privacy disclosure follows automatically — no doc edits required.
+
+**Env vars:** none. Pixel IDs live in Postgres, not env vars.
+
+**Graceful degradation:** if Supabase is unreachable or the `tracking_pixels` table doesn't exist yet (pre-migration), `TrackingPixels` renders nothing — the site stays up, just without tracking.

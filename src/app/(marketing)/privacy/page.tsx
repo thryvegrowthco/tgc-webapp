@@ -1,12 +1,32 @@
 import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { getDisclosure } from "@/lib/tracking/scripts";
+import type { TrackingPixel } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "Privacy Policy for Thryve Growth Co. LLC",
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
   const effectiveDate = "June 3, 2026";
+
+  // Pull the live tracking-pixel set so the cookies section stays in sync with
+  // what's actually firing. RLS already restricts anon reads to enabled rows
+  // with a pixel_id, so we just take whatever comes back.
+  let livePixels: TrackingPixel[] = [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("tracking_pixels")
+      .select("id, provider, name, description, id_placeholder, pixel_id, enabled, sort_order, updated_at, updated_by, created_at")
+      .eq("enabled", true)
+      .not("pixel_id", "is", null)
+      .order("sort_order", { ascending: true });
+    livePixels = (data ?? []) as TrackingPixel[];
+  } catch {
+    livePixels = [];
+  }
 
   return (
     <section className="py-16 lg:py-24 bg-white">
@@ -114,10 +134,45 @@ export default function PrivacyPage() {
           </div>
 
           <div>
-            <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">9. Cookies</h2>
-            <p>
-              We only use the cookies our site needs to function and a small set for basic analytics through Vercel. We don&apos;t run advertising or third-party tracking cookies. You can turn cookies off in your browser settings if you prefer, though some parts of the site may not work as smoothly.
-            </p>
+            <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">9. Cookies and Tracking</h2>
+            {livePixels.length === 0 ? (
+              <p>
+                We only use the cookies our site needs to function and a small set for basic analytics through Vercel. We don&apos;t run advertising or third-party tracking cookies. You can turn cookies off in your browser settings if you prefer, though some parts of the site may not work as smoothly.
+              </p>
+            ) : (
+              <>
+                <p>
+                  In addition to the cookies our site needs to function and basic analytics through Vercel, we use the following third-party services to understand how visitors use our site and improve our marketing. These services only run after you click <strong>Accept</strong> on the cookie banner; if you decline (or never see the banner because you&apos;ve already chosen), they are not loaded.
+                </p>
+                <ul className="mt-3 list-disc pl-5 space-y-1">
+                  {livePixels.map((p) => {
+                    const d = getDisclosure(p.provider);
+                    if (!d) return null;
+                    return (
+                      <li key={p.id}>
+                        <span className="font-medium text-neutral-900">{d.label}</span>
+                        {d.optOutUrl && (
+                          <>
+                            {" — "}
+                            <a
+                              href={d.optOutUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-700 underline hover:text-brand-800"
+                            >
+                              opt out
+                            </a>
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-3">
+                  You can also clear your stored choice and re-decide at any time by clearing this site&apos;s cookies in your browser. Turning cookies off in your browser settings will block these trackers too.
+                </p>
+              </>
+            )}
           </div>
 
           <div>

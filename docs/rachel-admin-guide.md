@@ -17,8 +17,9 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 9. [The Weekly Newsletter](#9-the-weekly-newsletter)
 10. [Notifications and Tasks](#10-notifications-and-tasks)
 11. [Resources](#11-resources)
-12. [Known Limitations](#12-known-limitations)
-13. [Troubleshooting](#13-troubleshooting)
+12. [Visitor Tracking (Pixels and Consent)](#12-visitor-tracking-pixels-and-consent)
+13. [Known Limitations](#13-known-limitations)
+14. [Troubleshooting](#14-troubleshooting)
 
 ---
 
@@ -497,14 +498,51 @@ Right now, when you flip a resource ON, the public card shows a muted "Coming so
 
 ---
 
-## 12. Known Limitations
+## 12. Visitor Tracking (Pixels and Consent)
+
+**URL:** `/admin/integrations`
+
+Scroll past the Google Calendar card on your Integrations page and you'll find a section called **Visitor Tracking**. This is where you turn on Google Analytics, Meta Pixel (Facebook/Instagram ads), Google Ads, LinkedIn Insight, Microsoft Clarity, and Google Tag Manager.
+
+**To turn on a tracker:**
+1. Sign in to the tracker's own dashboard (e.g. `analytics.google.com` for GA4) and grab the ID.
+2. Paste the ID into the matching card on `/admin/integrations`.
+3. Flip the toggle to On.
+4. Click **Save changes**.
+
+That's it — within a few seconds the tracker is running on your public site.
+
+**To turn one off:** flip the toggle to Off and Save. The script stops loading on the next page view.
+
+**Cookie consent banner:**
+Visitors to your public site see a small banner at the bottom-left asking them to accept or decline cookies. The trackers above only fire after a visitor clicks **Accept**. If they click **Reject** (or dismiss the banner), no tracking scripts load for them. This is what keeps the site compliant with privacy regulations like GDPR/CCPA. You don't have to do anything — the banner handles itself.
+
+**Privacy policy stays accurate automatically:**
+Your `/privacy` page lists exactly which trackers are running, with a per-tracker opt-out link for visitors who want to opt out at the source. When you flip a tracker on or off in admin, the privacy page updates on the next visit. No manual edits.
+
+**Where to find each tracker's ID** (cheat sheet):
+
+| Tracker | Where to find the ID |
+|---|---|
+| Google Analytics 4 | `analytics.google.com` → Admin → Data Streams → your stream → "Measurement ID" (starts with `G-`) |
+| Google Tag Manager | Top-right corner next to the container name at `tagmanager.google.com` (starts with `GTM-`) |
+| Meta Pixel | `business.facebook.com` → Events Manager → your pixel → top of page (15–16 digit number) |
+| Google Ads | `ads.google.com` → Tools → Measurement → Conversions (starts with `AW-`) |
+| LinkedIn Insight | `linkedin.com/campaignmanager` → Analyze → Insight Tag → "Partner ID" |
+| Microsoft Clarity | `clarity.microsoft.com` → your project → Settings → Setup → "Project ID" |
+
+If you want to add a tracker that isn't on this list, ping the developer — adding a new provider is a small code change.
+
+---
+
+## 13. Known Limitations
 
 **User roles:**
 There is no button to make someone an admin or to downgrade an admin to a client. Any role changes require a developer to update the database directly.
 
 ---
 
-## 13. Troubleshooting
+## 14. Troubleshooting
 
 **"A client says they didn't get a confirmation email"**
 Check your Resend dashboard for delivery status. Also ask the client to check their spam or junk folder. The email comes from `noreply@thryvegrowth.co`.

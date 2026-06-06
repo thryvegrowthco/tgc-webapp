@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
+import { TrackingPixels } from "@/components/tracking/TrackingPixels";
+import { CookieConsent } from "@/components/tracking/CookieConsent";
 import "./globals.css";
 
 const inter = Inter({
@@ -71,6 +74,11 @@ export default function RootLayout({
         {children}
         <Toaster position="top-right" richColors />
         <Analytics />
+        {/* Tracking pixels render only after the visitor accepts cookies. */}
+        <Suspense fallback={null}>
+          <TrackingPixels />
+        </Suspense>
+        <CookieConsent />
       </body>
     </html>
   );
