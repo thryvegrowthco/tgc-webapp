@@ -154,12 +154,12 @@ export default async function ResourcesPage() {
       <section className="py-16 lg:py-20 bg-white border-t border-neutral-100">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 mb-3">
-            Built from Real Client Work
+            Practical Resources for Real Growth
           </h2>
           <p className="text-neutral-600 leading-relaxed mb-8">
-            Every template here started as something we built for a client.
-            They&apos;re practical, tested, and designed to save you time so you
-            can focus on the work that matters most.
+            Every template and resource was created with real people, real
+            challenges, and real growth in mind. Designed to help you save time,
+            gain clarity, and focus on what matters most.
           </p>
           <Link
             href="/contact"
