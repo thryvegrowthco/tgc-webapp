@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Building2, User, Users, FileText, Briefcase, Bell } from "lucide-react";
+import { ArrowRight, Building2, User, Users, FileText, Briefcase, Bell, UserSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
@@ -40,6 +40,16 @@ const coreServices = [
       "Culture isn't built with perks and ping pong tables. It's built through clarity, consistency, and leadership. I help organizations define, assess, and build cultures that actually stick.",
     outcomes: ["Culture assessment & gap analysis", "Engagement strategy", "Values & behavioral alignment", "Manager accountability"],
     href: "/services/culture-engagement",
+  },
+  {
+    icon: UserSearch,
+    badge: "For Businesses",
+    badgeColor: "bg-blue-100 text-blue-800",
+    title: "Recruitment & Candidate Screening",
+    description:
+      "Flexible recruitment support to help small businesses and organizations attract, screen, and evaluate candidates with confidence — tailored to your hiring needs.",
+    outcomes: ["Resume & application screening", "Candidate phone screenings", "Interview question development", "Candidate evaluations & recommendations"],
+    href: "/services/recruitment-screening",
   },
 ];
 

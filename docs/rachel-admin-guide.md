@@ -133,6 +133,10 @@ When a client books and pays:
 
 You do not need to do anything manually when a booking comes in.
 
+### Recruitment & Candidate Screening leads
+
+Recruitment is your one service that runs on a **custom quote** rather than a fixed price, so it does not appear on the Book page. The "Get a quote" buttons on the recruitment marketing pages route to the free consultation form at `/consultation` instead. New recruitment leads will arrive in your inbox the same way any consultation request does — reply, scope the engagement together, and invoice however you and the client agree. When you're ready to move recruitment onto fixed pricing or hourly billing, the developer can wire up a Stripe product without any rework on the marketing side.
+
 ---
 
 ## 4. Managing Clients

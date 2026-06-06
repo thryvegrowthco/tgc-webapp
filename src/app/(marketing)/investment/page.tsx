@@ -60,6 +60,13 @@ const businessServices = [
       { name: "Culture & Engagement Consulting", price: "$750+", unit: "project", note: "Scope determined after assessment" },
     ],
   },
+  {
+    category: "Recruitment & Candidate Screening",
+    href: "/services/recruitment-screening",
+    options: [
+      { name: "Flexible Recruitment Support", price: "Custom", unit: "quote", note: "Contact for a customized quote based on your hiring needs" },
+    ],
+  },
 ];
 
 const whyPublic = [

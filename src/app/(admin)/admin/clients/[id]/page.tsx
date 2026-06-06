@@ -170,6 +170,7 @@ export default async function AdminClientDetailPage({
     watchlist: "Job Alerts & Watchlists",
     hr_consulting: "HR Consulting",
     culture: "Culture & Engagement",
+    recruitment: "Recruitment & Candidate Screening",
   };
 
   return (

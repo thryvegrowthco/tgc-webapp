@@ -146,6 +146,9 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 - All price IDs read from env vars at runtime; fallback strings used in development
 - **To add a new service:** Add a `ServiceKey`, add to `SERVICES`, add to `SERVICE_SELECT_OPTIONS`, add the env var
 
+**Quote-only services** (no Stripe product yet):
+Some services run on custom quotes routed through `/consultation` instead of `/book` Stripe Checkout — Recruitment & Candidate Screening (`/services/recruitment-screening`) is the current example. These services skip `src/lib/stripe/products.ts` entirely and surface only on the marketing pages (`/services` overview, `/investment`, dedicated detail page) and the onboarding "services interested" multi-select. The intake schema may be defined in `src/lib/intake/schemas.ts` and exported but left out of `INTAKE_SCHEMAS` until a `ServiceKey` exists — `getSchemaForService` is only called from the session workspace, which requires a booking, which requires a Stripe product. When you later wire one up, register the schema in one line.
+
 **Lazy Proxy singleton (`src/lib/stripe/client.ts`):**
 Stripe client is wrapped in a `Proxy` to defer initialization until first access. This prevents build failures when `STRIPE_SECRET_KEY` is not set during `next build`.
 

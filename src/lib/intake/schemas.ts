@@ -154,6 +154,29 @@ const CULTURE_SCHEMA: IntakeSchema = {
   subtitle: "Help me understand the current culture and where you want to take it.",
 };
 
+// Recruitment & Candidate Screening intake. Exported but NOT registered in
+// INTAKE_SCHEMAS — there's no Stripe product / ServiceKey for recruitment yet
+// (it's quote-only via /consultation), so no booking can trigger the form.
+// When Stripe products are added later, register the schema by inserting:
+//   recruitment_hourly: RECRUITMENT_SCHEMA,
+//   recruitment_project: RECRUITMENT_SCHEMA,
+// into the INTAKE_SCHEMAS map below.
+export const RECRUITMENT_SCHEMA: IntakeSchema = {
+  title: "Recruitment intake",
+  subtitle: "Tell me about the role and your hiring needs.",
+  fields: [
+    { id: "org_name", label: "Organization name", type: "short", required: true },
+    { id: "role_title", label: "Role you're hiring for", type: "short", required: true },
+    { id: "openings_count", label: "Number of openings", type: "short", placeholder: "e.g., 1, 2-3, ongoing" },
+    { id: "hiring_timeline", label: "Hiring timeline", type: "short", placeholder: "e.g., 30 days, ASAP, Q3", required: true },
+    { id: "compensation_range", label: "Compensation range (optional)", type: "short" },
+    { id: "key_qualifications", label: "Key qualifications / must-haves", type: "long", required: true },
+    { id: "current_process", label: "Current screening or hiring process", type: "long" },
+    { id: "support_needed", label: "Where do you need the most support?", type: "long", required: true },
+    { id: "documents", label: "Job description or related docs (optional)", type: "file", accept: DOC_ACCEPT, multiple: true, help: "Job description, screening rubric, anything relevant." },
+  ],
+};
+
 // ─── Map service keys to schemas ─────────────────────────────────────────────
 
 export const INTAKE_SCHEMAS: Partial<Record<ServiceKey, IntakeSchema>> = {

@@ -24,6 +24,7 @@ const SERVICE_OPTIONS = [
   { value: "watchlist", label: "Job Alerts & Watchlists" },
   { value: "hr_consulting", label: "HR Consulting" },
   { value: "culture", label: "Culture & Engagement" },
+  { value: "recruitment", label: "Recruitment & Candidate Screening" },
 ];
 
 const YEARS_OPTIONS = [

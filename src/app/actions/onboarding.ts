@@ -13,6 +13,7 @@ const SERVICES_ALLOWLIST = new Set([
   "watchlist",
   "hr_consulting",
   "culture",
+  "recruitment",
 ]);
 
 const CONTACT_ALLOWLIST = new Set(["email", "phone", "text"]);
