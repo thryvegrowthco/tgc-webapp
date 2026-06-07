@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { syncNewsletterSubscriber } from "@/lib/gohighlevel/client";
 import { sanitizeInterests } from "@/lib/newsletter/interests";
 import { sendWelcomeEmail } from "@/lib/email/newsletter-welcome";
+import { notifyAdmin } from "@/lib/notifications/admin";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -117,6 +118,26 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error("[newsletter] welcome email failed:", err);
     }
+  }
+
+  // Notify Rachel of a genuinely new subscriber or a resubscribe (skip a plain
+  // re-submit by an already-active subscriber). Fire-and-forget.
+  const isResubscribe = existing !== null && existing.unsubscribed_at !== null;
+  if (existing === null || isResubscribe) {
+    notifyAdmin({
+      type: "new_subscriber",
+      subject: `New newsletter subscriber: ${subscriber.email}`,
+      title: isResubscribe ? "Newsletter resubscribe" : "New newsletter subscriber",
+      fields: [
+        { label: "Email", value: subscriber.email },
+        { label: "Name", value: subscriber.first_name ?? "—" },
+        { label: "Source", value: normalizedSource },
+        { label: "Interests", value: (subscriber.interests ?? []).join(", ") || "—" },
+      ],
+      link: "/admin/newsletter/subscribers",
+      ctaLabel: "View subscribers",
+      replyTo: subscriber.email,
+    }).catch((err) => console.error("[newsletter] admin notify failed:", err));
   }
 
   return NextResponse.json({

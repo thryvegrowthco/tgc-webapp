@@ -1,4 +1,7 @@
 import { Resend } from "resend";
+import { renderShell } from "./shell";
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "hello@thryvegrowth.co";
 
 // Lazy singleton — safe to import at module level without RESEND_API_KEY at build time
 let _resend: Resend | null = null;
@@ -264,6 +267,70 @@ export async function sendConsultationRequestAutoReply(data: ConsultationRequest
       </body>
       </html>
     `,
+  });
+}
+
+// ─── Generic admin alert ─────────────────────────────────────────────────────
+// One branded email to Rachel for any inbound interaction (new subscriber,
+// subscription change, watchlist edit, application status, etc.). Reuses the
+// brand shell + escapeHtml. Prefer notifyAdmin() (src/lib/notifications/admin.ts)
+// which also writes the in-app bell row in one call.
+
+export interface AdminAlertField {
+  label: string;
+  value: string;
+}
+
+export interface AdminAlertArgs {
+  subject: string;
+  headline: string;
+  /** Rendered as a label/value table. */
+  fields?: AdminAlertField[];
+  /** Optional free-text paragraph (escaped). */
+  body?: string;
+  /** Optional call-to-action button (absolute URL). */
+  ctaUrl?: string;
+  ctaLabel?: string;
+  /** Lets Rachel reply straight to the person (e.g. a subscriber's email). */
+  replyTo?: string;
+}
+
+export async function sendAdminAlert(args: AdminAlertArgs) {
+  const fieldsBlock =
+    args.fields && args.fields.length > 0
+      ? `<table style="width:100%;border-collapse:collapse;margin:0 0 20px;">${args.fields
+          .map(
+            (f) =>
+              `<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;width:160px;">${escapeHtml(
+                f.label
+              )}</td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:14px;color:#0f172a;font-weight:600;">${escapeHtml(
+                f.value
+              )}</td></tr>`
+          )
+          .join("")}</table>`
+      : "";
+
+  const bodyBlock = args.body
+    ? `<p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.6;">${escapeHtml(args.body).replace(/\n/g, "<br>")}</p>`
+    : "";
+
+  const ctaBlock =
+    args.ctaUrl && args.ctaLabel
+      ? `<p style="margin:0 0 8px;text-align:center;"><a href="${args.ctaUrl}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:600;">${escapeHtml(
+          args.ctaLabel
+        )}</a></p>`
+      : "";
+
+  const inner = `<p style="margin:0 0 16px;font-weight:700;font-size:18px;color:#203e35;">${escapeHtml(
+    args.headline
+  )}</p>${fieldsBlock}${bodyBlock}${ctaBlock}`;
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: ADMIN_EMAIL,
+    ...(args.replyTo ? { replyTo: args.replyTo } : {}),
+    subject: args.subject,
+    html: renderShell(inner),
   });
 }
 

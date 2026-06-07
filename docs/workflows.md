@@ -778,3 +778,25 @@ uploadDocument (src/app/actions/documents.ts)
 ```
 
 The pre-check is necessary because `sendTemplated`'s built-in idempotency is keyed on `(event_key, booking_id)` with a partial UNIQUE that requires `booking_id IS NOT NULL`. Deliverable uploads aren't tied to a booking, so the dedupe relies entirely on the document-scoped event_key.
+
+---
+
+## 13. Admin Notification Coverage
+
+Every inbound lead/subscriber/client interaction notifies Rachel on **two channels at once** — a real-time email to `ADMIN_EMAIL` and an in-app bell row — via `notifyAdmin()` (`src/lib/notifications/admin.ts`), which wraps `sendAdminAlert` (email, `src/lib/email/resend.ts`) + `createAdminNotification` (bell). All calls are best-effort and never block the user's action.
+
+```
+Inbound event                          → notifyAdmin type        → entry point
+─────────────────────────────────────────────────────────────────────────────
+Newsletter subscribe / resubscribe     → new_subscriber          → api/newsletter/route.ts
+Newsletter unsubscribe                 → subscriber_unsubscribed → api/newsletter/unsubscribe/[token]
+Newsletter preference change           → subscriber_updated      → api/newsletter/manage/[token]
+Job Alerts subscription purchase       → new_subscription        → webhooks/stripe (sub checkout)
+Subscription cancel/pause/past_due/    → subscription_issue      → webhooks/stripe (deleted/updated/
+  payment failed                                                     invoice.payment_failed)
+Watchlist preferences edited           → watchlist_updated       → actions/watchlist.ts saveWatchlistProfile
+Application status change (≠ new)       → application_status      → actions/watchlist.ts updateMatchStatus
+Client sends a message                 → client_message          → actions/messages.ts sendMessage
+```
+
+Pre-existing admin alerts unchanged: contact form, consultation, job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. New types added to the `admin_notifications` CHECK in `0021_admin_notification_types.sql`.

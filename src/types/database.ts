@@ -1219,7 +1219,7 @@ export type Database = {
       admin_notifications: {
         Row: {
           id: string;
-          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h";
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message";
           title: string;
           body: string | null;
           link: string | null;
@@ -1230,7 +1230,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h";
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message";
           title: string;
           body?: string | null;
           link?: string | null;
@@ -1241,7 +1241,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h";
+          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message";
           title?: string;
           body?: string | null;
           link?: string | null;

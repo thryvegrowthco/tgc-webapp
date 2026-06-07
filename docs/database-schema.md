@@ -430,7 +430,7 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 | Column | Type | Default | Notes |
 |---|---|---|---|
 | `id` | `UUID` | `gen_random_uuid()` | — |
-| `type` | `TEXT` | — | CHECK: `new_booking`, `intake_submitted`, `client_doc_upload`, `intake_overdue`, `session_in_24h` |
+| `type` | `TEXT` | — | CHECK (widened in 0021): `new_booking`, `intake_submitted`, `client_doc_upload`, `intake_overdue`, `session_in_24h`, `new_subscriber`, `subscriber_unsubscribed`, `subscriber_updated`, `new_subscription`, `subscription_issue`, `watchlist_updated`, `application_status`, `client_message` |
 | `title` | `TEXT` | — | Headline shown in the bell + inbox |
 | `body` | `TEXT` | `NULL` | Optional supporting line |
 | `link` | `TEXT` | `NULL` | Where clicking the row sends Rachel (usually `/admin/clients/{id}#...`) |
@@ -441,7 +441,7 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 
 **Indexes:** partial index on `created_at DESC WHERE read_at IS NULL` for the unread-count query; full index on `created_at DESC` for the inbox.
 
-**Writers:** Stripe webhook (`new_booking`), `saveIntake` action (`intake_submitted`, `client_doc_upload`), intake-overdue cron (`intake_overdue`), session-reminders cron (`session_in_24h`). Helper: `src/lib/notifications/admin.ts → createAdminNotification`.
+**Writers:** Stripe webhook (`new_booking`, `new_subscription`, `subscription_issue`), `saveIntake` action (`intake_submitted`, `client_doc_upload`), intake-overdue cron (`intake_overdue`), session-reminders cron (`session_in_24h`), newsletter routes (`new_subscriber`, `subscriber_unsubscribed`, `subscriber_updated`), `saveWatchlistProfile` (`watchlist_updated`), `updateMatchStatus` (`application_status`), `sendMessage` (`client_message`). Helpers: `src/lib/notifications/admin.ts → createAdminNotification` (bell only) and `notifyAdmin` (email + bell in one call).
 
 ---
 

@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { resend, FROM_EMAIL } from "@/lib/email/resend";
 import { renderShell } from "@/lib/email/shell";
 import { createClientNotification } from "@/lib/notifications/client";
+import { createAdminNotification } from "@/lib/notifications/admin";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "hello@thryvegrowth.co";
@@ -74,6 +75,14 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
           ctaUrl: `${APP_URL}/admin/messages/${clientId}`,
           ctaLabel: "Reply in admin",
         })),
+      });
+      // In-app bell for the admin (email above already sent).
+      await createAdminNotification({
+        type: "client_message",
+        title: `New message from ${senderName}`,
+        body: notifyBody.length > 90 ? `${notifyBody.slice(0, 90)}…` : notifyBody,
+        link: `/admin/messages/${clientId}`,
+        clientId,
       });
     } else {
       // Look up the client's email

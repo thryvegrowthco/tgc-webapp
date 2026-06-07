@@ -7,7 +7,7 @@ import { sendTemplated } from "@/lib/email/render";
 import { syncBookingToGHL } from "@/lib/gohighlevel/client";
 import { createCalendarEvent } from "@/lib/google/calendar";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
-import { createAdminNotification } from "@/lib/notifications/admin";
+import { createAdminNotification, notifyAdmin } from "@/lib/notifications/admin";
 
 export const runtime = "nodejs";
 
@@ -110,6 +110,8 @@ export async function POST(request: NextRequest) {
     await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
   } else if (event.type === "customer.subscription.updated") {
     await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+  } else if (event.type === "invoice.payment_failed") {
+    await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
   }
 
   return new Response("OK", { status: 200 });
@@ -506,14 +508,23 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
       fetchSignedAgreementUrl(supabase, userId),
     ]);
 
-    // In-app notification for the admin bell.
-    await createAdminNotification({
-      type: "new_booking",
+    // Email + in-app bell for the admin (subscriptions now reach Rachel by email,
+    // matching one-time bookings).
+    await notifyAdmin({
+      type: "new_subscription",
+      subject: `New Job Alerts subscription: ${clientName || clientEmail}`,
       title: `New subscription: ${clientName || clientEmail}`,
-      body: serviceType,
+      fields: [
+        { label: "Client", value: clientName || clientEmail || "Unknown" },
+        ...(clientEmail ? [{ label: "Email", value: clientEmail }] : []),
+        { label: "Service", value: serviceType },
+      ],
+      body: "A client just subscribed to Job Alerts. Review their watchlist once they complete setup.",
       link: `/admin/clients/${userId}#booking-${bookingId}`,
+      ctaLabel: "Open client",
       bookingId,
       clientId: userId,
+      replyTo: clientEmail || undefined,
     });
 
     // Auto-task: review the watchlist setup after the client submits intake.
@@ -598,6 +609,64 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       .update({ workflow_status: "cancelled", status: "cancelled" })
       .in("id", bookingIds);
   }
+
+  await alertSubscriptionIssue(supabase, subscription.id, "Subscription cancelled");
+}
+
+// Email + bell to Rachel when a subscription hits trouble. Looks up the client
+// from watchlist_profiles by stripe_subscription_id. Best-effort.
+async function alertSubscriptionIssue(
+  supabase: ReturnType<typeof createServiceClient>,
+  subscriptionId: string,
+  reason: string
+): Promise<void> {
+  try {
+    const { data: wl } = await supabase
+      .from("watchlist_profiles")
+      .select("client_id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
+    const clientId = (wl as { client_id: string | null } | null)?.client_id ?? null;
+
+    let email: string | null = null;
+    let name: string | null = null;
+    if (clientId) {
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", clientId)
+        .single();
+      const profile = p as { full_name: string | null; email: string } | null;
+      email = profile?.email ?? null;
+      name = profile?.full_name ?? null;
+    }
+
+    await notifyAdmin({
+      type: "subscription_issue",
+      subject: `Job Alerts subscription issue: ${name || email || subscriptionId}`,
+      title: reason,
+      fields: [
+        { label: "Client", value: name || email || "Unknown" },
+        ...(email ? [{ label: "Email", value: email }] : []),
+        { label: "Issue", value: reason },
+      ],
+      link: clientId ? `/admin/clients/${clientId}` : "/admin/watchlists",
+      ctaLabel: "Open client",
+      clientId,
+      replyTo: email ?? undefined,
+    });
+  } catch (err) {
+    console.error("[Stripe Webhook] subscription issue alert failed:", err);
+  }
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
+  const subscriptionId =
+    typeof (invoice as { subscription?: unknown }).subscription === "string"
+      ? ((invoice as { subscription?: string }).subscription as string)
+      : null;
+  if (!subscriptionId) return;
+  await alertSubscriptionIssue(createServiceClient(), subscriptionId, "Payment failed");
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -626,6 +695,19 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   if (error) {
     console.error("[Stripe Webhook] Failed to update watchlist_profile status:", error);
+  }
+
+  // Alert Rachel on any non-healthy transition (not routine active renewals).
+  if (localStatus !== "active") {
+    const reason =
+      stripeStatus === "past_due"
+        ? "Payment past due"
+        : stripeStatus === "paused"
+          ? "Subscription paused"
+          : stripeStatus === "unpaid"
+            ? "Payment unpaid"
+            : "Subscription cancelled";
+    await alertSubscriptionIssue(supabase, subscription.id, reason);
   }
 }
 

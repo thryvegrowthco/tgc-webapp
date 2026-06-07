@@ -339,6 +339,28 @@ Threshold: `score ≥ 60` is included. Tier labels: `80+` → `strong`, `65–79
 
 ---
 
+## Admin Notifications (email + in-app bell)
+
+Every inbound lead/subscriber/client interaction notifies Rachel. Two helpers:
+
+- **`sendAdminAlert(args)`** (`src/lib/email/resend.ts`) — one branded admin email via `renderShell`; `to = ADMIN_EMAIL ?? hello@thryvegrowth.co`; supports `subject`, `headline`, `fields[]` (label/value table), `body`, `ctaUrl`/`ctaLabel`, `replyTo`.
+- **`notifyAdmin(args)`** (`src/lib/notifications/admin.ts`) — fires `sendAdminAlert` **and** `createAdminNotification` (bell) in one best-effort call (`Promise.allSettled`); builds the email CTA from `NEXT_PUBLIC_APP_URL + link`. Prefer this at every touchpoint.
+
+| Interaction | Entry point | `notifyAdmin` type |
+|---|---|---|
+| New / resubscribed newsletter subscriber | `api/newsletter/route.ts` | `new_subscriber` |
+| Newsletter unsubscribe | `api/newsletter/unsubscribe/[token]/route.ts` | `subscriber_unsubscribed` |
+| Newsletter preferences / resubscribe | `api/newsletter/manage/[token]/route.ts` | `subscriber_updated` |
+| Job Alerts subscription purchase | `webhooks/stripe` → `handleSubscriptionCheckoutCompleted` | `new_subscription` |
+| Subscription cancelled / paused / past_due / payment failed | `webhooks/stripe` → `handleSubscriptionDeleted` / `handleSubscriptionUpdated` / `handleInvoicePaymentFailed` (shared `alertSubscriptionIssue`) | `subscription_issue` |
+| Client edits watchlist preferences | `actions/watchlist.ts` → `saveWatchlistProfile` (update branch) | `watchlist_updated` |
+| Client changes application status (≠ `new`) | `actions/watchlist.ts` → `updateMatchStatus` | `application_status` |
+| Client sends a message | `actions/messages.ts` → `sendMessage` (client→admin) | `client_message` (email already sent; bell added) |
+
+Already covered pre-existing (left as direct sends): contact (`sendContactFormSubmission`), consultation (`sendConsultationRequest`), job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. All admin-notify calls are best-effort and never block the user's action. The `admin_notifications.type` CHECK is widened in `0021_admin_notification_types.sql`.
+
+---
+
 ## Admin Email Configuration
 
 The `handle_new_user()` trigger (migration `0003_admin_email.sql`) reads a Postgres database setting to auto-assign `role = 'admin'` on signup. Set it once in the Supabase SQL editor:
