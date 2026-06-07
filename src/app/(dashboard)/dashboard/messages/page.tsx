@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { MessageThread, type ThreadMessage } from "@/components/messaging/MessageThread";
-import { markThreadRead } from "@/app/actions/messages";
 
 export default async function ClientMessagesPage() {
   const supabase = await createClient();
@@ -16,8 +16,15 @@ export default async function ClientMessagesPage() {
 
   const messages = (messagesRaw ?? []) as ThreadMessage[];
 
-  // Mark Rachel's messages as read when the client opens the thread.
-  await markThreadRead(user.id);
+  // Mark Rachel's messages as read when the client opens the thread. Done inline
+  // (not via the markThreadRead action) because revalidatePath cannot run during
+  // render. The bell/unread counts refresh on the next navigation or poll.
+  await createServiceClient()
+    .from("client_messages")
+    .update({ read_at: new Date().toISOString() })
+    .eq("client_id", user.id)
+    .eq("sender_role", "admin")
+    .is("read_at", null);
 
   return (
     <div>

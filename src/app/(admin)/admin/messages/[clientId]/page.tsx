@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { MessageThread, type ThreadMessage } from "@/components/messaging/MessageThread";
-import { markThreadRead } from "@/app/actions/messages";
 
 export const metadata: Metadata = {
   title: "Message Thread — Admin",
@@ -39,8 +39,14 @@ export default async function AdminMessageThreadPage({
 
   const messages = (messagesRaw ?? []) as ThreadMessage[];
 
-  // Mark client's messages as read.
-  await markThreadRead(clientId);
+  // Mark the client's messages as read inline (revalidatePath can't run during
+  // render). Admin-verified above; service client guarantees the write.
+  await createServiceClient()
+    .from("client_messages")
+    .update({ read_at: new Date().toISOString() })
+    .eq("client_id", clientId)
+    .eq("sender_role", "client")
+    .is("read_at", null);
 
   return (
     <div className="max-w-3xl">
