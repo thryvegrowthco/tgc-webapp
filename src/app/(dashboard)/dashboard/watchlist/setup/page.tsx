@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { WatchlistSetupForm } from "@/components/dashboard/WatchlistSetupForm";
+import type { Database } from "@/types/database";
 
 export default async function WatchlistSetupPage() {
   const supabase = await createClient();
@@ -12,22 +13,11 @@ export default async function WatchlistSetupPage() {
 
   const { data: profileRaw } = await supabase
     .from("watchlist_profiles")
-    .select(
-      "target_roles, industries, locations, salary_min, salary_max, remote_preference, experience_level, preferences_notes"
-    )
+    .select("*")
     .eq("client_id", user.id)
     .maybeSingle();
 
-  type ProfileRow = {
-    target_roles: string[] | null;
-    industries: string[] | null;
-    locations: string[] | null;
-    salary_min: number | null;
-    salary_max: number | null;
-    remote_preference: string | null;
-    experience_level: string | null;
-    preferences_notes: string | null;
-  };
+  type ProfileRow = Database["public"]["Tables"]["watchlist_profiles"]["Row"];
 
   const profile = profileRaw as ProfileRow | null;
 
@@ -41,6 +31,19 @@ export default async function WatchlistSetupPage() {
         remotePreference: profile.remote_preference ?? "any",
         experienceLevel: profile.experience_level,
         preferencesNotes: profile.preferences_notes,
+        employmentTypes: profile.employment_types ?? [],
+        keywords: profile.keywords ?? [],
+        skills: profile.skills ?? [],
+        certifications: profile.certifications ?? [],
+        education: profile.education,
+        preferredEmployers: profile.preferred_employers ?? [],
+        excludedEmployers: profile.excluded_employers ?? [],
+        jobBoardPreferences: profile.job_board_preferences ?? [],
+        workEnvironment: profile.work_environment,
+        travelPreference: profile.travel_preference,
+        workAuthorizationNotes: profile.work_authorization_notes,
+        mustHaves: profile.must_haves ?? [],
+        niceToHaves: profile.nice_to_haves ?? [],
       }
     : null;
 

@@ -33,7 +33,7 @@ export default async function AdminMessageThreadPage({
 
   const { data: messagesRaw } = await supabase
     .from("client_messages")
-    .select("id, body, sender_role, created_at")
+    .select("id, body, sender_role, created_at, attachment_path")
     .eq("client_id", clientId)
     .order("created_at", { ascending: true });
 

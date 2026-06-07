@@ -11,6 +11,26 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// Full client_job_matches.status lifecycle. The first nine are the spec's
+// application-tracker stages; `new`/`saved`/`not_a_fit`/`archived` are
+// pre-application + housekeeping states; `offer` is legacy (UI maps it to
+// `offer_received`). Keep in sync with the CHECK in 0017_match_curation_and_tracker.sql.
+export type MatchStatus =
+  | "interested"
+  | "applied"
+  | "interviewing"
+  | "final_interview"
+  | "offer_received"
+  | "accepted"
+  | "declined"
+  | "rejected"
+  | "withdrawn"
+  | "new"
+  | "saved"
+  | "not_a_fit"
+  | "archived"
+  | "offer";
+
 export type Database = {
   public: {
     Tables: {
@@ -275,6 +295,23 @@ export type Database = {
           remote_preference: "remote" | "hybrid" | "onsite" | "any" | null;
           experience_level: string | null;
           preferences_notes: string | null;
+          employment_types: string[] | null;
+          keywords: string[] | null;
+          skills: string[] | null;
+          certifications: string[] | null;
+          education: string | null;
+          preferred_employers: string[] | null;
+          excluded_employers: string[] | null;
+          job_board_preferences: string[] | null;
+          work_environment: string | null;
+          travel_preference: string | null;
+          work_authorization_notes: string | null;
+          must_haves: string[] | null;
+          nice_to_haves: string[] | null;
+          review_status: "pending_review" | "reviewed";
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          last_feed_at: string | null;
           subscription_status: string;
           stripe_subscription_id: string | null;
           updated_at: string;
@@ -290,6 +327,23 @@ export type Database = {
           remote_preference?: "remote" | "hybrid" | "onsite" | "any" | null;
           experience_level?: string | null;
           preferences_notes?: string | null;
+          employment_types?: string[] | null;
+          keywords?: string[] | null;
+          skills?: string[] | null;
+          certifications?: string[] | null;
+          education?: string | null;
+          preferred_employers?: string[] | null;
+          excluded_employers?: string[] | null;
+          job_board_preferences?: string[] | null;
+          work_environment?: string | null;
+          travel_preference?: string | null;
+          work_authorization_notes?: string | null;
+          must_haves?: string[] | null;
+          nice_to_haves?: string[] | null;
+          review_status?: "pending_review" | "reviewed";
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          last_feed_at?: string | null;
           subscription_status?: string;
           stripe_subscription_id?: string | null;
           updated_at?: string;
@@ -305,6 +359,23 @@ export type Database = {
           remote_preference?: "remote" | "hybrid" | "onsite" | "any" | null;
           experience_level?: string | null;
           preferences_notes?: string | null;
+          employment_types?: string[] | null;
+          keywords?: string[] | null;
+          skills?: string[] | null;
+          certifications?: string[] | null;
+          education?: string | null;
+          preferred_employers?: string[] | null;
+          excluded_employers?: string[] | null;
+          job_board_preferences?: string[] | null;
+          work_environment?: string | null;
+          travel_preference?: string | null;
+          work_authorization_notes?: string | null;
+          must_haves?: string[] | null;
+          nice_to_haves?: string[] | null;
+          review_status?: "pending_review" | "reviewed";
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          last_feed_at?: string | null;
           subscription_status?: string;
           stripe_subscription_id?: string | null;
           updated_at?: string;
@@ -364,39 +435,66 @@ export type Database = {
           id: string;
           client_id: string | null;
           job_id: string | null;
-          status: "new" | "saved" | "interested" | "applied" | "not_a_fit" | "archived" | "interviewing" | "offer";
+          status: MatchStatus;
           rachel_recommended: boolean;
           client_notes: string | null;
           application_date: string | null;
           interview_date: string | null;
           score: number | null;
           score_label: "strong" | "good" | "maybe" | null;
+          rachel_notes: string | null;
+          match_reason: string | null;
+          priority_level: "high" | "medium" | "low" | null;
+          recommended_action: string | null;
+          salary_offered: number | null;
+          next_steps: string | null;
+          is_favorite: boolean;
+          resume_document_id: string | null;
+          cover_letter_document_id: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           client_id?: string | null;
           job_id?: string | null;
-          status?: "new" | "saved" | "interested" | "applied" | "not_a_fit" | "archived" | "interviewing" | "offer";
+          status?: MatchStatus;
           rachel_recommended?: boolean;
           client_notes?: string | null;
           application_date?: string | null;
           interview_date?: string | null;
           score?: number | null;
           score_label?: "strong" | "good" | "maybe" | null;
+          rachel_notes?: string | null;
+          match_reason?: string | null;
+          priority_level?: "high" | "medium" | "low" | null;
+          recommended_action?: string | null;
+          salary_offered?: number | null;
+          next_steps?: string | null;
+          is_favorite?: boolean;
+          resume_document_id?: string | null;
+          cover_letter_document_id?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           client_id?: string | null;
           job_id?: string | null;
-          status?: "new" | "saved" | "interested" | "applied" | "not_a_fit" | "archived" | "interviewing" | "offer";
+          status?: MatchStatus;
           rachel_recommended?: boolean;
           client_notes?: string | null;
           application_date?: string | null;
           interview_date?: string | null;
           score?: number | null;
           score_label?: "strong" | "good" | "maybe" | null;
+          rachel_notes?: string | null;
+          match_reason?: string | null;
+          priority_level?: "high" | "medium" | "low" | null;
+          recommended_action?: string | null;
+          salary_offered?: number | null;
+          next_steps?: string | null;
+          is_favorite?: boolean;
+          resume_document_id?: string | null;
+          cover_letter_document_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1154,6 +1252,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      job_sources: {
+        Row: {
+          id: string;
+          provider: string;
+          label: string;
+          enabled: boolean;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider: string;
+          label: string;
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider?: string;
+          label?: string;
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      client_notifications: {
+        Row: {
+          id: string;
+          client_id: string;
+          type: "new_job_match" | "curated_job_match" | "watchlist_updated" | "application_reminder" | "message_received";
+          title: string;
+          body: string | null;
+          link: string | null;
+          related_match_id: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          type: "new_job_match" | "curated_job_match" | "watchlist_updated" | "application_reminder" | "message_received";
+          title: string;
+          body?: string | null;
+          link?: string | null;
+          related_match_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          type?: "new_job_match" | "curated_job_match" | "watchlist_updated" | "application_reminder" | "message_received";
+          title?: string;
+          body?: string | null;
+          link?: string | null;
+          related_match_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       tracking_pixels: {
         Row: {
           id: string;
@@ -1311,6 +1478,9 @@ export type AvailabilityPattern = Database["public"]["Tables"]["availability_pat
 export type AvailabilityBlackout = Database["public"]["Tables"]["availability_blackouts"]["Row"];
 export type AdminNotification = Database["public"]["Tables"]["admin_notifications"]["Row"];
 export type AdminNotificationType = AdminNotification["type"];
+export type ClientNotification = Database["public"]["Tables"]["client_notifications"]["Row"];
+export type ClientNotificationType = ClientNotification["type"];
+export type JobSourceRow = Database["public"]["Tables"]["job_sources"]["Row"];
 export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
 export type Resource = Database["public"]["Tables"]["resources"]["Row"];
 export type ResourceCtaType = Resource["cta_type"];
@@ -1332,4 +1502,8 @@ export type EmailTemplateKey =
   | "intake_complete"
   | "session_reminder_24h"
   | "post_service_followup"
-  | "deliverable_ready";
+  | "deliverable_ready"
+  | "new_job_match"
+  | "curated_job_match"
+  | "watchlist_updated"
+  | "application_reminder";

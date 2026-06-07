@@ -3,17 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { updateMatchStatus } from "@/app/actions/watchlist";
-
-const STATUS_OPTIONS = [
-  { value: "new", label: "New" },
-  { value: "saved", label: "Saved" },
-  { value: "interested", label: "Interested" },
-  { value: "applied", label: "Applied" },
-  { value: "interviewing", label: "Interviewing" },
-  { value: "offer", label: "Offer Received" },
-  { value: "not_a_fit", label: "Not a Fit" },
-  { value: "archived", label: "Archived" },
-];
+import { MATCH_STATUS_OPTIONS as STATUS_OPTIONS } from "@/lib/matching/status";
 
 export function MatchStatusSelect({
   matchId,

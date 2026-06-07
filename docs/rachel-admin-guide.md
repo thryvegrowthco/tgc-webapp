@@ -39,9 +39,9 @@ Once logged in, you will always land at `/admin` unless you bookmarked a specifi
 
 ## 2. The Dashboard Overview
 
-The `/admin` page shows four stat cards at the top, a Top Tasks panel, and a recent bookings table below.
+The `/admin` page shows booking stat cards, a row of Job Alerts metrics, a Pending review list, a Top Tasks panel, a recent bookings table, and a recent activity feed.
 
-**Stat cards:**
+**Booking stat cards:**
 
 | Card | What it means |
 |---|---|
@@ -49,6 +49,12 @@ The `/admin` page shows four stat cards at the top, a Top Tasks panel, and a rec
 | Total Bookings | Every booking ever recorded, in any status |
 | Confirmed | Bookings that have been paid and are scheduled |
 | Pending | Bookings that exist but haven't been fully confirmed — this should usually be 0; if it's not, check the bookings section |
+
+**Job Alerts metrics:** Active Clients (active subscriptions), Pending Review (new watchlist submissions waiting for you — highlighted when above zero), Inactive, New Matches this week, Applications being tracked, and Unread Messages. Click any card to jump to the relevant section.
+
+**Pending review list:** Clients who just set up a watchlist and haven't been reviewed yet. Click one to open their watchlist page, add some starter jobs, and click "Mark reviewed" to clear them.
+
+**Recent activity:** The latest events (new bookings, intake submissions, messages, etc.), newest first.
 
 **Top tasks panel:** Your next 5 open items, sorted by due date. Overdue items show in red. You can check a task off here without leaving the home page, or click "Add task" to jot down something you don't want to forget. The full list lives at the Tasks page in the left nav.
 
@@ -257,7 +263,14 @@ Click "Manage" next to any client to open their watchlist page.
 
 ### The Client Watchlist Page
 
-**Client Preferences panel** — Shows everything the client filled in on their setup form: target roles, preferred locations, industries, salary range, remote preference, experience level, and any notes they left for you. Use this as your guide when finding jobs for them.
+**Subscription & review controls (top of the page)** — A row of buttons lets you:
+- **Mark reviewed / Mark pending** — When a client first fills out their watchlist, they show as "Pending review" (and appear in the Pending review list on your Overview). After you've looked over their criteria and added some starter jobs, click "Mark reviewed" to clear them from the queue. This is just a checklist for you — it never affects the client's access.
+- **Pause / Reactivate** — Pause temporarily stops their subscription billing and hides their watchlist; Reactivate turns it back on.
+- **Cancel service** — Cancels their subscription billing and locks their watchlist. Use with care; it asks you to confirm.
+
+**Client Preferences panel** — Shows everything the client filled in on their setup form: target roles, locations, industries, salary range, remote preference, experience level, employment type, keywords, skills, certifications, education, employers of interest, employers to exclude, work environment, travel, work authorization, must-haves, nice-to-haves, and notes. Use this as your guide when finding jobs. Click **"Edit criteria"** to change any of it yourself on the client's behalf — handy after a coaching call.
+
+**A note on must-haves and excluded employers:** When the automatic matcher runs, any job missing one of the client's must-haves, or at an employer they asked to exclude, is filtered out entirely. Employers they're interested in get a small boost.
 
 **Adding Jobs — Two Methods:**
 
@@ -280,30 +293,55 @@ Click "Add Manually" to open a form. Fill in:
 - Description (optional — a short summary)
 - Remote checkbox — check if it's a remote position
 
-Click "Add Job." The job is saved and immediately assigned to this client.
+The manual form also has a **"Your curation"** section that the client sees:
+- **Why it matches** — a sentence on why this is a strong fit.
+- **Priority** — High / Medium / Low.
+- **Recommended action** — e.g., "Apply this week; mention referral."
+- **Private notes** — only you see these; never shown to the client.
+
+Click "Add Job." The job is saved, assigned, tagged **"Curated by Rachel,"** and the client immediately gets an in-app notification and an email about your pick. (The automatic matcher also notifies clients when it adds new matches.)
 
 ### Job Match Status Meanings
 
-Each job in the client's list shows a status badge. **Clients update their own statuses** from their dashboard — you do not change these. The statuses are:
+Each job shows a status badge. **Clients update their own statuses** from their dashboard — you do not change these. Clients move applications through a full pipeline, and can track interview dates, salary offered, next steps, and which resume + cover letter they used on their Application Tracker. The statuses are:
 
 | Status | Meaning |
 |---|---|
 | New | Just added, client hasn't interacted yet |
-| Saved | Client bookmarked it |
+| Saved | Client bookmarked it (shows in their Saved & Favorites tab) |
 | Interested | Client is actively interested |
 | Applied | Client submitted an application |
 | Interviewing | Client has interviews scheduled |
-| Offer | Client received an offer |
+| Final Interview | Client reached a final round |
+| Offer Received | Client received an offer |
+| Accepted | Client accepted an offer |
+| Declined | Client turned down an offer |
+| Rejected | Employer passed |
+| Withdrawn | Client withdrew |
 | Not a Fit | Client decided to pass |
 | Archived | Client dismissed it |
 
+### Automated Job Sources
+
+On the Integrations page there's an **Automated Job Sources** section. Each toggle turns a job board on or off for the automated weekly search. JSearch (which already covers LinkedIn, Indeed, ZipRecruiter, and Google listings) is on by default. USAJOBS.gov (federal jobs) can be turned on once its access key is set up.
+
+Every Monday the system automatically searches every enabled source against each active client's watchlist, scores the results, removes duplicates, and adds new matches to their list — then emails each client about their new matches. You don't have to do anything; your manual picks and the automated matches live side by side.
+
 ### The Weekly Job Alert Email
 
-Every Monday at approximately 3 AM Central, the system automatically emails every active subscriber a digest of jobs added to their list in the past 7 days.
+Every Monday morning, the system also emails every active subscriber a digest of jobs added to their list in the past 7 days.
 
 You do not need to do anything to trigger this. If you want a client's new matches to be included in that week's digest, add them before Sunday night.
 
 Clients with no new matches that week do not receive an email.
+
+### Application Reminders
+
+When a client marks a job "Applied," the system automatically nudges them 7, 14, and 30 days later to update their tracker — so applications don't go stale. Fully automatic.
+
+### Sending a File in Messages
+
+In any message thread, click the paperclip to attach a file (resume, job posting, etc.) along with — or instead of — a written message. The client can download it from their dashboard, and you can download anything they send you.
 
 ---
 
@@ -345,7 +383,10 @@ A ranked list showing which services have the most bookings overall.
 **Monthly Revenue — Last 6 Months:**
 A table showing your total revenue for each of the past six months.
 
-All figures update automatically as bookings and payments come in. There is no need to refresh or recalculate anything.
+**Job Alerts Report:**
+A dedicated set of cards for the watchlist service: Total Clients, Active Clients, Placement Rate (the share of applications that became accepted offers), and totals for Applications, Interviews, Offers, and Accepted. Below them, **Top Industries** (what your clients are looking for) and **Most Successful Searches** (which target roles produce the most applications). Click **Export CSV** to download a per-client breakdown — one row per client with their counts and target roles — for your own records or a spreadsheet.
+
+All figures update automatically as bookings, payments, and client activity come in. There is no need to refresh or recalculate anything.
 
 ---
 

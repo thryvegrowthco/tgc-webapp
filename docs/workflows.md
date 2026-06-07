@@ -188,6 +188,56 @@ incomplete /
 
 ---
 
+## 2c. Watchlist Enhancements (questionnaire, curation, tracker, notifications)
+
+**Activation stays pay-first** (Section 2). These enhancements layer on top.
+
+**Full questionnaire.** `WatchlistSetupForm` (`src/components/dashboard/WatchlistSetupForm.tsx`) captures the complete criteria set — roles, industries, locations, salary, remote pref, employment types, keywords, skills, certifications, education, employers of interest/exclude, job-board preferences, work environment, travel, work authorization, must-haves, nice-to-haves, notes. `saveWatchlistProfile` persists them and (on edit, not first setup) sends a `watchlist_updated` client notification + email. The same form, passed `adminClientId`, edits a client's criteria from `/admin/watchlists/[clientId]` via `updateWatchlistProfileAsAdmin`.
+
+**Scoring** (`src/lib/matching/score.ts`): base factors sum to 100 (title 30, keywords 12, skills 12, location 18, salary 10, experience 8, certs 5, industry 5). Preferred employers add a bonus; nice-to-haves add a small bonus. **Hard gates**: an excluded-employer match or any unmet must-have forces score 0 / excluded. Threshold for inclusion stays 60. Verified by `scripts/verify-scoring.ts`.
+
+**Manual curation.** In `WatchlistManager`, Rachel adds a job with `match_reason` (why it matches), `priority_level`, `recommended_action`, and private `rachel_notes`. `assignJobToClient(clientId, jobId, curation)` writes these onto `client_job_matches`, tags it "Curated by Rachel", and — only when a new match row is created — sends a `curated_job_match` notification + email. `fetchJSearchJobsForClient` and `runAutoMatchForClient` send a `new_job_match` notification for the count of newly-assigned matches.
+
+**Client dashboard.** `/dashboard/watchlist` renders `JobCard`s with all fields, the curated badge + why/next-step, a Favorite star (`toggleFavorite`), an inline note (`updateMatchNotes`), the status dropdown, and an Apply link. Tabs: All Matches / Saved & Favorites (`?view=saved`). Marking a card `applied` stamps `application_date`.
+
+**Application tracker.** `/dashboard/applications` groups matches across the 9 spec stages. Each card's "Details & timeline" panel (`ApplicationDetail`) edits interview date, salary offered, next steps, notes, and attaches a resume + cover letter from the client's `documents` — saved via `updateApplicationDetails`.
+
+**Access gating.** `getWatchlistAccess()` (`src/lib/watchlist/access.tsx`) shows a reactivate notice on the job-alerts pages when `subscription_status != 'active'`. Booking/coaching clients are unaffected.
+
+**Client bell.** The dashboard layout fetches `client_notifications` and renders `NotificationBell`; `markClientNotificationRead` / `markAllClientNotificationsRead` clear them.
+
+---
+
+## 2d. Automated Feed, Reminders & Reporting (Phase 2)
+
+**Pluggable sources.** Each board implements `JobSource` (`src/lib/job-api/types.ts`). Registered in `src/lib/job-api/sources.ts` (`ALL_SOURCES`); `getEnabledSources()` returns those toggled on in the `job_sources` table. Shipped: `jsearch` (on) and `usajobs` (off until keys set). Rachel toggles them in `/admin/integrations → Automated Job Sources`.
+
+```
+Mon 8AM UTC: GET /api/cron/job-feed
+        │
+        ▼
+getEnabledSources() → for each active watchlist_profiles row:
+   ingestForClient(clientId, profile, sources)   [src/lib/job-api/ingest.ts]
+     1. each source.search({query from target_roles, location, isRemote})
+     2. dedup by external_id (batch + vs existing job_listings)
+     3. insert new job_listings
+     4. scoreJobAgainstProfile → upsert client_job_matches (score ≥ 60), ignoreDuplicates
+     5. notify client of newly-created matches (new_job_match in-app + email)
+        │
+        ▼
+writes one job_feed_run row to automation_log {sources, clients, fetched, inserted, matched}
+```
+
+This is the engine that *creates* matches; the older `/api/cron/job-alerts` only *emails a digest* of matches already created.
+
+**Application reminders.** `GET /api/cron/application-reminders` (daily) finds matches whose `application_date` is exactly 7, 14, or 30 days ago and `status='applied'`, then sends an `application_reminder` (in-app + email). Idempotent per `(matchId, milestone)` via an `automation_log` pre-check.
+
+**Reporting.** `computeJobAlertsReport()` (`src/lib/reporting/job-alerts.ts`) aggregates client counts, placement rate (`accepted ÷ applications`), application/interview/offer/accepted totals, top industries (by watchlist preference), and "most successful searches" (target roles ranked by applications). Rendered on `/admin/analytics`; the same data exports per-client via `GET /api/admin/job-alerts/export` (CSV).
+
+**Message attachments.** `uploadMessageAttachment` stores a file in the private `documents` bucket at `messages/{clientId}/...`; `sendMessage` records `client_messages.attachment_path`; `MessageThread` renders a download link served by `/api/messages/attachment` (admins any; clients only their own thread folder).
+
+---
+
 ## 3. Blog Publishing Flow
 
 ```

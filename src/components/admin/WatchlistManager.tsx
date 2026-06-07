@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RefreshCw, Star } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,9 +37,16 @@ export function WatchlistManager({ clientId }: Props) {
       return;
     }
 
-    // Assign the new job to this client
-    await assignJobToClient(clientId, result.jobId);
-    toast.success("Job added and assigned to client.");
+    // Assign the new job to this client, with Rachel's curation metadata. This
+    // tags it "Curated by Rachel" and notifies the client (in-app + email).
+    const priority = (formData.get("priority_level") as string) || "";
+    await assignJobToClient(clientId, result.jobId, {
+      matchReason: (formData.get("match_reason") as string) || "",
+      rachelNotes: (formData.get("rachel_notes") as string) || "",
+      priorityLevel: priority as "high" | "medium" | "low" | "",
+      recommendedAction: (formData.get("recommended_action") as string) || "",
+    });
+    toast.success("Job curated and sent to the client.");
     setShowAddForm(false);
     setSubmitting(false);
     router.refresh();
@@ -131,6 +138,53 @@ export function WatchlistManager({ clientId }: Props) {
               className="rounded border-neutral-300"
             />
             <label htmlFor="is_remote" className="text-xs text-neutral-600">Remote position</label>
+          </div>
+
+          {/* Rachel's curation — surfaced to the client as "Curated by Rachel" */}
+          <div className="pt-3 mt-1 border-t border-neutral-200">
+            <p className="text-xs font-semibold text-brand-700 mb-2">Your curation (shown to the client)</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className={labelClass}>Why it matches</label>
+                <textarea
+                  name="match_reason"
+                  rows={2}
+                  placeholder="A sentence on why this is a strong fit for them…"
+                  className={fieldClass}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Priority</label>
+                  <select name="priority_level" defaultValue="" className={fieldClass}>
+                    <option value="">No priority</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Recommended action</label>
+                  <input
+                    name="recommended_action"
+                    placeholder="e.g. Apply this week; mention referral"
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Private notes (admin only)</label>
+                <textarea
+                  name="rachel_notes"
+                  rows={2}
+                  placeholder="Notes for yourself — not shown to the client."
+                  className={fieldClass}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">

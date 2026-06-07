@@ -60,11 +60,62 @@ export default async function AdminOverviewPage() {
     .limit(5);
   const openTasks = (openTasksRaw ?? []) as AdminTask[];
 
+  // ── Job Alerts metrics ──────────────────────────────────────────────────
+  const now = new Date();
+  const daysSinceMonday = (now.getDay() + 6) % 7;
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday).toISOString();
+
+  const { count: activeWatchlist } = await supabase
+    .from("watchlist_profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("subscription_status", "active");
+  const { count: pendingReviewCount } = await supabase
+    .from("watchlist_profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("review_status", "pending_review");
+  const { count: inactiveWatchlist } = await supabase
+    .from("watchlist_profiles")
+    .select("*", { count: "exact", head: true })
+    .neq("subscription_status", "active");
+  const { count: newMatchesThisWeek } = await supabase
+    .from("client_job_matches")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", weekStart);
+  const { count: applicationsTracked } = await supabase
+    .from("client_job_matches")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "applied");
+  const { count: unreadMessages } = await supabase
+    .from("client_messages")
+    .select("*", { count: "exact", head: true })
+    .eq("sender_role", "client")
+    .is("read_at", null);
+
+  // Pending-review queue (clients who submitted but haven't been reviewed).
+  const { data: pendingRaw } = await supabase
+    .from("watchlist_profiles")
+    .select("client_id, updated_at")
+    .eq("review_status", "pending_review")
+    .order("updated_at", { ascending: false })
+    .limit(6);
+  const pendingReview = (pendingRaw ?? []) as { client_id: string | null; updated_at: string }[];
+
+  // Recent activity feed (in-app admin notifications).
+  const { data: activityRaw } = await supabase
+    .from("admin_notifications")
+    .select("id, type, title, body, link, created_at")
+    .order("created_at", { ascending: false })
+    .limit(8);
+  const activity = (activityRaw ?? []) as {
+    id: string; type: string; title: string; body: string | null; link: string | null; created_at: string;
+  }[];
+
   // Fetch related profiles and slots
   const clientIds = [
     ...new Set([
       ...recentBookings.map((b) => b.client_id),
       ...openTasks.map((t) => t.related_client_id),
+      ...pendingReview.map((p) => p.client_id),
     ].filter(Boolean)),
   ] as string[];
   const slotIds = [...new Set(recentBookings.map((b) => b.slot_id).filter(Boolean))] as string[];
@@ -160,6 +211,49 @@ export default async function AdminOverviewPage() {
         })}
       </div>
 
+      {/* Job Alerts metrics */}
+      <section>
+        <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">Job Alerts</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <JobMetric label="Active Clients" value={activeWatchlist ?? 0} href="/admin/watchlists" />
+          <JobMetric label="Pending Review" value={pendingReviewCount ?? 0} href="/admin/watchlists" highlight={(pendingReviewCount ?? 0) > 0} />
+          <JobMetric label="Inactive" value={inactiveWatchlist ?? 0} href="/admin/watchlists" />
+          <JobMetric label="New Matches (wk)" value={newMatchesThisWeek ?? 0} href="/admin/watchlists" />
+          <JobMetric label="Applications" value={applicationsTracked ?? 0} href="/admin/watchlists" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+          <JobMetric label="Unread Messages" value={unreadMessages ?? 0} href="/admin/messages" highlight={(unreadMessages ?? 0) > 0} />
+        </div>
+      </section>
+
+      {/* Pending review queue */}
+      {pendingReview.length > 0 && (
+        <div className="bg-white rounded-xl border border-amber-200">
+          <div className="px-6 py-4 border-b border-neutral-100">
+            <h2 className="font-semibold text-neutral-900">Pending review</h2>
+            <p className="text-xs text-neutral-400 mt-0.5">New watchlist submissions waiting for your review.</p>
+          </div>
+          <div className="divide-y divide-neutral-100">
+            {pendingReview.map((p) => {
+              const profile = p.client_id ? profileMap[p.client_id] : null;
+              if (!p.client_id) return null;
+              return (
+                <Link
+                  key={p.client_id}
+                  href={`/admin/watchlists/${p.client_id}`}
+                  className="px-6 py-3 flex items-center justify-between gap-4 hover:bg-neutral-50"
+                >
+                  <span className="text-sm font-medium text-neutral-900 truncate">
+                    {profile?.full_name ?? profile?.email ?? "Unknown client"}
+                  </span>
+                  <span className="text-xs text-neutral-400 flex-shrink-0">Review →</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Tasks */}
       <div className="bg-white rounded-xl border border-neutral-200">
         <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3 flex-wrap">
@@ -234,6 +328,63 @@ export default async function AdminOverviewPage() {
           </div>
         )}
       </div>
+
+      {/* Recent activity */}
+      <div className="bg-white rounded-xl border border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
+          <h2 className="font-semibold text-neutral-900">Recent activity</h2>
+          <Link href="/admin/notifications" className="text-sm text-brand-700 font-medium hover:text-brand-800">
+            View all →
+          </Link>
+        </div>
+        {activity.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-neutral-400">No recent activity.</div>
+        ) : (
+          <div className="divide-y divide-neutral-100">
+            {activity.map((a) => {
+              const row = (
+                <div className="px-6 py-3">
+                  <p className="text-sm font-medium text-neutral-900">{a.title}</p>
+                  {a.body && <p className="text-xs text-neutral-500 mt-0.5">{a.body}</p>}
+                  <p className="text-[11px] text-neutral-400 mt-1">
+                    {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </p>
+                </div>
+              );
+              return a.link ? (
+                <Link key={a.id} href={a.link} className="block hover:bg-neutral-50">{row}</Link>
+              ) : (
+                <div key={a.id}>{row}</div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function JobMetric({
+  label,
+  value,
+  href,
+  highlight,
+}: {
+  label: string;
+  value: number;
+  href: string;
+  highlight?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={
+        "bg-white rounded-xl border p-5 transition-colors hover:border-brand-200 " +
+        (highlight ? "border-amber-300" : "border-neutral-200")
+      }
+    >
+      <p className="text-2xl font-bold text-neutral-900">{value}</p>
+      <p className="text-sm text-neutral-500 mt-0.5">{label}</p>
+    </Link>
   );
 }
