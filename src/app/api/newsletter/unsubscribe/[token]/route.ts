@@ -6,6 +6,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { syncNewsletterSubscriber } from "@/lib/gohighlevel/client";
+import { notifyAdmin } from "@/lib/notifications/admin";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,16 @@ async function unsubscribeByToken(token: string): Promise<{ email: string | null
     syncNewsletterSubscriber({ email: sub.email }).catch((err) =>
       console.error("[newsletter] GHL unsubscribe sync failed:", err)
     );
+
+    notifyAdmin({
+      type: "subscriber_unsubscribed",
+      subject: `Newsletter unsubscribe: ${sub.email}`,
+      title: "Newsletter unsubscribe",
+      fields: [{ label: "Email", value: sub.email }],
+      link: "/admin/newsletter/subscribers",
+      ctaLabel: "View subscribers",
+      replyTo: sub.email,
+    }).catch((err) => console.error("[newsletter] admin notify failed:", err));
   }
 
   return { email: sub.email, ok: true };

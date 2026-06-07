@@ -13,6 +13,8 @@ import {
 } from "@/lib/matching/score";
 import { sendTemplated } from "@/lib/email/render";
 import { createClientNotification } from "@/lib/notifications/client";
+import { notifyAdmin } from "@/lib/notifications/admin";
+import { matchStatusLabel } from "@/lib/matching/status";
 import { SCORING_PROFILE_COLUMNS as SCORING_COLUMNS } from "@/lib/job-api/ingest";
 import type { MatchStatus } from "@/types/database";
 
@@ -166,13 +168,13 @@ export async function saveWatchlistProfile(input: WatchlistProfileInput) {
       body: "Future job searches will use your latest criteria.",
       link: "/dashboard/watchlist",
     });
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single();
+    const p = me as { full_name: string | null; email: string } | null;
     try {
-      const { data: me } = await supabase
-        .from("profiles")
-        .select("full_name, email")
-        .eq("id", user.id)
-        .single();
-      const p = me as { full_name: string | null; email: string } | null;
       if (p?.email) {
         await sendTemplated("watchlist_updated", {
           to: p.email,
@@ -186,6 +188,19 @@ export async function saveWatchlistProfile(input: WatchlistProfileInput) {
     } catch (err) {
       console.error("[watchlist] watchlist_updated email failed:", err);
     }
+
+    // Notify Rachel that a client edited their criteria (email + bell).
+    const who = p?.full_name || p?.email || "A client";
+    await notifyAdmin({
+      type: "watchlist_updated",
+      subject: `Watchlist updated: ${who}`,
+      title: `Watchlist updated: ${who}`,
+      body: "A client edited their job watchlist preferences. Their next searches will use the new criteria.",
+      link: `/admin/watchlists/${user.id}`,
+      ctaLabel: "Open watchlist",
+      clientId: user.id,
+      replyTo: p?.email ?? undefined,
+    });
   } else {
     await supabase.from("watchlist_profiles").insert(payload);
   }
@@ -229,6 +244,54 @@ export async function updateMatchStatus(matchId: string, status: string) {
     .update(patch)
     .eq("id", matchId)
     .eq("client_id", user.id); // can only update own matches
+
+  // Notify Rachel of the status change (email + bell). Skip the reset-to-"new".
+  if (status !== "new") {
+    try {
+      const { data: matchRow } = await supabase
+        .from("client_job_matches")
+        .select("job_id")
+        .eq("id", matchId)
+        .eq("client_id", user.id)
+        .maybeSingle();
+      const jobId = (matchRow as { job_id: string | null } | null)?.job_id ?? null;
+
+      let job: { title: string; company: string } | null = null;
+      if (jobId) {
+        const { data: jobRow } = await supabase
+          .from("job_listings")
+          .select("title, company")
+          .eq("id", jobId)
+          .single();
+        job = jobRow as { title: string; company: string } | null;
+      }
+      const { data: me } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
+      const p = me as { full_name: string | null; email: string } | null;
+      const who = p?.full_name || p?.email || "A client";
+      const label = matchStatusLabel(status);
+
+      await notifyAdmin({
+        type: "application_status",
+        subject: `Application update (${label}): ${who}`,
+        title: `${who} → ${label}`,
+        fields: [
+          { label: "Client", value: who },
+          ...(job ? [{ label: "Job", value: `${job.title} @ ${job.company}` }] : []),
+          { label: "New status", value: label },
+        ],
+        link: `/admin/watchlists/${user.id}`,
+        ctaLabel: "Open watchlist",
+        clientId: user.id,
+        replyTo: p?.email ?? undefined,
+      });
+    } catch (err) {
+      console.error("[watchlist] application status admin alert failed:", err);
+    }
+  }
 }
 
 // Toggle the client-only favorite flag on one of their matches.

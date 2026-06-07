@@ -98,7 +98,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 |---|---|---|---|
 | `CRON_SECRET` | Yes (prod) | Any random secret string | Protects all `/api/cron/*` endpoints (`job-alerts`, `newsletter-send`, `newsletter-reengage`, `newsletter-milestones`, `intake-reminders`, `intake-overdue-alert`, `session-reminders`, `auto-complete-sessions`, `post-service-followup`) from unauthorized calls. Configure this same secret as a custom `Authorization: Bearer <value>` header on each cron-job.org job — see `docs/integrations.md`. |
 | `NEXT_PUBLIC_APP_URL` | Yes | Your deployed domain | Used in email links, Stripe redirect URLs |
-| `ADMIN_EMAIL` | No | Rachel's preferred admin alert inbox | Recipient for booking alerts, intake digests, and prep summaries. Defaults to `hello@thryvegrowth.co` if absent. |
+| `ADMIN_EMAIL` | No | Rachel's preferred admin alert inbox | Recipient for ALL admin alerts — bookings, intake, client messages, and (via `notifyAdmin`/`sendAdminAlert`) every inbound lead/subscriber/client interaction. Defaults to `hello@thryvegrowth.co` if absent. |
 
 ### Service Agreement (Booking Clickwrap)
 

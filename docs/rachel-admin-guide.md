@@ -491,8 +491,15 @@ Look up at the top right of any admin page. The bell shows you everything that's
 - A client uploaded a document
 - An intake form is overdue
 - A session is coming up in 24 hours
+- A new newsletter subscriber (or someone unsubscribed / changed their preferences)
+- A new Job Alerts subscription — or a subscription problem (cancelled, paused, or a failed payment)
+- A client edited their job watchlist preferences
+- A client moved an application forward (applied, interviewing, offer, etc.)
+- A client sent you a message
 
 The red number is how many you haven't read yet. Click the bell to see the latest 20 in a quick dropdown. Click any row to jump to that client or booking. Use "Mark all read" to clear the number. To see everything that ever came in, click the Notifications page in the left nav — it groups them by Today / Yesterday / This week / Older.
+
+**Email, too.** Every one of the events above also lands in your inbox (`hello@thryvegrowth.co`) in real time — so you're notified even when you're not in the admin panel. For subscriber and message emails you can reply directly to reach the person. Contact-form, consultation, and lead emails work the same way as before.
 
 **Tasks (your to-do list):**
 The Tasks page in the left nav is where you keep track of what you need to do next. Some tasks get added automatically:

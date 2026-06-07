@@ -9,7 +9,10 @@
 // surrounding action — same posture as `logEvent` in src/lib/email/render.ts.
 
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendAdminAlert, type AdminAlertField } from "@/lib/email/resend";
 import type { AdminNotificationType } from "@/types/database";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 
 export interface CreateAdminNotificationArgs {
   type: AdminNotificationType;
@@ -34,4 +37,49 @@ export async function createAdminNotification(args: CreateAdminNotificationArgs)
   } catch (err) {
     console.error("[admin notifications] insert failed:", err);
   }
+}
+
+// One call to notify Rachel of an inbound interaction on BOTH channels: a
+// branded email (sendAdminAlert) and the in-app bell (createAdminNotification).
+// Both are best-effort — a failure in either never blocks the caller. `link` is
+// a relative admin path; it becomes the bell row link and the email CTA.
+export interface NotifyAdminArgs {
+  type: AdminNotificationType;
+  /** Email subject. */
+  subject: string;
+  /** Headline shown in the bell AND as the email's headline. */
+  title: string;
+  /** Optional supporting line (bell body + email paragraph). */
+  body?: string;
+  /** Optional label/value rows for the email. */
+  fields?: AdminAlertField[];
+  /** Relative admin path, e.g. "/admin/clients/123". CTA label defaults to "Open in admin". */
+  link?: string;
+  ctaLabel?: string;
+  /** Reply-to for the email (e.g. a subscriber's address). */
+  replyTo?: string;
+  bookingId?: string | null;
+  clientId?: string | null;
+}
+
+export async function notifyAdmin(args: NotifyAdminArgs): Promise<void> {
+  await Promise.allSettled([
+    sendAdminAlert({
+      subject: args.subject,
+      headline: args.title,
+      fields: args.fields,
+      body: args.body,
+      ctaUrl: args.link ? `${APP_URL}${args.link}` : undefined,
+      ctaLabel: args.link ? args.ctaLabel ?? "Open in admin" : undefined,
+      replyTo: args.replyTo,
+    }),
+    createAdminNotification({
+      type: args.type,
+      title: args.title,
+      body: args.body,
+      link: args.link,
+      bookingId: args.bookingId,
+      clientId: args.clientId,
+    }),
+  ]);
 }

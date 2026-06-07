@@ -15,6 +15,14 @@ const TYPE_LABEL: Record<AdminNotification["type"], string> = {
   client_doc_upload: "Document uploaded",
   intake_overdue: "Intake overdue",
   session_in_24h: "Session in 24h",
+  new_subscriber: "New subscriber",
+  subscriber_unsubscribed: "Unsubscribed",
+  subscriber_updated: "Preferences updated",
+  new_subscription: "New subscription",
+  subscription_issue: "Subscription issue",
+  watchlist_updated: "Watchlist updated",
+  application_status: "Application update",
+  client_message: "New message",
 };
 
 const TYPE_CLASS: Record<AdminNotification["type"], string> = {
@@ -23,6 +31,14 @@ const TYPE_CLASS: Record<AdminNotification["type"], string> = {
   client_doc_upload: "bg-purple-50 text-purple-700",
   intake_overdue: "bg-red-50 text-red-700",
   session_in_24h: "bg-amber-50 text-amber-700",
+  new_subscriber: "bg-green-50 text-green-700",
+  subscriber_unsubscribed: "bg-neutral-100 text-neutral-600",
+  subscriber_updated: "bg-blue-50 text-blue-700",
+  new_subscription: "bg-green-50 text-green-700",
+  subscription_issue: "bg-red-50 text-red-700",
+  watchlist_updated: "bg-blue-50 text-blue-700",
+  application_status: "bg-amber-50 text-amber-700",
+  client_message: "bg-purple-50 text-purple-700",
 };
 
 export function NotificationListItem({ notification }: { notification: AdminNotification }) {
