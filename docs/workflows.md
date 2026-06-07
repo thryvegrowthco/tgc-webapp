@@ -800,3 +800,5 @@ Client sends a message                 → client_message          → actions/m
 ```
 
 Pre-existing admin alerts unchanged: contact form, consultation, job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. New types added to the `admin_notifications` CHECK in `0021_admin_notification_types.sql`.
+
+**Toggles:** every non-critical notification above (admin + client/lead, email + bell) can be switched off at `/admin/settings`, backed by `notification_settings` (migration `0022`) and enforced by `isNotificationDisabled()` (`src/lib/notifications/settings.ts`) inside the four helpers + the direct send-sites. Fail-open; must-send/critical notifications (receipts, welcome, intake_complete, deliverable_ready, client session reminders, auth) have no row and always send.

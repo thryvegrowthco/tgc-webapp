@@ -359,6 +359,11 @@ Every inbound lead/subscriber/client interaction notifies Rachel. Two helpers:
 
 Already covered pre-existing (left as direct sends): contact (`sendContactFormSubmission`), consultation (`sendConsultationRequest`), job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. All admin-notify calls are best-effort and never block the user's action. The `admin_notifications.type` CHECK is widened in `0021_admin_notification_types.sql`.
 
+### On/off toggles (`/admin/settings`)
+Every non-critical notification can be disabled per channel + audience via the `notification_settings` table (migration `0022`). The gate lives in **`src/lib/notifications/settings.ts`**: `getDisabledNotificationKeys()` (service-client read of `enabled=false` rows, ~60s in-memory TTL cache, **fail-open** to empty Set) and `isNotificationDisabled(key)` (true if the key OR its audience master `admin_all`/`client_all` is disabled).
+
+Enforcement is centralized in the four helpers — `notifyAdmin` (checks `admin_email:<type>` for the email; bell via the next), `createAdminNotification` (`admin_bell:<type>`), `createClientNotification` (`client_bell:<type>`), `sendTemplated` (`client_email:<templateKey>`) — plus the direct send-sites that bypass them: `api/contact`, `api/consultation` (admin alert + client auto-reply), `api/leads` (`notifyRachel` + `thankLead`), `api/newsletter/route.ts` (welcome) + `feedback`, `webhooks/stripe` (one-time booking alert), `actions/intake.ts` (intake digest), `actions/messages.ts` (both directions), and the `session-reminders` (prep summary) + `intake-overdue-alert` crons. Editing a toggle: `toggleNotificationSetting` (`src/app/actions/settings.ts`) updates the row, busts the cache, and revalidates. Missing key ⇒ always sends, so critical/unseeded notifications are never gated. UI: `/admin/settings` + `NotificationToggle.tsx`.
+
 ---
 
 ## Admin Email Configuration

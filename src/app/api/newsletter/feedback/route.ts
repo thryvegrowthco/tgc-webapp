@@ -4,6 +4,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   const sub = rawRow as { email: string; first_name: string | null } | null;
   if (!sub) return NextResponse.json({ ok: false }, { status: 404 });
+
+  if (await isNotificationDisabled("admin_email:newsletter_feedback")) {
+    return NextResponse.json({ ok: true });
+  }
 
   try {
     await resend.emails.send({

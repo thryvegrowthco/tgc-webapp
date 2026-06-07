@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_FIELD_LENGTH = 200;
@@ -91,6 +92,7 @@ async function notifyRachel(data: {
   timeline: string | null;
   notes: string | null;
 }) {
+  if (await isNotificationDisabled("admin_email:job_watchlist_lead")) return;
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -120,6 +122,7 @@ async function notifyRachel(data: {
 }
 
 async function thankLead(data: { fullName: string; email: string }) {
+  if (await isNotificationDisabled("client_email:lead_thankyou")) return;
   try {
     const firstName = data.fullName.split(" ")[0] ?? "there";
     await resend.emails.send({

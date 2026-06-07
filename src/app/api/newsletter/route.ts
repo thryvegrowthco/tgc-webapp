@@ -4,6 +4,7 @@ import { syncNewsletterSubscriber } from "@/lib/gohighlevel/client";
 import { sanitizeInterests } from "@/lib/newsletter/interests";
 import { sendWelcomeEmail } from "@/lib/email/newsletter-welcome";
 import { notifyAdmin } from "@/lib/notifications/admin";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
   }).catch((err) => console.error("[newsletter] GHL sync failed:", err));
 
   // Welcome email — only first time. Stamp welcome_sent_at to make this idempotent.
-  if (!subscriber.welcome_sent_at) {
+  if (!subscriber.welcome_sent_at && !(await isNotificationDisabled("client_email:newsletter_welcome"))) {
     try {
       await sendWelcomeEmail({
         email: subscriber.email,

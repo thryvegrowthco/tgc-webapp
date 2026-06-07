@@ -20,6 +20,7 @@ import {
   CheckSquare,
   Briefcase,
   FileBox,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logOut } from "@/app/actions/auth";
@@ -42,6 +43,7 @@ const navItems = [
   { label: "Newsletter", href: "/admin/newsletter", icon: Mail, exact: false },
   { label: "Watchlists", href: "/admin/watchlists", icon: Briefcase, exact: false },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart2, exact: false },
+  { label: "Settings", href: "/admin/settings", icon: Settings, exact: false },
 ];
 
 export function AdminNav() {

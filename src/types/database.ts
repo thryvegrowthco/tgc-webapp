@@ -1252,6 +1252,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification_settings: {
+        Row: {
+          id: string;
+          key: string;
+          audience: "admin" | "client";
+          event: string;
+          channel: "email" | "bell" | "all";
+          label: string;
+          description: string | null;
+          enabled: boolean;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          audience: "admin" | "client";
+          event: string;
+          channel: "email" | "bell" | "all";
+          label: string;
+          description?: string | null;
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          key?: string;
+          audience?: "admin" | "client";
+          event?: string;
+          channel?: "email" | "bell" | "all";
+          label?: string;
+          description?: string | null;
+          enabled?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       job_sources: {
         Row: {
           id: string;
@@ -1481,6 +1526,7 @@ export type AdminNotificationType = AdminNotification["type"];
 export type ClientNotification = Database["public"]["Tables"]["client_notifications"]["Row"];
 export type ClientNotificationType = ClientNotification["type"];
 export type JobSourceRow = Database["public"]["Tables"]["job_sources"]["Row"];
+export type NotificationSetting = Database["public"]["Tables"]["notification_settings"]["Row"];
 export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
 export type Resource = Database["public"]["Tables"]["resources"]["Row"];
 export type ResourceCtaType = Resource["cta_type"];

@@ -501,6 +501,14 @@ The red number is how many you haven't read yet. Click the bell to see the lates
 
 **Email, too.** Every one of the events above also lands in your inbox (`hello@thryvegrowth.co`) in real time — so you're notified even when you're not in the admin panel. For subscriber and message emails you can reply directly to reach the person. Contact-form, consultation, and lead emails work the same way as before.
 
+**Turning notifications on or off (Settings page).** The **Settings** item in the left nav lets you control every notification. There are two sections:
+- **Admin notifications** — what gets sent to *you*. Each one has an **Email** switch and a **Bell** switch, so you can (for example) keep the bell but stop the emails for a chatty event like application status changes.
+- **Client & lead notifications** — what gets sent to *leads, subscribers, and clients* (auto-replies, the newsletter welcome, job-match alerts, reminders, etc.).
+
+Each section also has a **master switch** at the top to pause everything in that section at once. Flip a switch and it takes effect right away (within a minute for the automated daily/weekly emails).
+
+A few **essential messages can't be turned off** — payment receipts, the booking/subscription welcome, intake confirmations, "your deliverable is ready," client session reminders, and login emails (sign-up confirmation, password reset). Those always send so billing, onboarding, and login never break. They simply don't appear on the Settings page.
+
 **Tasks (your to-do list):**
 The Tasks page in the left nav is where you keep track of what you need to do next. Some tasks get added automatically:
 
