@@ -7,6 +7,7 @@ import { sendAdminBookingAlert } from "@/lib/email/resend";
 import { getSchemaForService, validateResponses } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { createAdminNotification } from "@/lib/notifications/admin";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 import type { Json } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
@@ -131,20 +132,22 @@ export async function saveIntake(args: IntakeSubmitArgs): Promise<{ error?: stri
 
     // Notify Rachel that intake is ready. Folding the uploaded-file list into
     // the existing admin alert avoids spawning a second email per submission.
-    await sendAdminBookingAlert(
-      {
-        clientName,
-        clientEmail,
-        serviceType: booking.service_type,
-        slotDate: sessionDate,
-        slotTime: sessionTime,
-        bookingId: args.bookingId,
-      },
-      {
-        subject: `Intake submitted: ${booking.service_type} — ${clientName}`,
-        uploadedFiles,
-      }
-    ).catch(() => undefined);
+    if (!(await isNotificationDisabled("admin_email:intake_submitted"))) {
+      await sendAdminBookingAlert(
+        {
+          clientName,
+          clientEmail,
+          serviceType: booking.service_type,
+          slotDate: sessionDate,
+          slotTime: sessionTime,
+          bookingId: args.bookingId,
+        },
+        {
+          subject: `Intake submitted: ${booking.service_type} — ${clientName}`,
+          uploadedFiles,
+        }
+      ).catch(() => undefined);
+    }
 
     // In-app notifications: one for the submission, one per uploaded file so
     // Rachel can spot which materials arrived at a glance.

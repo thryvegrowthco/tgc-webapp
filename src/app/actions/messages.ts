@@ -7,6 +7,7 @@ import { resend, FROM_EMAIL } from "@/lib/email/resend";
 import { renderShell } from "@/lib/email/shell";
 import { createClientNotification } from "@/lib/notifications/client";
 import { createAdminNotification } from "@/lib/notifications/admin";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "hello@thryvegrowth.co";
@@ -65,17 +66,19 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
   try {
     if (senderRole === "client") {
       const senderName = me?.full_name || me?.email?.split("@")[0] || "A client";
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: ADMIN_EMAIL,
-        subject: `New message from ${senderName}`,
-        html: renderShell(buildNotifyHtml({
-          headline: `New message from ${senderName}`,
-          body: notifyBody,
-          ctaUrl: `${APP_URL}/admin/messages/${clientId}`,
-          ctaLabel: "Reply in admin",
-        })),
-      });
+      if (!(await isNotificationDisabled("admin_email:client_message"))) {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: ADMIN_EMAIL,
+          subject: `New message from ${senderName}`,
+          html: renderShell(buildNotifyHtml({
+            headline: `New message from ${senderName}`,
+            body: notifyBody,
+            ctaUrl: `${APP_URL}/admin/messages/${clientId}`,
+            ctaLabel: "Reply in admin",
+          })),
+        });
+      }
       // In-app bell for the admin (email above already sent).
       await createAdminNotification({
         type: "client_message",
@@ -92,7 +95,7 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
         .select("full_name, email")
         .eq("id", clientId)
         .single();
-      if (target?.email) {
+      if (target?.email && !(await isNotificationDisabled("client_email:message_received"))) {
         await resend.emails.send({
           from: FROM_EMAIL,
           to: target.email,

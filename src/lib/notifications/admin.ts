@@ -10,6 +10,7 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendAdminAlert, type AdminAlertField } from "@/lib/email/resend";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 import type { AdminNotificationType } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
@@ -24,6 +25,7 @@ export interface CreateAdminNotificationArgs {
 }
 
 export async function createAdminNotification(args: CreateAdminNotificationArgs): Promise<void> {
+  if (await isNotificationDisabled(`admin_bell:${args.type}`)) return;
   try {
     const supabase = createServiceClient();
     await supabase.from("admin_notifications").insert({
@@ -63,16 +65,20 @@ export interface NotifyAdminArgs {
 }
 
 export async function notifyAdmin(args: NotifyAdminArgs): Promise<void> {
+  const emailDisabled = await isNotificationDisabled(`admin_email:${args.type}`);
   await Promise.allSettled([
-    sendAdminAlert({
-      subject: args.subject,
-      headline: args.title,
-      fields: args.fields,
-      body: args.body,
-      ctaUrl: args.link ? `${APP_URL}${args.link}` : undefined,
-      ctaLabel: args.link ? args.ctaLabel ?? "Open in admin" : undefined,
-      replyTo: args.replyTo,
-    }),
+    // Email channel — gated here; bell channel is gated inside createAdminNotification.
+    emailDisabled
+      ? Promise.resolve()
+      : sendAdminAlert({
+          subject: args.subject,
+          headline: args.title,
+          fields: args.fields,
+          body: args.body,
+          ctaUrl: args.link ? `${APP_URL}${args.link}` : undefined,
+          ctaLabel: args.link ? args.ctaLabel ?? "Open in admin" : undefined,
+          replyTo: args.replyTo,
+        }),
     createAdminNotification({
       type: args.type,
       title: args.title,

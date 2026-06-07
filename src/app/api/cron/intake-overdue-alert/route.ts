@@ -10,6 +10,7 @@ import { renderShell } from "@/lib/email/shell";
 import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { formatCentralDateTime } from "@/lib/time/central";
 import { createAdminNotification } from "@/lib/notifications/admin";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 export const runtime = "nodejs";
 
@@ -92,12 +93,14 @@ export async function GET(request: NextRequest) {
 <p style="margin:0;color:#64748b;font-size:13px;">You may want to reach out to these clients personally.</p>
 `;
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: ADMIN_EMAIL,
-    subject: `Overdue intakes — ${pending.length} ${pending.length === 1 ? "client" : "clients"}`,
-    html: renderShell(innerHtml),
-  });
+  if (!(await isNotificationDisabled("admin_email:intake_overdue"))) {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `Overdue intakes — ${pending.length} ${pending.length === 1 ? "client" : "clients"}`,
+      html: renderShell(innerHtml),
+    });
+  }
 
   // Log one row per booking for idempotency, and mirror the alert into the
   // admin notification feed so Rachel can clear them from the bell, not just

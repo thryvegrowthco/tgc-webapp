@@ -4,6 +4,7 @@ import {
   sendConsultationRequestAutoReply,
 } from "@/lib/email/resend";
 import { syncContactToGHL } from "@/lib/gohighlevel/client";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_MESSAGE_LENGTH = 5000;
@@ -82,28 +83,33 @@ export async function POST(request: NextRequest) {
     message: data.message,
   };
 
-  try {
-    const adminResult = await sendConsultationRequest(payload);
-    if (adminResult.error) {
-      console.error("[consultation] Resend returned error:", adminResult.error);
+  // Admin alert — skippable via /admin/settings (the request still succeeds).
+  if (!(await isNotificationDisabled("admin_email:consultation_request"))) {
+    try {
+      const adminResult = await sendConsultationRequest(payload);
+      if (adminResult.error) {
+        console.error("[consultation] Resend returned error:", adminResult.error);
+        return NextResponse.json(
+          { ok: false, error: "Failed to send request" },
+          { status: 500 }
+        );
+      }
+    } catch (err) {
+      console.error("[consultation] Admin email send failed:", err);
       return NextResponse.json(
         { ok: false, error: "Failed to send request" },
         { status: 500 }
       );
     }
-  } catch (err) {
-    console.error("[consultation] Admin email send failed:", err);
-    return NextResponse.json(
-      { ok: false, error: "Failed to send request" },
-      { status: 500 }
-    );
   }
 
   // Auto-reply and CRM sync are best-effort — don't fail the request if they error.
-  try {
-    await sendConsultationRequestAutoReply(payload);
-  } catch (err) {
-    console.error("[consultation] Auto-reply failed:", err);
+  if (!(await isNotificationDisabled("client_email:consultation_autoreply"))) {
+    try {
+      await sendConsultationRequestAutoReply(payload);
+    } catch (err) {
+      console.error("[consultation] Auto-reply failed:", err);
+    }
   }
 
   try {

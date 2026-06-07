@@ -14,6 +14,7 @@ import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime, formatCentralDateTime } from "@/lib/time/central";
 import { createAdminNotification } from "@/lib/notifications/admin";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 export const runtime = "nodejs";
 
@@ -122,8 +123,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // T-2h Rachel prep summary
-    if (hoursUntil <= 3 && hoursUntil >= 1 && !booking.prep_summary_sent_at) {
+    // T-2h Rachel prep summary (admin can silence via admin_email:session_in_24h)
+    if (
+      hoursUntil <= 3 &&
+      hoursUntil >= 1 &&
+      !booking.prep_summary_sent_at &&
+      !(await isNotificationDisabled("admin_email:session_in_24h"))
+    ) {
       const intake = intakeMap.get(booking.id);
       const schema = getSchemaForService(booking.service_key);
       const innerHtml = buildPrepSummaryHtml({

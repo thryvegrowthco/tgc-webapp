@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { sendContactFormSubmission } from "@/lib/email/resend";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_MESSAGE_LENGTH = 5000;
@@ -53,6 +54,11 @@ export async function POST(request: NextRequest) {
 
   if (f.message.length > MAX_MESSAGE_LENGTH) {
     return NextResponse.json({ ok: false, error: "Message too long" }, { status: 400 });
+  }
+
+  // Admin can silence this alert in /admin/settings; the form still succeeds.
+  if (await isNotificationDisabled("admin_email:contact_form")) {
+    return NextResponse.json({ ok: true });
   }
 
   try {

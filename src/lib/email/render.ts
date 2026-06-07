@@ -15,6 +15,7 @@ import { resend, FROM_EMAIL } from "./resend";
 import { renderShell } from "./shell";
 import { DEFAULT_TEMPLATES, type DefaultTemplate } from "./defaults";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 import type { EmailTemplateKey, Json } from "@/types/database";
 
 type Placeholders = Record<string, string | number | undefined | null>;
@@ -85,7 +86,7 @@ export interface SendTemplatedOptions {
 export interface SendTemplatedResult {
   sent: boolean;
   messageId?: string;
-  skipped?: "already_logged";
+  skipped?: "already_logged" | "disabled";
   error?: string;
 }
 
@@ -99,6 +100,13 @@ export async function sendTemplated(
   options: SendTemplatedOptions
 ): Promise<SendTemplatedResult> {
   const eventKey = options.eventKey ?? `${templateKey}_sent`;
+
+  // Admin can disable discretionary client emails in /admin/settings. Critical
+  // templates (receipt, welcome, intake_complete, deliverable_ready,
+  // session_reminder_24h) have no settings row, so they are never suppressed.
+  if (await isNotificationDisabled(`client_email:${templateKey}`)) {
+    return { sent: false, skipped: "disabled" };
+  }
 
   if (options.idempotent && options.bookingId) {
     const supabase = createServiceClient();

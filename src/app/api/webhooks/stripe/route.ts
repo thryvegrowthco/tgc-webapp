@@ -8,6 +8,7 @@ import { syncBookingToGHL } from "@/lib/gohighlevel/client";
 import { createCalendarEvent } from "@/lib/google/calendar";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
 import { createAdminNotification, notifyAdmin } from "@/lib/notifications/admin";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 export const runtime = "nodejs";
 
@@ -390,7 +391,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         signed_agreement_url: signedAgreementUrl,
       },
     }),
-    sendAdminBookingAlert(emailData),
+    (await isNotificationDisabled("admin_email:new_booking"))
+      ? Promise.resolve()
+      : sendAdminBookingAlert(emailData),
     syncBookingToGHL({ clientEmail, clientName, serviceType }),
   ]);
 }

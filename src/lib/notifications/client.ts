@@ -9,6 +9,7 @@
 // surrounding action.
 
 import { createServiceClient } from "@/lib/supabase/service";
+import { isNotificationDisabled } from "@/lib/notifications/settings";
 import type { ClientNotificationType } from "@/types/database";
 
 export interface CreateClientNotificationArgs {
@@ -21,6 +22,7 @@ export interface CreateClientNotificationArgs {
 }
 
 export async function createClientNotification(args: CreateClientNotificationArgs): Promise<void> {
+  if (await isNotificationDisabled(`client_bell:${args.type}`)) return;
   try {
     const supabase = createServiceClient();
     await supabase.from("client_notifications").insert({

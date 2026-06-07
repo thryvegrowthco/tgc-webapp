@@ -484,6 +484,26 @@ Registry of automated job-feed sources, toggleable in `/admin/integrations`. Add
 
 ---
 
+### `notification_settings`
+
+Admin on/off switches for every non-critical notification, per channel + audience. Added in `0022_notification_settings.sql`. Read + enforced by `src/lib/notifications/settings.ts`; edited at `/admin/settings`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `key` | `TEXT` | — | UNIQUE; `"<audience>_<channel>:<event>"`, e.g. `admin_email:new_subscriber`. Masters: `admin_all`, `client_all` |
+| `audience` | `TEXT` | — | CHECK `admin` \| `client` |
+| `event` | `TEXT` | — | Groups the channels of one notification (e.g. `new_subscriber`) |
+| `channel` | `TEXT` | — | CHECK `email` \| `bell` \| `all` (`all` = master switch) |
+| `label` / `description` | `TEXT` | — | Shown on the settings page |
+| `enabled` | `BOOLEAN` | `TRUE` | Default ON — behavior unchanged until toggled off |
+| `sort_order` | `INT` | `0` | Display order |
+| `updated_at` / `updated_by` / `created_at` | — | — | `updated_by` FK → `profiles.id` |
+
+**RLS:** admin-only via `is_admin()`. **Gating is fail-open:** a notification is suppressed only when its key (or the audience master) has an explicit `enabled = false` row. "Must-send" notifications (payment receipt, booking/subscription welcome, `intake_complete`, `deliverable_ready`, client `session_reminder_24h`, auth emails, the newsletter issue itself) are **not seeded**, so they can never be disabled. Index: partial on `key WHERE enabled = false`.
+
+---
+
 ### `tracking_pixels`
 
 Catalog of visitor tracking + conversion pixels (GA4, GTM, Meta, Google Ads, LinkedIn Insight, Microsoft Clarity). Added in migration `0015_tracking_pixels.sql`. Pixel IDs are not secrets — they appear in any page source the moment the script fires — so the column is plain `TEXT`, no encryption.
