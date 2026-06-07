@@ -1,12 +1,23 @@
 // Pure scoring function. No side effects. Given a client's watchlist
 // preferences and a job listing, returns a score 0–100 and a label.
 //
-// Weights:
-//   role keywords (title + description) ........... 40
-//   location / remote preference ................... 25
-//   salary band ..................................... 15
-//   experience level ................................ 15
-//   industries (company + description) ............... 5
+// Base factors (sum to 100):
+//   title / role keywords ........... 30
+//   keywords ........................ 12
+//   skills .......................... 12
+//   location / remote preference .... 18
+//   salary band ..................... 10
+//   experience level ................  8
+//   certifications ..................  5
+//   industries ......................  5
+//
+// Bonuses (added then clamped to 100):
+//   preferred employer .............. +8
+//   nice-to-haves ................... up to +5
+//
+// Hard gates (force exclusion regardless of score):
+//   excluded employer matched ....... score 0, excluded
+//   any must-have not satisfied ..... score 0, excluded
 //
 // Threshold for inclusion: 60.
 //   80–100 → "strong"
@@ -21,6 +32,14 @@ export interface ProfileForScoring {
   salary_max: number | null;
   remote_preference: "remote" | "hybrid" | "onsite" | "any" | null;
   experience_level: string | null;
+  // Expanded questionnaire (all optional so legacy callers still type-check)
+  keywords?: string[] | null;
+  skills?: string[] | null;
+  certifications?: string[] | null;
+  preferred_employers?: string[] | null;
+  excluded_employers?: string[] | null;
+  must_haves?: string[] | null;
+  nice_to_haves?: string[] | null;
 }
 
 export interface JobForScoring {
@@ -36,23 +55,55 @@ export interface ScoreResult {
   score: number;
   label: "strong" | "good" | "maybe" | null;
   reasons: string[];
+  /** True when a hard gate (excluded employer / unmet must-have) excluded the job. */
+  excluded?: boolean;
 }
 
 const MATCH_THRESHOLD = 60;
+
+// Per-factor maximums (base factors sum to 100).
+const MAX_ROLES = 30;
+const MAX_KEYWORDS = 12;
+const MAX_SKILLS = 12;
+const MAX_LOCATION = 18;
+const MAX_SALARY = 10;
+const MAX_EXPERIENCE = 8;
+const MAX_CERTS = 5;
+const MAX_INDUSTRY = 5;
+const BONUS_PREFERRED_EMPLOYER = 8;
+const BONUS_NICE_TO_HAVES = 5;
 
 export function scoreJobAgainstProfile(
   profile: ProfileForScoring,
   job: JobForScoring
 ): ScoreResult {
   const reasons: string[] = [];
+  const haystack = `${job.title} ${job.description ?? ""}`.toLowerCase();
 
-  const roleScore = scoreRoles(profile.target_roles, job, reasons);
-  const locationScore = scoreLocation(profile, job, reasons);
-  const salaryScore = scoreSalary(profile, job, reasons);
-  const experienceScore = scoreExperience(profile.experience_level, job, reasons);
-  const industryScore = scoreIndustries(profile.industries, job, reasons);
+  // ─── Hard gates first ──────────────────────────────────────────────────────
+  const excludedHit = matchAny(profile.excluded_employers, job.company.toLowerCase());
+  if (excludedHit) {
+    return { score: 0, label: null, reasons: [`Excluded employer: ${excludedHit}`], excluded: true };
+  }
 
-  const total = roleScore + locationScore + salaryScore + experienceScore + industryScore;
+  const missingMustHave = firstUnmet(profile.must_haves, haystack);
+  if (missingMustHave) {
+    return { score: 0, label: null, reasons: [`Missing must-have: ${missingMustHave}`], excluded: true };
+  }
+
+  // ─── Base factors ──────────────────────────────────────────────────────────
+  const total =
+    scoreRoles(profile.target_roles, job, reasons) +
+    scoreKeywords(profile.keywords, haystack, reasons) +
+    scoreSkills(profile.skills, haystack, reasons) +
+    scoreLocation(profile, job, reasons) +
+    scoreSalary(profile, job, reasons) +
+    scoreExperience(profile.experience_level, haystack, reasons) +
+    scoreCertifications(profile.certifications, haystack, reasons) +
+    scoreIndustries(profile.industries, job, reasons) +
+    scorePreferredEmployer(profile.preferred_employers, job.company.toLowerCase(), reasons) +
+    scoreNiceToHaves(profile.nice_to_haves, haystack, reasons);
+
   const score = Math.max(0, Math.min(100, Math.round(total)));
 
   let label: ScoreResult["label"] = null;
@@ -67,7 +118,7 @@ export function shouldIncludeMatch(score: number): boolean {
   return score >= MATCH_THRESHOLD;
 }
 
-// ─── Role keywords (40 pts) ───────────────────────────────────────────────
+// ─── Role keywords (30 pts) ───────────────────────────────────────────────
 function scoreRoles(
   targetRoles: string[] | null,
   job: JobForScoring,
@@ -75,8 +126,8 @@ function scoreRoles(
 ): number {
   if (!targetRoles || targetRoles.length === 0) return 0;
 
-  const haystack = `${job.title} ${job.description ?? ""}`.toLowerCase();
   const titleLower = job.title.toLowerCase();
+  const descLower = (job.description ?? "").toLowerCase();
 
   let bestRoleScore = 0;
   let bestRole = "";
@@ -86,12 +137,12 @@ function scoreRoles(
     if (tokens.length === 0) continue;
 
     const titleMatches = tokens.filter((t) => titleLower.includes(t)).length;
-    const descMatches = tokens.filter((t) => haystack.includes(t)).length;
+    const descMatches = tokens.filter((t) => descLower.includes(t)).length;
 
-    // Title hit is worth more than description hit
+    // Title hit is worth more than a description hit.
     const ratio = titleMatches / tokens.length;
     const descRatio = descMatches / tokens.length;
-    const roleScore = ratio * 30 + descRatio * 10;
+    const roleScore = ratio * (MAX_ROLES * 0.75) + descRatio * (MAX_ROLES * 0.25);
 
     if (roleScore > bestRoleScore) {
       bestRoleScore = roleScore;
@@ -103,10 +154,40 @@ function scoreRoles(
     reasons.push(`Title/description match for "${bestRole}"`);
   }
 
-  return Math.min(40, bestRoleScore);
+  return Math.min(MAX_ROLES, bestRoleScore);
 }
 
-// ─── Location / remote (25 pts) ────────────────────────────────────────────
+// ─── Keywords (12 pts) ────────────────────────────────────────────────────
+function scoreKeywords(keywords: string[] | null | undefined, haystack: string, reasons: string[]): number {
+  const list = (keywords ?? []).map((k) => k.trim().toLowerCase()).filter(Boolean);
+  if (list.length === 0) return 0;
+  const hits = list.filter((k) => haystack.includes(k));
+  if (hits.length === 0) return 0;
+  reasons.push(`Keyword match: ${hits.slice(0, 3).join(", ")}`);
+  return Math.min(MAX_KEYWORDS, (hits.length / list.length) * MAX_KEYWORDS);
+}
+
+// ─── Skills (12 pts) ──────────────────────────────────────────────────────
+function scoreSkills(skills: string[] | null | undefined, haystack: string, reasons: string[]): number {
+  const list = (skills ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (list.length === 0) return 0;
+  const hits = list.filter((s) => haystack.includes(s));
+  if (hits.length === 0) return 0;
+  reasons.push(`Skills match: ${hits.slice(0, 3).join(", ")}`);
+  return Math.min(MAX_SKILLS, (hits.length / list.length) * MAX_SKILLS);
+}
+
+// ─── Certifications (5 pts) ───────────────────────────────────────────────
+function scoreCertifications(certs: string[] | null | undefined, haystack: string, reasons: string[]): number {
+  const list = (certs ?? []).map((c) => c.trim().toLowerCase()).filter(Boolean);
+  if (list.length === 0) return 0;
+  const hits = list.filter((c) => haystack.includes(c));
+  if (hits.length === 0) return 0;
+  reasons.push(`Certification match: ${hits.slice(0, 2).join(", ")}`);
+  return Math.min(MAX_CERTS, (hits.length / list.length) * MAX_CERTS);
+}
+
+// ─── Location / remote (18 pts) ────────────────────────────────────────────
 function scoreLocation(
   profile: ProfileForScoring,
   job: JobForScoring,
@@ -117,7 +198,7 @@ function scoreLocation(
   if (pref === "remote") {
     if (job.is_remote) {
       reasons.push("Remote, matches preference");
-      return 25;
+      return MAX_LOCATION;
     }
     return 0;
   }
@@ -125,30 +206,30 @@ function scoreLocation(
   if (pref === "any" || !pref) {
     if (job.is_remote) reasons.push("Remote (open preference)");
     else reasons.push("Open to any work arrangement");
-    return 25;
+    return MAX_LOCATION;
   }
 
   // hybrid or onsite — check location overlap
   const locations = profile.locations ?? [];
-  if (locations.length === 0) return 15; // partial credit, no city pref
+  if (locations.length === 0) return MAX_LOCATION * 0.6; // partial credit, no city pref
 
   const jobLoc = (job.location ?? "").toLowerCase();
   const matched = locations.find((l) => jobLoc.includes(l.toLowerCase()));
 
   if (matched) {
     reasons.push(`Location match: ${matched}`);
-    return 25;
+    return MAX_LOCATION;
   }
 
   if (job.is_remote && pref === "hybrid") {
     reasons.push("Remote (hybrid preference)");
-    return 15;
+    return MAX_LOCATION * 0.6;
   }
 
   return 0;
 }
 
-// ─── Salary (15 pts) ───────────────────────────────────────────────────────
+// ─── Salary (10 pts) ───────────────────────────────────────────────────────
 function scoreSalary(
   profile: ProfileForScoring,
   job: JobForScoring,
@@ -157,25 +238,24 @@ function scoreSalary(
   const profileMin = profile.salary_min ?? 0;
   const profileMax = profile.salary_max ?? 0;
 
-  if (profileMin === 0 && profileMax === 0) return 8; // partial credit, no preference
+  if (profileMin === 0 && profileMax === 0) return MAX_SALARY * 0.6; // no preference
 
-  if (!job.salary_range) return 5; // unknown salary on job, neutral partial
+  if (!job.salary_range) return MAX_SALARY * 0.4; // unknown salary, neutral partial
 
   const jobBand = parseSalaryRange(job.salary_range);
-  if (!jobBand) return 5;
+  if (!jobBand) return MAX_SALARY * 0.4;
 
-  // overlap calculation
   const minOK = profileMin === 0 || jobBand.max >= profileMin;
   const maxOK = profileMax === 0 || jobBand.min <= profileMax;
 
   if (minOK && maxOK) {
     reasons.push(`Salary in range (${job.salary_range})`);
-    return 15;
+    return MAX_SALARY;
   }
 
   if (minOK || maxOK) {
     reasons.push("Partial salary overlap");
-    return 8;
+    return MAX_SALARY * 0.5;
   }
 
   return 0;
@@ -183,16 +263,13 @@ function scoreSalary(
 
 // "$80k–$100k" → { min: 80000, max: 100000 }; "$80k+" → { min: 80000, max: ... }
 function parseSalaryRange(range: string): { min: number; max: number } | null {
-  // Strip $, commas
   const cleaned = range.replace(/[$,]/g, "");
-  // Match patterns like "80k–100k", "80k-100k", "80000-100000"
   const rangeMatch = cleaned.match(/(\d+)\s*(k?)\s*[–\-]\s*(\d+)\s*(k?)/i);
   if (rangeMatch) {
     const min = Number(rangeMatch[1]) * (rangeMatch[2].toLowerCase() === "k" ? 1000 : 1);
     const max = Number(rangeMatch[3]) * (rangeMatch[4].toLowerCase() === "k" ? 1000 : 1);
     return { min, max };
   }
-  // single value with + or just number: "80k+" or "Up to 100k"
   const upToMatch = cleaned.match(/up to\s*(\d+)\s*(k?)/i);
   if (upToMatch) {
     const v = Number(upToMatch[1]) * (upToMatch[2].toLowerCase() === "k" ? 1000 : 1);
@@ -206,27 +283,26 @@ function parseSalaryRange(range: string): { min: number; max: number } | null {
   return null;
 }
 
-// ─── Experience (15 pts) ──────────────────────────────────────────────────
+// ─── Experience (8 pts) ───────────────────────────────────────────────────
 function scoreExperience(
   experienceLevel: string | null,
-  job: JobForScoring,
+  haystack: string,
   reasons: string[]
 ): number {
-  if (!experienceLevel) return 8; // partial credit, no preference
+  if (!experienceLevel) return MAX_EXPERIENCE * 0.6; // no preference
 
-  const haystack = `${job.title} ${job.description ?? ""}`.toLowerCase();
   const level = experienceLevel.toLowerCase();
 
-  const senior = ["senior", "sr.", "lead", "principal", "staff"];
+  const senior = ["senior", "sr.", "lead", "principal", "staff", "director", "vp", "executive"];
   const mid = ["mid", "intermediate"];
   const junior = ["junior", "jr.", "entry", "associate"];
 
   let matched = false;
-  if (senior.includes(level)) {
+  if (senior.some((kw) => level.includes(kw))) {
     matched = senior.some((kw) => haystack.includes(kw));
-  } else if (mid.includes(level)) {
+  } else if (mid.some((kw) => level.includes(kw))) {
     matched = mid.some((kw) => haystack.includes(kw));
-  } else if (junior.includes(level)) {
+  } else if (junior.some((kw) => level.includes(kw))) {
     matched = junior.some((kw) => haystack.includes(kw));
   } else {
     matched = haystack.includes(level);
@@ -234,10 +310,10 @@ function scoreExperience(
 
   if (matched) {
     reasons.push(`Experience level matches (${experienceLevel})`);
-    return 15;
+    return MAX_EXPERIENCE;
   }
 
-  return 5;
+  return MAX_EXPERIENCE * 0.4;
 }
 
 // ─── Industries (5 pts) ────────────────────────────────────────────────────
@@ -253,9 +329,33 @@ function scoreIndustries(
 
   if (matched) {
     reasons.push(`Industry match: ${matched}`);
-    return 5;
+    return MAX_INDUSTRY;
   }
   return 0;
+}
+
+// ─── Preferred employer bonus (+8) ─────────────────────────────────────────
+function scorePreferredEmployer(
+  preferred: string[] | null | undefined,
+  companyLower: string,
+  reasons: string[]
+): number {
+  const hit = matchAny(preferred, companyLower);
+  if (hit) {
+    reasons.push(`Employer of interest: ${hit}`);
+    return BONUS_PREFERRED_EMPLOYER;
+  }
+  return 0;
+}
+
+// ─── Nice-to-haves bonus (up to +5) ────────────────────────────────────────
+function scoreNiceToHaves(items: string[] | null | undefined, haystack: string, reasons: string[]): number {
+  const list = (items ?? []).map((n) => n.trim().toLowerCase()).filter(Boolean);
+  if (list.length === 0) return 0;
+  const hits = list.filter((n) => phraseMatch(n, haystack));
+  if (hits.length === 0) return 0;
+  reasons.push(`Nice-to-have: ${hits.slice(0, 2).join(", ")}`);
+  return Math.min(BONUS_NICE_TO_HAVES, (hits.length / list.length) * BONUS_NICE_TO_HAVES);
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -265,4 +365,32 @@ function tokenize(text: string): string[] {
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((t) => t.length >= 3);
+}
+
+// True if `phrase` is satisfied in `haystack`: either the full lowercased
+// phrase appears, or all of its 3+ char tokens appear.
+function phraseMatch(phrase: string, haystack: string): boolean {
+  const p = phrase.trim().toLowerCase();
+  if (!p) return false;
+  if (haystack.includes(p)) return true;
+  const tokens = tokenize(p);
+  return tokens.length > 0 && tokens.every((t) => haystack.includes(t));
+}
+
+// Returns the first list entry that appears as a substring of `target`, else null.
+function matchAny(list: string[] | null | undefined, target: string): string | null {
+  for (const raw of list ?? []) {
+    const v = raw.trim().toLowerCase();
+    if (v && target.includes(v)) return raw.trim();
+  }
+  return null;
+}
+
+// Returns the first must-have phrase NOT satisfied by the haystack, else null.
+function firstUnmet(mustHaves: string[] | null | undefined, haystack: string): string | null {
+  for (const raw of mustHaves ?? []) {
+    const v = raw.trim();
+    if (v && !phraseMatch(v, haystack)) return v;
+  }
+  return null;
 }

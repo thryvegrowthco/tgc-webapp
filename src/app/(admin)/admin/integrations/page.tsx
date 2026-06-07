@@ -6,7 +6,8 @@ import { getIntegrationStatus } from "@/lib/google/calendar";
 import { Button } from "@/components/ui/button";
 import { DisconnectGoogleButton } from "@/components/admin/DisconnectGoogleButton";
 import { TrackingPixelCard } from "@/components/admin/TrackingPixelCard";
-import type { TrackingPixel } from "@/types/database";
+import { JobSourceCard } from "@/components/admin/JobSourceCard";
+import type { TrackingPixel, JobSourceRow } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Integrations — Admin",
@@ -42,6 +43,12 @@ export default async function AdminIntegrationsPage({
     .order("sort_order", { ascending: true });
   const pixels = (pixelsRaw ?? []) as TrackingPixel[];
   const liveCount = pixels.filter((p) => p.enabled && p.pixel_id && p.pixel_id.length > 0).length;
+
+  const { data: sourcesRaw } = await supabase
+    .from("job_sources")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  const jobSources = (sourcesRaw ?? []) as JobSourceRow[];
 
   return (
     <div className="max-w-3xl">
@@ -146,6 +153,36 @@ export default async function AdminIntegrationsPage({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Automated job sources */}
+      <div className="mt-12">
+        <div className="mb-5">
+          <h2 className="font-display text-xl font-bold text-neutral-900">Automated Job Sources</h2>
+          <p className="text-sm text-neutral-500 mt-1">
+            Toggle which boards the weekly automated feed pulls from. Each enabled source is searched
+            against every active client&apos;s watchlist, then scored and assigned automatically.
+          </p>
+        </div>
+
+        {jobSources.length === 0 ? (
+          <div className="bg-white rounded-xl border border-neutral-200 px-6 py-12 text-center text-sm text-neutral-500">
+            No job sources configured. Apply the 0019_job_sources migration to seed JSearch and USAJOBS.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {jobSources.map((s) => (
+              <JobSourceCard key={s.id} source={s} />
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs text-neutral-500 mt-4">
+          USAJOBS requires <code className="bg-neutral-100 px-1 rounded">USAJOBS_API_KEY</code> and{" "}
+          <code className="bg-neutral-100 px-1 rounded">USAJOBS_USER_AGENT</code>. JSearch requires{" "}
+          <code className="bg-neutral-100 px-1 rounded">RAPIDAPI_KEY</code>. The feed runs via{" "}
+          <code className="bg-neutral-100 px-1 rounded">/api/cron/job-feed</code>.
+        </p>
       </div>
     </div>
   );

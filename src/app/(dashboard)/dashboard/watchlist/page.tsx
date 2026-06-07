@@ -1,48 +1,27 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Bell, ArrowRight, Star, ExternalLink } from "lucide-react";
+import { Bell, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { MatchStatusSelect } from "@/components/dashboard/MatchStatusSelect";
+import { JobCard, type JobCardMatch, type JobCardJob } from "@/components/dashboard/JobCard";
+import { getWatchlistAccess, WatchlistInactiveNotice } from "@/lib/watchlist/access";
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  new: { label: "New", color: "bg-brand-100 text-brand-700" },
-  saved: { label: "Saved", color: "bg-blue-100 text-blue-700" },
-  interested: { label: "Interested", color: "bg-purple-100 text-purple-700" },
-  applied: { label: "Applied", color: "bg-yellow-100 text-yellow-700" },
-  interviewing: { label: "Interviewing", color: "bg-orange-100 text-orange-700" },
-  offer: { label: "Offer", color: "bg-green-100 text-green-700" },
-  not_a_fit: { label: "Not a Fit", color: "bg-neutral-100 text-neutral-500" },
-  archived: { label: "Archived", color: "bg-neutral-100 text-neutral-400" },
-};
+type MatchRow = JobCardMatch & { job_id: string | null };
 
-type MatchRow = {
-  id: string;
-  job_id: string | null;
-  status: string;
-  rachel_recommended: boolean;
-  score: number | null;
-  score_label: string | null;
-};
-
-type JobRow = {
-  id: string;
-  title: string;
-  company: string;
-  location: string | null;
-  is_remote: boolean;
-  url: string | null;
-  salary_range: string | null;
-  date_posted: string | null;
-};
-
-export default async function WatchlistPage() {
+export default async function WatchlistPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { view } = await searchParams;
+  const savedView = view === "saved";
 
   const { data: watchlistProfile } = await supabase
     .from("watchlist_profiles")
@@ -76,30 +55,42 @@ export default async function WatchlistPage() {
     );
   }
 
-  // Fetch matches (excluding archived/not_a_fit) then fetch job details separately
+  // Gate job-alerts content when the subscription is not active.
+  const access = getWatchlistAccess(watchlistProfile.subscription_status);
+  if (!access.allowed) {
+    return <WatchlistInactiveNotice status={watchlistProfile.subscription_status} />;
+  }
+
   const { data: matchesRaw } = await supabase
     .from("client_job_matches")
-    .select("id, job_id, status, rachel_recommended, score, score_label")
+    .select(
+      "id, job_id, status, rachel_recommended, score, score_label, match_reason, recommended_action, priority_level, client_notes, is_favorite"
+    )
     .eq("client_id", user.id)
     .not("status", "in", '("archived","not_a_fit")')
     .order("created_at", { ascending: false });
 
-  const matches = (matchesRaw ?? []) as MatchRow[];
+  const allMatches = (matchesRaw ?? []) as MatchRow[];
+  const matches = savedView
+    ? allMatches.filter((m) => m.is_favorite || m.status === "saved")
+    : allMatches;
 
   const jobIds = [...new Set(matches.map((m) => m.job_id).filter(Boolean))] as string[];
-  let jobs: JobRow[] = [];
+  let jobs: JobCardJob[] = [];
   if (jobIds.length > 0) {
     const { data } = await supabase
       .from("job_listings")
-      .select("id, title, company, location, is_remote, url, salary_range, date_posted")
+      .select("id, title, company, location, is_remote, url, salary_range, date_posted, source")
       .in("id", jobIds);
-    jobs = (data ?? []) as JobRow[];
+    jobs = (data ?? []) as JobCardJob[];
   }
   const jobMap = Object.fromEntries(jobs.map((j) => [j.id, j]));
 
+  const savedCount = allMatches.filter((m) => m.is_favorite || m.status === "saved").length;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-neutral-900">Job Watchlist</h1>
           <p className="text-neutral-500 mt-1 text-sm">Your curated job matches.</p>
@@ -112,73 +103,45 @@ export default async function WatchlistPage() {
         </Link>
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-6 border-b border-neutral-200">
+        <Tab href="/dashboard/watchlist" active={!savedView} label={`All Matches (${allMatches.length})`} />
+        <Tab href="/dashboard/watchlist?view=saved" active={savedView} label={`Saved & Favorites (${savedCount})`} />
+      </div>
+
       {matches.length > 0 ? (
         <div className="space-y-3">
           {matches.map((match) => {
             const job = match.job_id ? jobMap[match.job_id] ?? null : null;
             if (!job) return null;
-            const { label, color } = statusLabels[match.status] ?? statusLabels.new;
-
-            return (
-              <div key={match.id} className="bg-white border border-neutral-200 rounded-xl p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>{label}</span>
-                      {match.rachel_recommended && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                          <Star className="h-3 w-3" /> Rachel&apos;s Pick
-                        </span>
-                      )}
-                      {match.score !== null && match.score_label && (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          match.score_label === "strong" ? "bg-green-100 text-green-700"
-                          : match.score_label === "good" ? "bg-brand-100 text-brand-700"
-                          : "bg-neutral-100 text-neutral-600"
-                        }`}>
-                          {match.score}% match
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-neutral-900">{job.title}</h3>
-                    <p className="text-sm text-neutral-600">{job.company}</p>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      {job.location && <span className="text-xs text-neutral-400">{job.location}</span>}
-                      {job.is_remote && <span className="text-xs text-brand-600 font-medium">Remote</span>}
-                      {job.salary_range && <span className="text-xs text-neutral-400">{job.salary_range}</span>}
-                      {job.date_posted && (
-                        <span className="text-xs text-neutral-400">
-                          Posted {new Date(job.date_posted).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <MatchStatusSelect matchId={match.id} currentStatus={match.status} />
-                    {job.url && (
-                      <a
-                        href={job.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        <span className="hidden sm:inline">View</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
+            return <JobCard key={match.id} match={match} job={job} />;
           })}
         </div>
       ) : (
         <div className="bg-white border border-neutral-200 rounded-xl p-10 text-center">
           <p className="text-sm text-neutral-500">
-            No active matches yet. Rachel will add jobs as she finds good fits for your profile.
+            {savedView
+              ? "No saved or favorited jobs yet. Tap the star on any match to save it here."
+              : "No active matches yet. Rachel will add jobs as she finds good fits for your profile."}
           </p>
         </div>
       )}
     </div>
+  );
+}
+
+function Tab({ href, active, label }: { href: string; active: boolean; label: string }) {
+  return (
+    <Link
+      href={href}
+      className={
+        "px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors " +
+        (active
+          ? "border-brand-600 text-brand-700"
+          : "border-transparent text-neutral-500 hover:text-neutral-800")
+      }
+    >
+      {label}
+    </Link>
   );
 }

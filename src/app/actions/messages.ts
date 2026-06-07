@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resend, FROM_EMAIL } from "@/lib/email/resend";
 import { renderShell } from "@/lib/email/shell";
+import { createClientNotification } from "@/lib/notifications/client";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "hello@thryvegrowth.co";
@@ -14,6 +15,8 @@ interface SendArgs {
   /** When admin posts, this identifies which client thread. Ignored if sender is the client. */
   clientId?: string;
   body: string;
+  /** Storage path of an attachment uploaded via uploadMessageAttachment. */
+  attachmentPath?: string;
 }
 
 export async function sendMessage(args: SendArgs): Promise<{ error?: string; success?: boolean }> {
@@ -22,7 +25,8 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
   if (!user) return { error: "Sign in to continue." };
 
   const body = args.body.trim();
-  if (!body) return { error: "Message can't be empty." };
+  const attachmentPath = args.attachmentPath?.trim() || null;
+  if (!body && !attachmentPath) return { error: "Message can't be empty." };
   if (body.length > MAX_BODY_LEN) return { error: "Message is too long." };
 
   // Determine sender role + clientId
@@ -49,9 +53,12 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
     sender_id: user.id,
     sender_role: senderRole,
     body,
+    attachment_path: attachmentPath,
   });
 
   if (insertError) return { error: insertError.message };
+
+  const notifyBody = body || "📎 Sent an attachment";
 
   // Fire an email notification to the other party
   try {
@@ -63,7 +70,7 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
         subject: `New message from ${senderName}`,
         html: renderShell(buildNotifyHtml({
           headline: `New message from ${senderName}`,
-          body,
+          body: notifyBody,
           ctaUrl: `${APP_URL}/admin/messages/${clientId}`,
           ctaLabel: "Reply in admin",
         })),
@@ -83,12 +90,20 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
           subject: "New message from Rachel",
           html: renderShell(buildNotifyHtml({
             headline: `New message from Rachel`,
-            body,
+            body: notifyBody,
             ctaUrl: `${APP_URL}/dashboard/messages`,
             ctaLabel: "Open conversation",
           })),
         });
       }
+      // In-app bell notification for the client.
+      await createClientNotification({
+        clientId,
+        type: "message_received",
+        title: "New message from Rachel",
+        body: notifyBody.length > 90 ? `${notifyBody.slice(0, 90)}…` : notifyBody,
+        link: "/dashboard/messages",
+      });
     }
   } catch {
     // Notification failures don't block the message.
@@ -125,6 +140,48 @@ export async function markThreadRead(clientId: string): Promise<{ error?: string
   revalidatePath("/admin/messages");
   if (isAdmin) revalidatePath(`/admin/messages/${clientId}`);
   return { success: true };
+}
+
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB (matches documents bucket)
+
+// Uploads a message attachment to the private `documents` bucket under
+// `messages/{clientId}/{ts}-{name}` via the service client. Client uploads land
+// in their own folder; admin must pass the target clientId. Download is gated by
+// /api/messages/attachment.
+export async function uploadMessageAttachment(
+  formData: FormData
+): Promise<{ path?: string; filename?: string; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to continue." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "No file selected." };
+  if (file.size > MAX_ATTACHMENT_BYTES) return { error: "File too large (max 25 MB)." };
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const isAdmin = (profile as { role: string } | null)?.role === "admin";
+
+  let clientId: string;
+  if (isAdmin) {
+    const passed = formData.get("clientId");
+    if (typeof passed !== "string" || !passed) return { error: "Choose a client thread first." };
+    clientId = passed;
+  } else {
+    clientId = user.id;
+  }
+
+  const safeName = file.name.replace(/[^\w.\-]/g, "_").slice(-120);
+  const path = `messages/${clientId}/${Date.now()}-${safeName}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const service = createServiceClient();
+  const { error } = await service.storage
+    .from("documents")
+    .upload(path, buffer, { contentType: file.type || "application/octet-stream", upsert: false });
+  if (error) return { error: error.message };
+
+  return { path, filename: safeName };
 }
 
 function buildNotifyHtml(args: {

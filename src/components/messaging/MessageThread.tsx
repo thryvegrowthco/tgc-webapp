@@ -2,17 +2,23 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Send } from "lucide-react";
+import { Send, Paperclip, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { sendMessage } from "@/app/actions/messages";
+import { sendMessage, uploadMessageAttachment } from "@/app/actions/messages";
 
 export interface ThreadMessage {
   id: string;
   body: string;
   sender_role: "client" | "admin";
   created_at: string;
+  attachment_path?: string | null;
+}
+
+function attachmentName(path: string): string {
+  const last = path.split("/").pop() ?? path;
+  return last.replace(/^\d+-/, "");
 }
 
 interface MessageThreadProps {
@@ -26,9 +32,11 @@ interface MessageThreadProps {
 export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: MessageThreadProps) {
   const router = useRouter();
   const [body, setBody] = React.useState("");
+  const [file, setFile] = React.useState<File | null>(null);
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -38,16 +46,33 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!body.trim() && !file) return;
     setSending(true);
     setError(null);
-    const result = await sendMessage({ body, clientId });
+
+    let attachmentPath: string | undefined;
+    if (file) {
+      const fd = new FormData();
+      fd.set("file", file);
+      if (clientId) fd.set("clientId", clientId);
+      const upload = await uploadMessageAttachment(fd);
+      if (upload.error) {
+        setSending(false);
+        setError(upload.error);
+        return;
+      }
+      attachmentPath = upload.path;
+    }
+
+    const result = await sendMessage({ body, clientId, attachmentPath });
     setSending(false);
     if (result.error) {
       setError(result.error);
       return;
     }
     setBody("");
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     router.refresh();
   }
 
@@ -69,7 +94,21 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
                       : "bg-neutral-100 text-neutral-900 rounded-bl-md"
                   )}
                 >
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
+                  {msg.body && <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>}
+                  {msg.attachment_path && (
+                    <a
+                      href={`/api/messages/attachment?path=${encodeURIComponent(msg.attachment_path)}&name=${encodeURIComponent(attachmentName(msg.attachment_path))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium underline",
+                        isMine ? "text-white/90" : "text-brand-700"
+                      )}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {attachmentName(msg.attachment_path)}
+                    </a>
+                  )}
                   <p
                     className={cn(
                       "text-[10px] mt-1.5 opacity-70",
@@ -94,7 +133,39 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
         {error && (
           <p className="text-xs text-red-600">{error}</p>
         )}
+        {file && (
+          <div className="flex items-center gap-2 text-xs text-neutral-600 bg-neutral-50 rounded-lg px-3 py-2">
+            <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate flex-1">{file.name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="text-neutral-400 hover:text-neutral-700"
+              aria-label="Remove attachment"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 items-end">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-[60px] px-3"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach a file"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -107,11 +178,11 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
               }
             }}
           />
-          <Button type="submit" disabled={sending || !body.trim()} className="h-[60px] px-4">
+          <Button type="submit" disabled={sending || (!body.trim() && !file)} className="h-[60px] px-4">
             <Send className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-[10px] text-neutral-400">Press ⌘/Ctrl + Enter to send. Reply within 1–2 business days.</p>
+        <p className="text-[10px] text-neutral-400">Attach a file or press ⌘/Ctrl + Enter to send. Replies within 1–2 business days.</p>
       </form>
     </div>
   );

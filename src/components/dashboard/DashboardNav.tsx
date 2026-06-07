@@ -19,13 +19,13 @@ import { Logo } from "@/components/shared/Logo";
 
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, exact: true },
-  { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
+  { label: "Job Matches", href: "/dashboard/watchlist", icon: Bell, exact: false },
+  { label: "Application Tracker", href: "/dashboard/applications", icon: Briefcase, exact: false },
   { label: "Messages", href: "/dashboard/messages", icon: MessageCircle, exact: false },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, exact: false },
-  { label: "Job Watchlist", href: "/dashboard/watchlist", icon: Bell, exact: false },
-  { label: "Applications", href: "/dashboard/applications", icon: Briefcase, exact: false },
+  { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: CreditCard, exact: false },
-  { label: "Profile", href: "/dashboard/profile", icon: User, exact: false },
+  { label: "Account Settings", href: "/dashboard/profile", icon: User, exact: false },
 ];
 
 export function DashboardNav() {

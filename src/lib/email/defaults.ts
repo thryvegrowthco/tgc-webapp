@@ -153,4 +153,56 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 16px;color:#475569;">Let me know if you have any questions.</p>
 <p style="margin:0;color:#475569;">— Rachel</p>`,
   },
+
+  new_job_match: {
+    subject: "New job matches in your Thryve watchlist",
+    placeholders: ["client_name", "match_count", "match_plural", "dashboard_url"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">Good news — <strong>{{match_count}}</strong> new job match{{#if match_plural}}es{{/if}} just landed in your watchlist based on your preferences.</p>
+<p style="margin:0 0 32px;text-align:center;">
+  <a href="{{dashboard_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Review your matches</a>
+</p>
+<p style="margin:0;color:#475569;">— Rachel</p>`,
+  },
+
+  curated_job_match: {
+    subject: "Rachel picked a job for you",
+    placeholders: ["client_name", "job_title", "company", "match_reason", "recommended_action", "dashboard_url"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">I personally found a role I think is worth a look:</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 20px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 4px;font-weight:600;font-size:16px;color:#0f172a;">{{job_title}}</p>
+    <p style="margin:0 0 12px;color:#64748b;">{{company}}</p>
+    {{#if match_reason}}<p style="margin:0 0 8px;color:#0f172a;"><strong>Why it matches:</strong> {{match_reason}}</p>{{/if}}
+    {{#if recommended_action}}<p style="margin:0;color:#0f172a;"><strong>Recommended next step:</strong> {{recommended_action}}</p>{{/if}}
+  </td></tr>
+</table>
+<p style="margin:0 0 32px;text-align:center;">
+  <a href="{{dashboard_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">View this match</a>
+</p>
+<p style="margin:0;color:#475569;">Direct. Honest. Practical.<br/>— Rachel</p>`,
+  },
+
+  watchlist_updated: {
+    subject: "Your Thryve watchlist preferences were updated",
+    placeholders: ["client_name", "dashboard_url"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">Your watchlist preferences were just updated. Future job searches will use your latest criteria.</p>
+<p style="margin:0 0 32px;text-align:center;">
+  <a href="{{dashboard_url}}" style="display:inline-block;background:#ffffff;color:#203e35;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;border:1px solid #203e35;">View your watchlist</a>
+</p>
+<p style="margin:0;color:#475569;">— Rachel</p>`,
+  },
+
+  application_reminder: {
+    subject: "How's your application going?",
+    placeholders: ["client_name", "job_title", "company", "applied_date", "dashboard_url"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">It's been a little while since you applied to <strong>{{job_title}}</strong> at {{company}} ({{applied_date}}). Any movement? Update your tracker so we can plan next steps together.</p>
+<p style="margin:0 0 32px;text-align:center;">
+  <a href="{{dashboard_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Update your tracker</a>
+</p>
+<p style="margin:0;color:#475569;">— Rachel</p>`,
+  },
 };

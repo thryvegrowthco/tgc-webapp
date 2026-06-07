@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { DollarSign, Calendar, CheckCircle2, XCircle, Clock, Users, Bell, TrendingUp } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle2, XCircle, Clock, Users, Bell, TrendingUp, Download, Briefcase } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { computeJobAlertsReport } from "@/lib/reporting/job-alerts";
 
 export const metadata: Metadata = {
   title: "Analytics — Admin",
@@ -85,6 +86,8 @@ export default async function AdminAnalyticsPage() {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     monthlyRevenue.push({ month: key, revenue: monthlyMap.get(key) ?? 0 });
   }
+
+  const report = await computeJobAlertsReport();
 
   const revenueCards = [
     { label: "All-Time Revenue", value: formatCurrency(allTimeRevenue), icon: DollarSign, color: "text-brand-600", bg: "bg-brand-50" },
@@ -193,6 +196,69 @@ export default async function AdminAnalyticsPage() {
         </section>
       </div>
 
+      {/* Job Alerts report */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">Job Alerts Report</h2>
+          <a
+            href="/api/admin/job-alerts/export"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:text-brand-800"
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </a>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <ReportCard label="Total Clients" value={report.totalClients} icon={Users} color="text-blue-600" bg="bg-blue-50" />
+          <ReportCard label="Active Clients" value={report.activeClients} icon={Bell} color="text-brand-600" bg="bg-brand-50" />
+          <ReportCard label="Placement Rate" value={`${Math.round(report.placementRate * 100)}%`} icon={CheckCircle2} color="text-green-600" bg="bg-green-50" />
+          <ReportCard label="Applications" value={report.applications} icon={Briefcase} color="text-amber-600" bg="bg-amber-50" />
+          <ReportCard label="Interviews" value={report.interviews} icon={Calendar} color="text-orange-600" bg="bg-orange-50" />
+          <ReportCard label="Offers" value={report.offers} icon={TrendingUp} color="text-purple-600" bg="bg-purple-50" />
+          <ReportCard label="Accepted" value={report.accepted} icon={CheckCircle2} color="text-green-600" bg="bg-green-50" />
+          <ReportCard label="Inactive Clients" value={report.inactiveClients} icon={XCircle} color="text-neutral-500" bg="bg-neutral-100" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+          <div className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100">
+              <h3 className="font-semibold text-neutral-900">Top Industries</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">By client watchlist preference</p>
+            </div>
+            {report.topIndustries.length === 0 ? (
+              <p className="px-6 py-8 text-sm text-neutral-400 text-center">No industry preferences yet.</p>
+            ) : (
+              <div className="divide-y divide-neutral-100">
+                {report.topIndustries.map((i) => (
+                  <div key={i.name} className="px-6 py-3 flex items-center justify-between gap-4">
+                    <p className="text-sm text-neutral-800 truncate">{i.name}</p>
+                    <span className="text-sm font-semibold text-neutral-900 flex-shrink-0">{i.count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100">
+              <h3 className="font-semibold text-neutral-900">Most Successful Searches</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">Target roles ranked by applications</p>
+            </div>
+            {report.topRoles.length === 0 ? (
+              <p className="px-6 py-8 text-sm text-neutral-400 text-center">No applications tracked yet.</p>
+            ) : (
+              <div className="divide-y divide-neutral-100">
+                {report.topRoles.map((r) => (
+                  <div key={r.name} className="px-6 py-3 flex items-center justify-between gap-4">
+                    <p className="text-sm text-neutral-800 truncate">{r.name}</p>
+                    <span className="text-sm font-semibold text-neutral-900 flex-shrink-0">{r.applications} apps</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Monthly revenue table */}
       <section className="bg-white rounded-xl border border-neutral-200">
         <div className="px-6 py-4 border-b border-neutral-100">
@@ -217,6 +283,30 @@ export default async function AdminAnalyticsPage() {
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ReportCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  bg,
+}: {
+  label: string;
+  value: number | string;
+  icon: typeof Users;
+  color: string;
+  bg: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-neutral-200 p-5">
+      <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center mb-3`}>
+        <Icon className={`h-5 w-5 ${color}`} />
+      </div>
+      <p className="text-2xl font-bold text-neutral-900">{value}</p>
+      <p className="text-sm text-neutral-500 mt-0.5">{label}</p>
     </div>
   );
 }

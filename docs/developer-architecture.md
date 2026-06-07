@@ -133,12 +133,13 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 | `booking.ts` | `createBookingCheckoutSession`, `addBulkAvailabilitySlots`, `deleteAvailabilitySlot`, `deleteAvailabilitySlotsBulk`, `updateBookingStatus` | `createBookingCheckoutSession` refuses if slot is already booked; `addBulkAvailabilitySlots` accepts `{ dates, timeBlocks, serviceType }` and inserts the cartesian product via Supabase upsert with `ignoreDuplicates` against the `(slot_date, start_time)` unique index — returns `{ created, skipped }`. 500-row sanity cap. `deleteAvailabilitySlot` refuses if slot is booked. `deleteAvailabilitySlotsBulk(ids: string[])` mirrors the single-row guard with `.in("id", ids).eq("is_booked", false)` — booked rows are filtered out of the delete and surfaced via the `skipped` count. `updateBookingStatus` is admin-only with status allowlist |
 | `documents.ts` | `uploadDocument`, `deleteDocument`, `addClientNote` | Uses service client; cleans up Storage on DB insert failure. On categories `deliverable`/`resume_rewrite`/`hr_doc`, `uploadDocument` fires the `deliverable_ready` email to the client (idempotent via `automation_log` event_key `deliverable_ready_sent:{documentId}`). |
 | `intake.ts` | `saveIntake` | Client action gated by booking ownership. On submit: sends `intake_complete` email, folds uploaded filenames into the admin alert (`sendAdminBookingAlert` accepts an `uploadedFiles` option), writes `intake_submitted` + per-file `client_doc_upload` admin notifications, and inserts a `Prepare deliverable / session` auto-task. |
-| `notifications.ts` | `markNotificationRead`, `markAllNotificationsRead` | Admin-only via `requireAdmin()` from `src/lib/auth/require.ts`. Bumps `admin_notifications.read_at` and revalidates the `/admin` layout for the bell. |
+| `notifications.ts` | `markNotificationRead`, `markAllNotificationsRead`, `markClientNotificationRead`, `markAllClientNotificationsRead` | Admin pair gated by `requireAdmin()`; client pair scoped to `auth.uid()` own rows. Bump `read_at` and revalidate the relevant layout for the bell. |
 | `tasks.ts` | `createTask`, `updateTask`, `completeTask`, `uncompleteTask`, `deleteTask` | Admin-only via shared `requireAdmin()`. Revalidates `/admin`, `/admin/tasks`, and per-client pages. |
 | `resources.ts` | `toggleResource`, `updateResource` | Admin-only via shared `requireAdmin()`. Powers `/admin/resources` toggles + edit form; both calls revalidate `/resources` so the public page reflects changes immediately. |
 | `tracking-pixels.ts` | `toggleTrackingPixel`, `updateTrackingPixel` | Admin-only via shared `requireAdmin()`. Powers the Visitor Tracking cards on `/admin/integrations`. Calls `revalidatePath("/", "layout")` so every public page re-fetches the live pixel set on the next request, and bumps `/privacy` so its dynamic Cookies section stays in sync. |
 | `blog.ts` | `createBlogPost`, `updateBlogPost`, `deleteBlogPost`, `uploadFeaturedImage` | `requireAdmin()` guard; slug uniqueness enforced in both create + update |
-| `watchlist.ts` | `saveWatchlistProfile`, `updateMatchStatus`, `addManualJob`, `assignJobToClient`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient` | Client actions + admin actions mixed in one file; each has its own auth check. `fetchJSearchJobsForClient` and `runAutoMatchForClient` apply the scoring engine in `src/lib/matching/score.ts` and only insert matches with score ≥ 60. |
+| `watchlist.ts` | Client: `saveWatchlistProfile`, `updateMatchStatus`, `toggleFavorite`, `updateMatchNotes`, `updateApplicationDetails`. Admin: `addManualJob`, `assignJobToClient(clientId, jobId, curation?)`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient`, `updateWatchlistProfileAsAdmin`, `setWatchlistReviewStatus`, `pauseWatchlist`, `reactivateWatchlist`, `cancelWatchlist`, `toggleJobSource` | Client + admin actions in one file; each has its own auth check. Save/assign/fetch emit `client_notifications` + emails (`new_job_match`/`curated_job_match`/`watchlist_updated`). `pause/reactivate/cancel` act on the Stripe subscription + local status. `toggleJobSource` flips `job_sources.enabled`. Auto-match uses `src/lib/matching/score.ts`, inserting only matches with score ≥ 60 (excluded-employer / unmet must-have force exclusion). |
+| `messages.ts` | `sendMessage`, `markThreadRead`, `uploadMessageAttachment` | Two-way client↔admin thread (`client_messages`). `sendMessage` emails the other party + writes a `message_received` client notification (admin→client). `uploadMessageAttachment` stores files in the private `documents` bucket at `messages/{clientId}/...` via the service client; download is gated by `/api/messages/attachment`. |
 | `billing.ts` | `createPortalSession` | Looks up client's `stripe_subscription_id`, retrieves Stripe customer ID from the subscription, creates a Stripe Customer Portal session, and redirects. Used by `/dashboard/billing`. |
 | `leads.ts` | `updateLeadStatus`, `updateLeadAdminNotes` | Admin-only. Used on `/admin/leads/[id]`. |
 | `newsletter.ts` | `createIssue`, `updateIssue`, `submitForApproval`, `approveAndSchedule`, `approveAndSendNow`, `unscheduleIssue`, `duplicateIssue`, `deleteIssue`, `createTemplate`, `updateTemplate`, `deleteTemplate`, `manuallyUnsubscribe`, `saveIdea`, `deleteIdea` | Admin-only via `requireAdmin()`. Approval workflow enforces `scheduled_for` is at least 5 minutes in the future. `approveAndSendNow` calls `sendIssue` synchronously and returns sent/failed counts. |
@@ -223,7 +224,9 @@ All cron endpoints share the same auth pattern (`Authorization: Bearer {CRON_SEC
 
 | Path | Schedule | Purpose |
 |---|---|---|
-| `/api/cron/job-alerts` | `0 9 * * 1` (Mon 9 AM UTC) | Weekly job match digest per active watchlist subscriber. |
+| `/api/cron/job-alerts` | `0 9 * * 1` (Mon 9 AM UTC) | Weekly digest email of already-assigned matches per active subscriber. |
+| `/api/cron/job-feed` | `0 8 * * *` (daily 8 AM UTC) | Automated multi-source ingest. Processes `JOB_FEED_BATCH` (default 5) least-recently-fed active clients per run via the `watchlist_profiles.last_feed_at` cursor → `getEnabledSources()` → `ingestForClient` (fetch → dedup → score → assign → `new_job_match` notify) → stamps `last_feed_at`. Batching keeps each run under Hobby's 10s cap (free). Logs a `job_feed_run` row to `automation_log`; idempotent. |
+| `/api/cron/application-reminders` | `0 14 * * *` (daily) | T+7/14/30 nudges after a match hits `applied` (`application_reminder` email + in-app). Idempotent via `automation_log` event_key `application_reminder:{matchId}:{milestone}`. |
 | `/api/cron/newsletter-send` | `0 * * * *` (hourly) | Fetches `newsletter_issues` where `status='scheduled' AND scheduled_for <= NOW()` and calls `sendIssue` for each. Hourly precision means a 9:15 AM schedule sends at 10 AM. |
 | `/api/cron/newsletter-reengage` | `0 14 * * 3` (Wed 9 AM Central) | Sends "we missed you" to subscribers inactive 60+ days (capped 50/run). |
 | `/api/cron/newsletter-milestones` | `0 14 * * *` (daily) | Sends thank-you emails on the 6-month and 1-year anniversary of signup. |
@@ -298,17 +301,23 @@ All cron endpoints share the same auth pattern (`Authorization: Bearer {CRON_SEC
 
 **File:** `src/lib/matching/score.ts` (pure, no side effects)
 
-`scoreJobAgainstProfile(profile, job)` returns `{ score: 0–100, label, reasons[] }`. Weights:
+`scoreJobAgainstProfile(profile, job)` returns `{ score: 0–100, label, reasons[], excluded? }`. Base weights (sum 100):
 
 | Signal | Max pts | How it scores |
 |---|---|---|
-| Role keyword overlap | 40 | tokens from `target_roles` matched against job title (worth more) and description |
-| Location / remote fit | 25 | full credit when remote-pref matches `is_remote`, or location string overlaps |
-| Salary band overlap | 15 | parses `job.salary_range` (e.g., `$80k–$100k`) and compares against `salary_min`/`salary_max` |
-| Experience level | 15 | matches level keywords (senior/lead/principal, mid, junior/entry) in title + description |
-| Industry mention | 5 | substring match between profile `industries[]` and job company/description |
+| Role / title keyword overlap | 30 | tokens from `target_roles` matched against job title (worth more) and description |
+| Keywords | 12 | fraction of `keywords[]` found in title + description |
+| Skills | 12 | fraction of `skills[]` found in description |
+| Location / remote fit | 18 | full credit when remote-pref matches `is_remote`, or location string overlaps |
+| Salary band overlap | 10 | parses `job.salary_range` and compares against `salary_min`/`salary_max` |
+| Experience level | 8 | matches level keywords in title + description |
+| Certifications | 5 | fraction of `certifications[]` found in description |
+| Industry mention | 5 | substring match between `industries[]` and company/description |
 
-Threshold: `score ≥ 60` is included. Tier labels: `80+` → `strong`, `65–79` → `good`, `60–64` → `maybe`. The label is stored in `client_job_matches.score_label`.
+**Bonuses** (added, clamped to 100): preferred employer `+8`; nice-to-haves up to `+5`.
+**Hard gates** (return `score 0, excluded: true`): job company matches an `excluded_employers` entry, or any `must_haves` phrase is absent from the title+description.
+
+Threshold: `score ≥ 60` is included. Tier labels: `80+` → `strong`, `65–79` → `good`, `60–64` → `maybe`. Stored in `client_job_matches.score_label`. Covered by `scripts/verify-scoring.ts` (`npx tsx scripts/verify-scoring.ts`).
 
 **Used by:**
 - `fetchJSearchJobsForClient` — scores every fetched job before assigning to the client; only inserts matches above threshold; flags `strong` matches as `rachel_recommended`

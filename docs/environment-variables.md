@@ -71,13 +71,18 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 
 *If either is absent, GHL sync is silently skipped. Bookings and newsletter signups still work. Set these before going live to enable CRM sync.
 
-### Job Search (JSearch via RapidAPI)
+### Job Search (sources for the automated feed)
 
 | Variable | Required | Source | Purpose |
 |---|---|---|---|
-| `RAPIDAPI_KEY` | No* | RapidAPI → My Apps → your key | JSearch job listing API |
+| `RAPIDAPI_KEY` | No* | RapidAPI → My Apps → your key | JSearch job listing API (`jsearch` source) |
+| `USAJOBS_API_KEY` | No** | developer.usajobs.gov → request an API key | USAJOBS.gov federal jobs (`usajobs` source) — `Authorization-Key` header |
+| `USAJOBS_USER_AGENT` | No** | The email you registered at developer.usajobs.gov | Sent as the `User-Agent` header (USAJOBS requires it) |
 
-*If absent, "Fetch from JSearch" returns 0 results. Manual job entry still works. Set this to enable automated job fetching.
+*If absent, "Fetch from JSearch" and the `jsearch` feed source return 0 results. Manual job entry still works.
+**If absent, the `usajobs` source graceful-degrades to 0 results. Enable the source in `/admin/integrations` only after both are set. The automated feed runs via `/api/cron/job-feed`.
+
+| `JOB_FEED_BATCH` | No | — | Clients processed per `/api/cron/job-feed` run (default `5`). Keeps each run under Vercel Hobby's 10s cap. Set `3` if both JSearch + USAJOBS are enabled. |
 
 ### Auth Hooks
 

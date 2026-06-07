@@ -233,6 +233,25 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 ---
 
+## Job-source adapters (automated feed)
+
+**What it does:** Powers the automated `/api/cron/job-feed` (and is extensible to new boards). Each source implements the `JobSource` contract in `src/lib/job-api/types.ts` (`search()` → rows already normalized to the `job_listings` shape).
+
+**Registry:** `src/lib/job-api/sources.ts` — `ALL_SOURCES` maps a key → adapter; `getEnabledSources()` returns the intersection of registered adapters and the `job_sources` table rows where `enabled = TRUE` (falls back to JSearch if the table is empty/unreadable).
+
+**Ingest pipeline:** `src/lib/job-api/ingest.ts → ingestForClient(clientId, profile, sources)` — fetches across sources, dedups by `external_id` (within the batch and against existing `job_listings`), inserts new listings, scores each via `src/lib/matching/score.ts`, upserts matches ≥ 60, and notifies the client (`new_job_match` in-app + email) for genuinely-new matches.
+
+**Admin toggle:** `/admin/integrations → Automated Job Sources` (component `JobSourceCard`, action `toggleJobSource`) flips `job_sources.enabled`.
+
+**Shipped adapters:**
+
+| Key | File | Env vars | Notes |
+|---|---|---|---|
+| `jsearch` | `src/lib/job-api/jsearch.ts` (`jsearchSource`) | `RAPIDAPI_KEY` | Aggregates LinkedIn/Indeed/ZipRecruiter/Google data. Enabled by default. |
+| `usajobs` | `src/lib/job-api/usajobs.ts` (`usajobsSource`) | `USAJOBS_API_KEY`, `USAJOBS_USER_AGENT` | Official federal board. Off until keys are set. Register at developer.usajobs.gov; `USAJOBS_USER_AGENT` is the email you registered with (sent as the `User-Agent` header). Graceful-degrades to `[]` without keys. |
+
+---
+
 ## Vercel
 
 **What it does:** Hosting, CI/CD, edge functions, and analytics. Scheduled jobs live on cron-job.org (see next section) to stay within Vercel Hobby limits.
@@ -276,6 +295,10 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | `GET /api/cron/auto-complete-sessions` | `30 * * * *` | Hourly at :30 |
 | `GET /api/cron/post-service-followup` | `0 16 * * *` | Daily 11am CDT / 10am CST |
 | `GET /api/cron/extend-availability` | `0 11 * * *` | Daily 6am CDT / 5am CST |
+| `GET /api/cron/job-feed` | `0 8 * * *` | Daily 3am CDT / 2am CST — automated multi-source ingest + score + assign, `JOB_FEED_BATCH` clients/run (least-recently-fed first) |
+| `GET /api/cron/application-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST — T+7/14/30 nudges after a job is marked applied |
+
+> **`job-feed` runs free on Vercel Hobby.** Each invocation processes only `JOB_FEED_BATCH` clients (default 5, env-tunable), ordered by `watchlist_profiles.last_feed_at` (oldest/never-fed first), and stamps `last_feed_at` after each. So a daily run rotates through everyone over `ceil(active_clients / BATCH)` days, then keeps refreshing — staying well under Hobby's 10s function cap and keeping external API usage low. With both JSearch **and** USAJOBS enabled, set `JOB_FEED_BATCH=3`. Fully idempotent (dedup + `ON CONFLICT DO NOTHING`); the cursor advances even on a per-client error so nothing blocks the queue.
 
 ### Setting up a new job on cron-job.org
 

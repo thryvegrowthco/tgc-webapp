@@ -171,11 +171,27 @@ One per Job Alerts subscriber. Created/activated by the Stripe webhook on subscr
 | `remote_preference` | `TEXT` | `NULL` | CHECK: `remote`, `hybrid`, `onsite`, `any` |
 | `experience_level` | `TEXT` | `NULL` | — |
 | `preferences_notes` | `TEXT` | `NULL` | Free-text notes from client to Rachel |
-| `subscription_status` | `TEXT` | `'active'` | `'active'` or `'cancelled'`; only `'active'` rows get cron emails |
-| `stripe_subscription_id` | `TEXT` | `NULL` | Stored for reference; not used to drive access |
+| `employment_types` | `TEXT[]` | `NULL` | `full_time`/`part_time`/`contract`/`temporary` (added 0016) |
+| `keywords` | `TEXT[]` | `NULL` | Scored against job title + description (0016) |
+| `skills` | `TEXT[]` | `NULL` | Scored against job description (0016) |
+| `certifications` | `TEXT[]` | `NULL` | Scored against job description (0016) |
+| `education` | `TEXT` | `NULL` | Free-text (0016) |
+| `preferred_employers` | `TEXT[]` | `NULL` | Scoring **boost** when job company matches (0016) |
+| `excluded_employers` | `TEXT[]` | `NULL` | Hard **exclude** — matching jobs score 0 (0016) |
+| `job_board_preferences` | `TEXT[]` | `NULL` | Where to focus searches; informational (0016) |
+| `work_environment` | `TEXT` | `NULL` | Free-text culture/pace preference (0016) |
+| `travel_preference` | `TEXT` | `NULL` | `none`/`occasional`/`frequent`/`willing` (0016) |
+| `work_authorization_notes` | `TEXT` | `NULL` | Visa/citizenship notes (0016) |
+| `must_haves` | `TEXT[]` | `NULL` | Hard **gate** — jobs missing any are excluded (0016) |
+| `nice_to_haves` | `TEXT[]` | `NULL` | Additive scoring bonus (0016) |
+| `review_status` | `TEXT` | `'pending_review'` | CHECK: `pending_review`, `reviewed`. Non-blocking admin curation surface (0016) |
+| `reviewed_at` | `TIMESTAMPTZ` | `NULL` | Set when Rachel marks reviewed (0016) |
+| `reviewed_by` | `UUID` | `NULL` | FK → `profiles.id` (0016) |
+| `subscription_status` | `TEXT` | `'active'` | CHECK (0016): `active`, `inactive`, `paused`, `cancelled`, `expired`. Only `active` unlocks the watchlist UI + gets cron emails |
+| `stripe_subscription_id` | `TEXT` | `NULL` | Used by admin pause/reactivate/cancel actions + webhook sync |
 | `updated_at` | `TIMESTAMPTZ` | `NOW()` | Updated on `saveWatchlistProfile` |
 
-**Known gap:** `subscription_status` is NOT updated when a Stripe subscription is cancelled. Must be updated manually until the webhook handler is added.
+**Access gating:** `getWatchlistAccess()` (`src/lib/watchlist/access.tsx`) blocks the job-alerts dashboard pages (`/dashboard/watchlist`, `/watchlist/setup`, job-alerts portion of `/applications`) when `subscription_status != 'active'`, showing a reactivate CTA. Booking/coaching clients (no row) are unaffected. The Stripe webhook keeps `subscription_status` in sync; admin overrides (`pauseWatchlist`/`reactivateWatchlist`/`cancelWatchlist` in `src/app/actions/watchlist.ts`) also act on the Stripe subscription.
 
 ---
 
@@ -210,13 +226,22 @@ Join table connecting a client to job listings assigned to them.
 | `id` | `UUID` | `gen_random_uuid()` | — |
 | `client_id` | `UUID` | `NULL` | FK to `profiles.id` |
 | `job_id` | `UUID` | `NULL` | FK to `job_listings.id` |
-| `status` | `TEXT` | `'new'` | CHECK: `new`, `saved`, `interested`, `applied`, `not_a_fit`, `archived`, `interviewing`, `offer` |
-| `rachel_recommended` | `BOOLEAN` | `FALSE` | Rachel's highlight flag |
-| `client_notes` | `TEXT` | `NULL` | Not currently exposed in UI |
-| `application_date` | `DATE` | `NULL` | Surfaced on `/dashboard/applications` when set |
-| `interview_date` | `TIMESTAMPTZ` | `NULL` | Surfaced on `/dashboard/applications` when set |
+| `status` | `TEXT` | `'new'` | CHECK (widened in 0017): `interested`, `applied`, `interviewing`, `final_interview`, `offer_received`, `accepted`, `declined`, `rejected`, `withdrawn`, plus `new`, `saved`, `not_a_fit`, `archived`, and legacy `offer` (UI maps → `offer_received`) |
+| `rachel_recommended` | `BOOLEAN` | `FALSE` | Rachel's highlight flag → "Curated by Rachel" badge |
+| `client_notes` | `TEXT` | `NULL` | Client's private note (editable on the job card / tracker) |
+| `application_date` | `DATE` | `NULL` | Auto-stamped when status → `applied`; editable in tracker |
+| `interview_date` | `TIMESTAMPTZ` | `NULL` | Editable in the tracker detail panel |
 | `score` | `INTEGER` | `NULL` | 0–100 score from the auto-matching engine (`src/lib/matching/score.ts`) |
 | `score_label` | `TEXT` | `NULL` | CHECK: `strong`, `good`, `maybe`. Set by auto-matcher; null for manually-added matches |
+| `rachel_notes` | `TEXT` | `NULL` | Admin-only curation note — never selected in client queries (0017) |
+| `match_reason` | `TEXT` | `NULL` | "Why it matches" — shown to client on curated matches (0017) |
+| `priority_level` | `TEXT` | `NULL` | CHECK: `high`, `medium`, `low` (0017) |
+| `recommended_action` | `TEXT` | `NULL` | Rachel's suggested next step, shown to client (0017) |
+| `salary_offered` | `INT` | `NULL` | Offer amount, set in the tracker (0017) |
+| `next_steps` | `TEXT` | `NULL` | Client's tracker next-steps note (0017) |
+| `is_favorite` | `BOOLEAN` | `FALSE` | Client star toggle; powers the Saved & Favorites tab (0017) |
+| `resume_document_id` | `UUID` | `NULL` | FK → `documents.id` — resume used for this application (0017) |
+| `cover_letter_document_id` | `UUID` | `NULL` | FK → `documents.id` — cover letter used (0017) |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | Used by cron to find "new this week" matches |
 
 **Constraint:** `UNIQUE (client_id, job_id)` — a job can only be assigned to a client once. Upserts use `ON CONFLICT DO NOTHING`.
@@ -417,6 +442,45 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 **Indexes:** partial index on `created_at DESC WHERE read_at IS NULL` for the unread-count query; full index on `created_at DESC` for the inbox.
 
 **Writers:** Stripe webhook (`new_booking`), `saveIntake` action (`intake_submitted`, `client_doc_upload`), intake-overdue cron (`intake_overdue`), session-reminders cron (`session_in_24h`). Helper: `src/lib/notifications/admin.ts → createAdminNotification`.
+
+---
+
+### `client_notifications`
+
+Client-facing equivalent of `admin_notifications` — one row per event a client should see in their dashboard bell. Added in `0018_client_notifications.sql`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `client_id` | `UUID` | — | FK to `profiles.id` (ON DELETE CASCADE) |
+| `type` | `TEXT` | — | CHECK: `new_job_match`, `curated_job_match`, `watchlist_updated`, `application_reminder`, `message_received` |
+| `title` | `TEXT` | — | Headline in the bell |
+| `body` | `TEXT` | `NULL` | Optional supporting line |
+| `link` | `TEXT` | `NULL` | Where the row navigates (e.g. `/dashboard/watchlist`) |
+| `related_match_id` | `UUID` | `NULL` | FK to `client_job_matches.id` (ON DELETE SET NULL) |
+| `read_at` | `TIMESTAMPTZ` | `NULL` | NULL = unread |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**RLS:** clients SELECT + UPDATE (mark read) their own rows; admins SELECT all. Writes go through the service-role client.
+
+**Writers (`src/lib/notifications/client.ts → createClientNotification`):** auto-match + JSearch fetch (`new_job_match`), `assignJobToClient` (`curated_job_match`), `saveWatchlistProfile` edits (`watchlist_updated`), `sendMessage` admin→client (`message_received`), `/api/cron/application-reminders` (`application_reminder`). Email pairs are sent via `sendTemplated` using the matching `email_templates` keys (seeded in 0018).
+
+---
+
+### `job_sources`
+
+Registry of automated job-feed sources, toggleable in `/admin/integrations`. Added in `0019_job_sources.sql`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `provider` | `TEXT` | — | UNIQUE; the source key written to `job_listings.source` (`jsearch`, `usajobs`) |
+| `label` | `TEXT` | — | Display name in the admin toggle |
+| `enabled` | `BOOLEAN` | `FALSE` | Only enabled sources are pulled by `/api/cron/job-feed` |
+| `sort_order` | `INT` | `0` | Lower renders first |
+| `updated_at` / `updated_by` / `created_at` | — | — | `updated_by` FK → `profiles.id` (ON DELETE SET NULL) |
+
+**RLS:** admin-only via `is_admin()`. **Seed:** `jsearch` (enabled), `usajobs` (disabled). Resolved against the registered adapters in `src/lib/job-api/sources.ts` (`getEnabledSources`). `job_listings.source` stays free-text — no enum migration needed.
 
 ---
 

@@ -1,6 +1,8 @@
 // JSearch API wrapper via RapidAPI
 // Docs: https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
 
+import type { JobSource, JobSourceSearchParams } from "./types";
+
 export interface JSearchJob {
   job_id: string;
   job_title: string;
@@ -99,3 +101,23 @@ export function normalizeJob(job: JSearchJob) {
     is_active: true,
   };
 }
+
+// Adapter implementing the shared JobSource contract.
+export const jsearchSource: JobSource = {
+  key: "jsearch",
+  label: "JSearch (LinkedIn / Indeed / ZipRecruiter / Google aggregate)",
+  async search(params: JobSourceSearchParams) {
+    try {
+      const raw = await searchJobs({
+        query: params.query,
+        location: params.location,
+        isRemote: params.isRemote,
+        numPages: params.numPages ?? 1,
+      });
+      return raw.map(normalizeJob).filter((j) => j.external_id);
+    } catch (err) {
+      console.error("[jsearchSource] search failed:", err);
+      return [];
+    }
+  },
+};
