@@ -27,9 +27,16 @@ export function localCentralToUtcIso(dateStr: string, timeStr: string): string {
   // Step 1: build a Date by reading the wall-clock as if it were UTC.
   // That Date is `offsetMinutes` minutes off from the true UTC moment we want.
   const asIfUtc = new Date(`${dateStr}T${fullTime}Z`);
-  const offsetMinutes = getCentralOffsetMinutes(asIfUtc);
-  // Step 2: subtract that offset (Central is negative — subtracting a
-  // negative number adds to the timestamp, shifting forward into UTC).
+  // Step 2: probe the offset, but sample it at the *candidate* UTC instant, not
+  // at `asIfUtc` (which sits 5–6h earlier). On a DST-transition day, sampling at
+  // `asIfUtc` can return the pre-transition offset for an early-morning pick
+  // whose true moment is past the transition — storing it an hour off. Refining
+  // against the candidate instant fixes those edge cases and is a no-op otherwise.
+  const coarseOffset = getCentralOffsetMinutes(asIfUtc);
+  const candidate = new Date(asIfUtc.getTime() - coarseOffset * 60_000);
+  const offsetMinutes = getCentralOffsetMinutes(candidate);
+  // Subtract that offset (Central is negative — subtracting a negative number
+  // adds to the timestamp, shifting forward into UTC).
   const trueUtc = new Date(asIfUtc.getTime() - offsetMinutes * 60_000);
   return trueUtc.toISOString();
 }

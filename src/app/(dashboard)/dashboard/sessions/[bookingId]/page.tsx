@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { IntakeFormRenderer, type IntakeResponses } from "@/components/intake/IntakeFormRenderer";
 import { formatCentralDate, formatCentralTime, CENTRAL_TIMEZONE_LABEL } from "@/lib/time/central";
+import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
 
 const STATUS_COPY: Record<string, { label: string; className: string }> = {
   booked: { label: "Booked", className: "bg-yellow-100 text-yellow-700" },
@@ -40,7 +41,8 @@ export default async function SessionWorkspacePage({
     .select(`
       id, client_id, service_type, service_key, status, workflow_status,
       client_notes, session_at, meet_link, meet_link_pending,
-      contract_accepted_at, contract_version, intake_due_at, created_at, slot_id
+      contract_accepted_at, contract_version, intake_due_at, created_at, slot_id,
+      duration_minutes, location_type, location_details, session_summary, next_steps
     `)
     .eq("id", bookingId)
     .maybeSingle();
@@ -54,17 +56,18 @@ export default async function SessionWorkspacePage({
     redirect("/dashboard/watchlist/setup");
   }
 
+  // Invitation-created sessions may have no intake schema — that's fine, we
+  // render a "no prep needed" variant instead of 404'ing.
   const schema = getSchemaForService(booking.service_key);
-  if (!schema) {
-    notFound();
-  }
 
-  // Load existing intake responses (may be null on first visit)
-  const { data: intake } = await supabase
-    .from("intake_responses")
-    .select("responses, submitted_at, last_saved_at")
-    .eq("booking_id", bookingId)
-    .maybeSingle();
+  // Load existing intake responses (may be null on first visit / no schema)
+  const { data: intake } = schema
+    ? await supabase
+        .from("intake_responses")
+        .select("responses, submitted_at, last_saved_at")
+        .eq("booking_id", bookingId)
+        .maybeSingle()
+    : { data: null };
 
   const statusInfo = STATUS_COPY[booking.workflow_status] ?? STATUS_COPY.booked;
   const sessionAt = booking.session_at ? new Date(booking.session_at) : null;
@@ -96,14 +99,46 @@ export default async function SessionWorkspacePage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: intake form (wider) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-neutral-200 rounded-xl p-6">
-            <IntakeFormRenderer
-              schema={schema}
-              bookingId={booking.id}
-              initialResponses={initialResponses}
-              submittedAt={intake?.submitted_at ?? null}
-            />
-          </div>
+          {schema ? (
+            <div className="bg-white border border-neutral-200 rounded-xl p-6">
+              <IntakeFormRenderer
+                schema={schema}
+                bookingId={booking.id}
+                initialResponses={initialResponses}
+                submittedAt={intake?.submitted_at ?? null}
+              />
+            </div>
+          ) : (
+            <div className="bg-white border border-neutral-200 rounded-xl p-6">
+              <h2 className="font-semibold text-neutral-900 mb-2">You&apos;re all set</h2>
+              <p className="text-sm text-neutral-600">
+                No intake form is needed for this session. If there&apos;s anything you&apos;d like
+                Rachel to review in advance, send it over via{" "}
+                <Link href="/dashboard/messages" className="text-brand-700 hover:underline">
+                  messages
+                </Link>
+                .
+              </p>
+            </div>
+          )}
+
+          {/* Session summary / next steps shared by Rachel after the session */}
+          {(booking.session_summary || booking.next_steps) && (
+            <div className="bg-white border border-neutral-200 rounded-xl p-6 space-y-4">
+              {booking.session_summary && (
+                <div>
+                  <h3 className="font-semibold text-neutral-900 mb-1">Session summary</h3>
+                  <p className="text-sm text-neutral-600 whitespace-pre-wrap">{booking.session_summary}</p>
+                </div>
+              )}
+              {booking.next_steps && (
+                <div>
+                  <h3 className="font-semibold text-neutral-900 mb-1">Next steps</h3>
+                  <p className="text-sm text-neutral-600 whitespace-pre-wrap">{booking.next_steps}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* What to expect */}
           <div className="bg-brand-50 border border-brand-100 rounded-xl p-6">
@@ -140,14 +175,15 @@ export default async function SessionWorkspacePage({
               <p className="text-sm text-neutral-600 mt-1">
                 {formatCentralTime(sessionAt)} ({CENTRAL_TIMEZONE_LABEL})
               </p>
+              <p className="text-xs text-neutral-400 mt-1">{formatDuration(booking.duration_minutes)}</p>
             </div>
           )}
 
-          {/* Meet link card */}
+          {/* Meeting / location card */}
           <div className="bg-white border border-neutral-200 rounded-xl p-5">
             <div className="flex items-center gap-2 text-neutral-500 text-xs uppercase tracking-wide mb-2">
               <Video className="h-3.5 w-3.5" />
-              Meeting link
+              {meetingTypeLabel(booking.location_type)}
             </div>
             {booking.meet_link ? (
               <a
@@ -158,6 +194,10 @@ export default async function SessionWorkspacePage({
               >
                 Join Google Meet <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
               </a>
+            ) : booking.location_type !== "google_meet" && meetingLocationLine(booking.location_type, booking.location_details) ? (
+              <p className="text-sm text-neutral-700">
+                {meetingLocationLine(booking.location_type, booking.location_details)}
+              </p>
             ) : booking.meet_link_pending ? (
               <p className="text-sm text-yellow-700 flex items-start gap-1.5">
                 <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -165,7 +205,7 @@ export default async function SessionWorkspacePage({
               </p>
             ) : (
               <p className="text-sm text-neutral-500">
-                You&apos;ll get the link before our session.
+                You&apos;ll get the details before our session.
               </p>
             )}
           </div>

@@ -79,6 +79,94 @@ Client redirected to /book/success?session_id=...
 
 ---
 
+## 1b. Booking Invitation → Session Flow
+
+**Admin-initiated** (the inverse of the client-driven `/book` flow above). Rachel
+hand-picks date/time options for a specific client, emails a public token link,
+the client picks one, and a session is created. **Both the payment-OFF and
+payment-ON branches converge on `finalizeSession()`** so calendar/emails/
+notifications/audit are identical.
+
+Key files: `src/app/actions/booking-invitations.ts`, `src/lib/booking/finalize.ts`,
+`src/app/(booking)/book-session/[token]/`, `src/components/admin/BookingInvitationForm.tsx`.
+
+```
+Rachel: /admin/invitations/new  (or "Create booking invitation" on a client page)
+  BookingInvitationForm → createBookingInvitation(payload)
+    - validates; each option's session_at = localCentralToUtcIso(date, time)
+    - inserts booking_invitations + booking_invitation_options (status 'open')
+    - sendNow → sendBookingInvitation(): sendTemplated('booking_invitation'),
+      status='sent', sent_at stamped
+        │
+        ▼
+Client receives "Choose a Time for Your Thryve Session" email → /book-session/[token]
+  Public, unauthenticated; service client looks up the invitation by token.
+  States: valid (slot selector) | expired | already-accepted | cancelled | not-found
+        │
+   client picks one option
+        ├─ payment OFF ── acceptBookingInvitation({token, optionId})
+        │     reserveOption (open→reserved, atomic) → finalizeSession(source='invitation_free')
+        │
+        └─ payment ON ─── createInvitationCheckoutSession({token, optionId})
+              reserveOption → Stripe Checkout (metadata.flow='invitation', invitationId, optionId)
+              → webhook checkout.session.completed → handleInvitationCheckoutCompleted
+              → finalizeSession(source='invitation_paid', paymentStatus='paid')
+        │
+        ▼
+finalizeSession() [SHARED]:
+  1. Idempotency (stripe_session_id / invitation.booking_id)
+  2. Resolve client_id by email (links to portal if an account exists)
+  3. Overlap guard against existing bookings[session_at, +duration)
+  4. INSERT bookings (workflow_status='session_scheduled', duration/location/payment)
+  5. INSERT payments (only when paid)
+  6. createCalendarEvent (Meet only when location=google_meet; else event location)
+     → meet_link / calendar_event_id, or meet_link_pending=true; automation_log
+  7. Stamp invitation accepted + option 'consumed' + remaining options 'withdrawn'
+  8. createAdminNotification('session_booked_via_invite') + bell
+  9. sendTemplated('session_confirmed' → client, 'new_session_booked' → Rachel)
+        │
+        ▼
+Client → /book-session/[token]/confirmed.   Session appears in /admin/sessions and,
+if the email matches an account, /dashboard/sessions/[bookingId].
+```
+
+**Double-booking prevention (defense in depth):** (1) the atomic option reserve
+(`open→reserved`) is the per-option guarantee — the loser gets "That time was
+just taken"; (2) a partial **UNIQUE index on `bookings(booking_invitation_id)`**
+(migration 0025) means one invitation can only ever produce one session even
+under a concurrent-accept or double-webhook race — `finalizeSession` catches the
+unique violation (`23505`) and returns the existing booking idempotently; (3) the
+`finalizeSession` overlap query guards across different invitations and `/book`
+slots. Abandoned paid checkouts return to `cancel_url` → `releaseReservedOptions`
+(`reserved→open`); the Stripe Checkout session is also created with
+`expires_at = now+2h` so the payable window can't outlive the hold; a TTL sweep
+in the `session-reminders` cron releases holds older than 2h on un-accepted
+invitations (`booking_invitation_options.reserved_at`).
+
+**Paid finalize conflict (charged-but-no-session):** if a payment-ON invitation
+clears Stripe but `finalizeSession` then rejects (slot taken in the meantime),
+`handleInvitationCheckoutCompleted` **refunds the PaymentIntent, releases the
+option, and alerts Rachel** (`notifyAdmin`) rather than silently dropping a paid
+booking.
+
+**Session management (admin, Phase 2):** `src/app/actions/sessions.ts` —
+`rescheduleSession(bookingId, dateCentral, timeCentral)` recomputes `session_at`,
+PATCHes the Google Calendar event via `updateCalendarEvent` (or recreates it),
+resets the reminder flags so they re-fire, and re-sends `session_confirmed`;
+`sendSessionReminderNow` sends the `session_reminder_1h` template on demand;
+`cancelSession` sets `cancelled` and removes the calendar event via
+`deleteCalendarEvent`. Rich editing (status incl. `no_show`, `payment_status`,
+`session_summary`, `next_steps`, `follow_up_needed`) flows through
+`updateSession` from the `SessionRecordEditor` on the client detail page. The
+admin overview shows an `UpcomingSessionsWidget` (today + next 7 days) with
+inline reminder/complete actions.
+
+**Reminders:** the hourly `session-reminders` cron now fires three windows —
+T-24h client (`session_reminder_24h`), **T-1h client (`session_reminder_1h`,
+gated by `bookings.reminder_1h_sent_at`)**, and T-2h Rachel prep summary.
+
+---
+
 ## 2. Job Alerts Subscription Flow
 
 **Service:** Job Alerts & Watchlists ($50/month)
@@ -797,8 +885,9 @@ Subscription cancel/pause/past_due/    → subscription_issue      → webhooks/
 Watchlist preferences edited           → watchlist_updated       → actions/watchlist.ts saveWatchlistProfile
 Application status change (≠ new)       → application_status      → actions/watchlist.ts updateMatchStatus
 Client sends a message                 → client_message          → actions/messages.ts sendMessage
+Client books via invitation            → session_booked_via_invite → lib/booking/finalize.ts finalizeSession
 ```
 
-Pre-existing admin alerts unchanged: contact form, consultation, job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. New types added to the `admin_notifications` CHECK in `0021_admin_notification_types.sql`.
+Pre-existing admin alerts unchanged: contact form, consultation, job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. Notification types were added to the `admin_notifications` CHECK in `0021_admin_notification_types.sql` and `0023_booking_invitations.sql` (`session_booked_via_invite`). The invitation flow's bell row is created directly via `createAdminNotification`; its admin **email** is the editable `new_session_booked` template (not `sendAdminAlert`).
 
 **Toggles:** every non-critical notification above (admin + client/lead, email + bell) can be switched off at `/admin/settings`, backed by `notification_settings` (migration `0022`) and enforced by `isNotificationDisabled()` (`src/lib/notifications/settings.ts`) inside the four helpers + the direct send-sites. Fail-open; must-send/critical notifications (receipts, welcome, intake_complete, deliverable_ready, client session reminders, auth) have no row and always send.

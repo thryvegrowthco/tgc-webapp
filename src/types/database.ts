@@ -121,7 +121,9 @@ export type Database = {
             | "session_scheduled"
             | "completed"
             | "follow_up_sent"
-            | "cancelled";
+            | "cancelled"
+            | "no_show"
+            | "rescheduled";
           client_notes: string | null;
           admin_notes: string | null;
           stripe_payment_intent_id: string | null;
@@ -138,6 +140,18 @@ export type Database = {
           session_reminder_sent_at: string | null;
           prep_summary_sent_at: string | null;
           follow_up_sent_at: string | null;
+          reminder_1h_sent_at: string | null;
+          duration_minutes: number;
+          location_type: "google_meet" | "phone" | "in_person" | "custom";
+          location_details: string | null;
+          session_type: string | null;
+          payment_status: "not_required" | "pending" | "paid" | "refunded" | "waived";
+          follow_up_needed: boolean;
+          session_summary: string | null;
+          next_steps: string | null;
+          booking_invitation_id: string | null;
+          rescheduled_from_booking_id: string | null;
+          updated_at: string;
           created_at: string;
         };
         Insert: {
@@ -154,7 +168,9 @@ export type Database = {
             | "session_scheduled"
             | "completed"
             | "follow_up_sent"
-            | "cancelled";
+            | "cancelled"
+            | "no_show"
+            | "rescheduled";
           client_notes?: string | null;
           admin_notes?: string | null;
           stripe_payment_intent_id?: string | null;
@@ -171,6 +187,18 @@ export type Database = {
           session_reminder_sent_at?: string | null;
           prep_summary_sent_at?: string | null;
           follow_up_sent_at?: string | null;
+          reminder_1h_sent_at?: string | null;
+          duration_minutes?: number;
+          location_type?: "google_meet" | "phone" | "in_person" | "custom";
+          location_details?: string | null;
+          session_type?: string | null;
+          payment_status?: "not_required" | "pending" | "paid" | "refunded" | "waived";
+          follow_up_needed?: boolean;
+          session_summary?: string | null;
+          next_steps?: string | null;
+          booking_invitation_id?: string | null;
+          rescheduled_from_booking_id?: string | null;
+          updated_at?: string;
           created_at?: string;
         };
         Update: {
@@ -187,7 +215,9 @@ export type Database = {
             | "session_scheduled"
             | "completed"
             | "follow_up_sent"
-            | "cancelled";
+            | "cancelled"
+            | "no_show"
+            | "rescheduled";
           client_notes?: string | null;
           admin_notes?: string | null;
           stripe_payment_intent_id?: string | null;
@@ -204,6 +234,135 @@ export type Database = {
           session_reminder_sent_at?: string | null;
           prep_summary_sent_at?: string | null;
           follow_up_sent_at?: string | null;
+          reminder_1h_sent_at?: string | null;
+          duration_minutes?: number;
+          location_type?: "google_meet" | "phone" | "in_person" | "custom";
+          location_details?: string | null;
+          session_type?: string | null;
+          payment_status?: "not_required" | "pending" | "paid" | "refunded" | "waived";
+          follow_up_needed?: boolean;
+          session_summary?: string | null;
+          next_steps?: string | null;
+          booking_invitation_id?: string | null;
+          rescheduled_from_booking_id?: string | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_invitations: {
+        Row: {
+          id: string;
+          token: string;
+          client_id: string | null;
+          client_email: string;
+          client_name: string | null;
+          service_type: string;
+          service_key: string | null;
+          session_type: string | null;
+          duration_minutes: number;
+          location_type: "google_meet" | "phone" | "in_person" | "custom";
+          location_details: string | null;
+          requires_payment: boolean;
+          amount_cents: number | null;
+          stripe_price_id: string | null;
+          custom_message: string | null;
+          internal_notes: string | null;
+          status: "pending" | "sent" | "accepted" | "expired" | "cancelled";
+          expires_at: string | null;
+          accepted_at: string | null;
+          accepted_option_id: string | null;
+          booking_id: string | null;
+          created_by: string | null;
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          token?: string;
+          client_id?: string | null;
+          client_email: string;
+          client_name?: string | null;
+          service_type: string;
+          service_key?: string | null;
+          session_type?: string | null;
+          duration_minutes?: number;
+          location_type?: "google_meet" | "phone" | "in_person" | "custom";
+          location_details?: string | null;
+          requires_payment?: boolean;
+          amount_cents?: number | null;
+          stripe_price_id?: string | null;
+          custom_message?: string | null;
+          internal_notes?: string | null;
+          status?: "pending" | "sent" | "accepted" | "expired" | "cancelled";
+          expires_at?: string | null;
+          accepted_at?: string | null;
+          accepted_option_id?: string | null;
+          booking_id?: string | null;
+          created_by?: string | null;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          token?: string;
+          client_id?: string | null;
+          client_email?: string;
+          client_name?: string | null;
+          service_type?: string;
+          service_key?: string | null;
+          session_type?: string | null;
+          duration_minutes?: number;
+          location_type?: "google_meet" | "phone" | "in_person" | "custom";
+          location_details?: string | null;
+          requires_payment?: boolean;
+          amount_cents?: number | null;
+          stripe_price_id?: string | null;
+          custom_message?: string | null;
+          internal_notes?: string | null;
+          status?: "pending" | "sent" | "accepted" | "expired" | "cancelled";
+          expires_at?: string | null;
+          accepted_at?: string | null;
+          accepted_option_id?: string | null;
+          booking_id?: string | null;
+          created_by?: string | null;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_invitation_options: {
+        Row: {
+          id: string;
+          invitation_id: string;
+          slot_date: string;
+          start_time: string;
+          session_at: string;
+          status: "open" | "reserved" | "consumed" | "withdrawn";
+          reserved_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invitation_id: string;
+          slot_date: string;
+          start_time: string;
+          session_at: string;
+          status?: "open" | "reserved" | "consumed" | "withdrawn";
+          reserved_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          invitation_id?: string;
+          slot_date?: string;
+          start_time?: string;
+          session_at?: string;
+          status?: "open" | "reserved" | "consumed" | "withdrawn";
+          reserved_at?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1219,7 +1378,7 @@ export type Database = {
       admin_notifications: {
         Row: {
           id: string;
-          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message";
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite";
           title: string;
           body: string | null;
           link: string | null;
@@ -1230,7 +1389,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message";
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite";
           title: string;
           body?: string | null;
           link?: string | null;
@@ -1241,7 +1400,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message";
+          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite";
           title?: string;
           body?: string | null;
           link?: string | null;
@@ -1528,6 +1687,10 @@ export type ClientNotificationType = ClientNotification["type"];
 export type JobSourceRow = Database["public"]["Tables"]["job_sources"]["Row"];
 export type NotificationSetting = Database["public"]["Tables"]["notification_settings"]["Row"];
 export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
+export type BookingInvitation = Database["public"]["Tables"]["booking_invitations"]["Row"];
+export type BookingInvitationOption = Database["public"]["Tables"]["booking_invitation_options"]["Row"];
+export type LocationType = Booking["location_type"];
+export type PaymentStatus = Booking["payment_status"];
 export type Resource = Database["public"]["Tables"]["resources"]["Row"];
 export type ResourceCtaType = Resource["cta_type"];
 export type TrackingPixel = Database["public"]["Tables"]["tracking_pixels"]["Row"];
@@ -1552,4 +1715,8 @@ export type EmailTemplateKey =
   | "new_job_match"
   | "curated_job_match"
   | "watchlist_updated"
-  | "application_reminder";
+  | "application_reminder"
+  | "booking_invitation"
+  | "session_confirmed"
+  | "new_session_booked"
+  | "session_reminder_1h";

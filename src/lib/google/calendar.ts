@@ -222,6 +222,8 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
+export type CalendarLocationType = "google_meet" | "phone" | "in_person" | "custom";
+
 export interface CalendarEventArgs {
   bookingId: string;
   serviceType: string;
@@ -232,11 +234,30 @@ export interface CalendarEventArgs {
   endIso: string;
   appUrl: string;
   clientId: string | null;
+  /** Defaults to "google_meet" (existing /book behavior). Only google_meet creates a Meet link. */
+  locationType?: CalendarLocationType;
+  /** Phone number, address, or custom instructions — used for non-Meet location types. */
+  locationDetails?: string | null;
+}
+
+// Human label for the event `location` field on non-Meet sessions.
+function locationLabel(type: CalendarLocationType, details: string | null | undefined): string | null {
+  switch (type) {
+    case "phone":
+      return details ? `Phone: ${details}` : "Phone call";
+    case "in_person":
+      return details || "In person";
+    case "custom":
+      return details || null;
+    default:
+      return null;
+  }
 }
 
 export interface CalendarEventResult {
   eventId: string;
   meetLink: string | null;
+  htmlLink: string | null;
 }
 
 const CALENDAR_TIMEZONE = CENTRAL_TIMEZONE;
@@ -250,12 +271,17 @@ export async function createCalendarEvent(args: CalendarEventArgs): Promise<Cale
   if (args.clientEmail) attendees.push({ email: args.clientEmail });
   if (integration?.account_email) attendees.push({ email: integration.account_email });
 
-  const body = {
+  const locationType: CalendarLocationType = args.locationType ?? "google_meet";
+  const useMeet = locationType === "google_meet";
+  const location = locationLabel(locationType, args.locationDetails);
+
+  const body: Record<string, unknown> = {
     summary: `${args.serviceType} — ${args.clientName}`,
     description: [
       `Service: ${args.serviceType}`,
       `Booking ID: ${args.bookingId}`,
       args.clientNotes ? `Client notes: ${args.clientNotes}` : null,
+      !useMeet && location ? `Location: ${location}` : null,
       `Admin record: ${args.appUrl}/admin/clients/${args.clientId ?? ""}#booking-${args.bookingId}`,
     ]
       .filter(Boolean)
@@ -263,31 +289,88 @@ export async function createCalendarEvent(args: CalendarEventArgs): Promise<Cale
     start: { dateTime: args.startIso, timeZone: CALENDAR_TIMEZONE },
     end: { dateTime: args.endIso, timeZone: CALENDAR_TIMEZONE },
     attendees,
-    conferenceData: {
+    reminders: { useDefault: true },
+  };
+
+  // Only Google Meet sessions request a conference link. Other location types
+  // carry their details in the event `location` field instead.
+  if (useMeet) {
+    body.conferenceData = {
       createRequest: {
         requestId: args.bookingId,
         conferenceSolutionKey: { type: "hangoutsMeet" },
       },
-    },
-    reminders: { useDefault: true },
-  };
+    };
+  } else if (location) {
+    body.location = location;
+  }
+
+  // conferenceDataVersion is only needed when creating a Meet conference.
+  const url = useMeet
+    ? "https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all"
+    : "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all";
 
   try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { id: string; hangoutLink?: string; htmlLink?: string };
+    return { eventId: json.id, meetLink: json.hangoutLink ?? null, htmlLink: json.htmlLink ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Move an existing calendar event to a new time (used by reschedule). PATCHes
+ * only start/end; the Meet link and attendees are preserved. Returns true on
+ * success — callers treat false as "fall back to creating a fresh event".
+ */
+export async function updateCalendarEvent(
+  eventId: string,
+  args: { startIso: string; endIso: string }
+): Promise<boolean> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) return false;
+  try {
     const res = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all",
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
       {
-        method: "POST",
+        method: "PATCH",
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          start: { dateTime: args.startIso, timeZone: CALENDAR_TIMEZONE },
+          end: { dateTime: args.endIso, timeZone: CALENDAR_TIMEZONE },
+        }),
       }
     );
-    if (!res.ok) return null;
-    const json = (await res.json()) as { id: string; hangoutLink?: string };
-    return { eventId: json.id, meetLink: json.hangoutLink ?? null };
+    return res.ok;
   } catch {
-    return null;
+    return false;
+  }
+}
+
+/** Cancel an existing calendar event (used when a session is cancelled). */
+export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) return false;
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
+      { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    // 410 = already deleted; treat as success.
+    return res.ok || res.status === 410;
+  } catch {
+    return false;
   }
 }

@@ -9,6 +9,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 1. [Logging In](#1-logging-in)
 2. [The Dashboard Overview](#2-the-dashboard-overview)
 3. [Managing Your Availability](#3-managing-your-availability)
+3b. [Sending a Booking Invitation](#3b-sending-a-booking-invitation)
 4. [Managing Clients](#4-managing-clients)
 5. [Writing Blog Posts](#5-writing-blog-posts)
 6. [Managing Job Watchlists](#6-managing-job-watchlists)
@@ -147,6 +148,34 @@ Recruitment is your one service that runs on a **custom quote** rather than a fi
 
 ---
 
+## 3b. Sending a Booking Invitation
+
+Use this when you want to hand-pick a few times for a specific person and let them choose — instead of waiting for them to find an open slot on the Book page. It's perfect for clients you already know, returning clients, or anyone you're scheduling personally.
+
+**Where:** click **Invitations** in the sidebar, then **New invitation**. You can also start one from a client's detail page with the **Create booking invitation** button (it fills in their name and email for you).
+
+**What you fill in:**
+- **Client email and name** — who it's for. They do not need an account.
+- **Service and session type** — picking a service fills in the name shown to the client; you can edit it.
+- **Session length** — how long the meeting runs.
+- **Meeting type** — Google Meet (a link is created automatically), Phone Call, In Person, or Custom. For anything other than Google Meet, add the location details (phone number, address, or instructions).
+- **Require payment** — leave this **off** to create the session immediately and bill however you like. Turn it **on** and set an amount to have the client pay by card before the session is booked.
+- **Available date & time options** — add as many choices as you want. The client picks one. Times are Central.
+- **Expires (optional), custom message, internal notes** — the message shows in the email; internal notes are only for you.
+
+Click **Send Booking Options** and the client gets a branded email with a "Choose My Session Time" button.
+
+**What happens when they pick a time:**
+- The session is created and shows up under **Sessions**.
+- A Google Calendar event is added (with a Meet link if you chose Google Meet).
+- You get an email and a bell notification.
+- The client gets a confirmation email.
+- If they have an account, the session also appears in their dashboard.
+
+The time they chose is locked in, and the booking link stops working so it can't be used twice. On the Invitations page you can copy the link, re-send the email, or cancel an invitation that hasn't been used yet.
+
+---
+
 ## 4. Managing Clients
 
 **URL:** `/admin/clients`
@@ -158,6 +187,16 @@ This page shows everyone who has created a client account. Click any client's na
 The detail page has three sections:
 
 **Bookings** — A history of the client's bookings with date, service, amount, and a status dropdown. To change a booking's status, click the dropdown on that row and select the new status — it saves immediately. Use this to mark sessions as Completed after they occur, or Cancelled if they were not held.
+
+Each booking also has a **Manage** link. Click it to open a panel where you can:
+- Set the session status (including **No show**) and the **payment status** (Paid, Pending, Refunded, Waived, or Not required).
+- Write a **Session summary** and **Next steps** — these are shared with the client in their dashboard after the session.
+- Flag **Follow-up needed** for yourself.
+- **Reschedule** to a new date and time — this moves the Google Calendar event and re-sends the client a confirmation automatically.
+- **Send reminder** to email the client the session details right now.
+- **Cancel session**, which also removes the calendar event.
+
+Your dashboard home now also has an **Upcoming sessions** panel showing everything in the next 7 days, with quick buttons to send a reminder or mark a session complete. Clients are automatically reminded 24 hours and 1 hour before each session.
 
 **Session Notes** — Private notes only you can see. Clients cannot see these.
 

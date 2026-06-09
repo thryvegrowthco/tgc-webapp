@@ -81,6 +81,13 @@ export interface SendTemplatedOptions {
   eventKey?: string;
   /** When set, an upsert on (event_key, booking_id) prevents duplicate sends. */
   idempotent?: boolean;
+  /**
+   * Override the notification-settings suppression key. Defaults to
+   * `client_email:${templateKey}`. Set this for admin-audience templates (e.g.
+   * `admin_email:new_session_booked`) so they respect the admin master switch,
+   * not the client one.
+   */
+  gateKey?: string;
 }
 
 export interface SendTemplatedResult {
@@ -104,7 +111,10 @@ export async function sendTemplated(
   // Admin can disable discretionary client emails in /admin/settings. Critical
   // templates (receipt, welcome, intake_complete, deliverable_ready,
   // session_reminder_24h) have no settings row, so they are never suppressed.
-  if (await isNotificationDisabled(`client_email:${templateKey}`)) {
+  // Admin-audience templates pass an explicit `gateKey` (e.g. admin_email:*) so
+  // they aren't governed by the client master switch.
+  const gateKey = options.gateKey ?? `client_email:${templateKey}`;
+  if (await isNotificationDisabled(gateKey)) {
     return { sent: false, skipped: "disabled" };
   }
 

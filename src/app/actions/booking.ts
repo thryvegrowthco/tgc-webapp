@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe/client";
 import { SERVICES, BOOKABLE_SERVICES, type ServiceKey } from "@/lib/stripe/products";
+import type { Database } from "@/types/database";
 
 export interface BookingFormData {
   serviceKey: ServiceKey;
@@ -115,6 +116,74 @@ export async function updateBookingStatus(
     .update({ status: status as BookingStatus })
     .eq("id", bookingId);
 
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+// Richer session editor for the admin: status, payment, notes, summary, and
+// follow-up flag in one call. Drives the session record on the client detail
+// page (and the Phase 2 inline session editor). Stamps updated_at.
+export interface UpdateSessionFields {
+  workflow_status?: string;
+  payment_status?: string;
+  admin_notes?: string | null;
+  session_summary?: string | null;
+  next_steps?: string | null;
+  follow_up_needed?: boolean;
+}
+
+const ALLOWED_WORKFLOW_STATUS = [
+  "intake_needed",
+  "intake_complete",
+  "session_scheduled",
+  "completed",
+  "follow_up_sent",
+  "cancelled",
+  "no_show",
+  "rescheduled",
+] as const;
+const ALLOWED_PAYMENT_STATUS = ["not_required", "pending", "paid", "refunded", "waived"] as const;
+
+export async function updateSession(
+  bookingId: string,
+  fields: UpdateSessionFields
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((profile as { role: string } | null)?.role !== "admin") return { error: "Unauthorized" };
+
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+  if (fields.workflow_status !== undefined) {
+    if (!(ALLOWED_WORKFLOW_STATUS as readonly string[]).includes(fields.workflow_status)) {
+      return { error: "Invalid status" };
+    }
+    update.workflow_status = fields.workflow_status;
+    if (fields.workflow_status === "completed") update.completed_at = new Date().toISOString();
+  }
+  if (fields.payment_status !== undefined) {
+    if (!(ALLOWED_PAYMENT_STATUS as readonly string[]).includes(fields.payment_status)) {
+      return { error: "Invalid payment status" };
+    }
+    update.payment_status = fields.payment_status;
+  }
+  if (fields.admin_notes !== undefined) update.admin_notes = fields.admin_notes;
+  if (fields.session_summary !== undefined) update.session_summary = fields.session_summary;
+  if (fields.next_steps !== undefined) update.next_steps = fields.next_steps;
+  if (fields.follow_up_needed !== undefined) update.follow_up_needed = fields.follow_up_needed;
+
+  const serviceClient = createServiceClient();
+  const { error } = await serviceClient
+    .from("bookings")
+    .update(update as Database["public"]["Tables"]["bookings"]["Update"])
+    .eq("id", bookingId);
   if (error) return { error: error.message };
   return { success: true };
 }

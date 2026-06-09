@@ -1,0 +1,336 @@
+// finalizeSession — the single shared path that turns an accepted booking
+// invitation into a real session (a `bookings` row), regardless of whether the
+// client paid first.
+//
+// Two callers converge here:
+//   1. acceptBookingInvitation()  (payment OFF) — calls it directly.
+//   2. The Stripe webhook          (payment ON)  — calls it on
+//      checkout.session.completed when metadata.flow === 'invitation'.
+//
+// Both produce identical side effects: booking row, Google Calendar event
+// (Meet/phone/in-person/custom + correct duration), automation_log audit,
+// admin bell + admin email, client confirmation email, and the invitation
+// stamped accepted with its chosen option consumed.
+//
+// Posture mirrors the Stripe webhook: best-effort calendar/email (never block
+// the booking), idempotent on stripe_session_id, and the client profile is
+// linked by email when an account exists.
+
+import { createServiceClient } from "@/lib/supabase/service";
+import { createCalendarEvent } from "@/lib/google/calendar";
+import { createAdminNotification } from "@/lib/notifications/admin";
+import { sendTemplated } from "@/lib/email/render";
+import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
+import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
+import type { LocationType, PaymentStatus } from "@/types/database";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "hello@thryvegrowth.co";
+
+export interface FinalizeSessionArgs {
+  source: "invitation_free" | "invitation_paid";
+  invitationId: string;
+  optionId: string;
+  /** Central wall-clock → UTC ISO, already computed by the option row. */
+  sessionAtUtc: string;
+  durationMinutes: number;
+  locationType: LocationType;
+  locationDetails: string | null;
+  serviceType: string;
+  serviceKey: string | null;
+  sessionType: string | null;
+  clientId: string | null;
+  clientEmail: string;
+  clientName: string;
+  paymentStatus: PaymentStatus;
+  amountCents: number | null;
+  stripeSessionId?: string | null;
+  stripePaymentIntentId?: string | null;
+}
+
+export type FinalizeSessionResult = { bookingId: string } | { error: string };
+
+export async function finalizeSession(args: FinalizeSessionArgs): Promise<FinalizeSessionResult> {
+  const supabase = createServiceClient();
+
+  // ─── Idempotency ─────────────────────────────────────────────────────────
+  // Stripe can deliver the webhook more than once; an invitation can only ever
+  // produce one booking.
+  if (args.stripeSessionId) {
+    const { data: existing } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("stripe_session_id", args.stripeSessionId)
+      .maybeSingle();
+    if (existing) return { bookingId: existing.id };
+  }
+
+  const { data: invitation } = await supabase
+    .from("booking_invitations")
+    .select("id, booking_id, client_id, client_name")
+    .eq("id", args.invitationId)
+    .maybeSingle();
+  if (!invitation) return { error: "Invitation not found." };
+  if (invitation.booking_id) return { bookingId: invitation.booking_id };
+
+  // ─── Resolve client account by email (links to portal if they have one) ──
+  let clientId = args.clientId ?? invitation.client_id ?? null;
+  if (!clientId && args.clientEmail) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("email", args.clientEmail)
+      .limit(1)
+      .maybeSingle();
+    clientId = (profile as { id: string } | null)?.id ?? null;
+  }
+
+  // ─── Double-booking guard (defense-in-depth; the option lock is primary) ──
+  const startMs = new Date(args.sessionAtUtc).getTime();
+  const endMs = startMs + args.durationMinutes * 60_000;
+  const endIso = new Date(endMs).toISOString();
+  const { data: conflicts } = await supabase
+    .from("bookings")
+    .select("id, session_at, duration_minutes")
+    .not("session_at", "is", null)
+    .not("workflow_status", "in", "(cancelled,no_show)")
+    // Any session starting up to 8h before could still overlap a long meeting.
+    .gte("session_at", new Date(startMs - 8 * 60 * 60_000).toISOString())
+    .lte("session_at", endIso);
+  const overlaps = (conflicts ?? []).some((b) => {
+    if (!b.session_at) return false;
+    const bStart = new Date(b.session_at).getTime();
+    const bEnd = bStart + (b.duration_minutes ?? 60) * 60_000;
+    return bStart < endMs && bEnd > startMs;
+  });
+  if (overlaps) return { error: "That time is no longer available." };
+
+  // ─── Create the session record ───────────────────────────────────────────
+  // Invitation sessions go straight to "session_scheduled" (they skip the
+  // intake-first bucket that paid /book sessions start in).
+  const { data: booking, error: bookingError } = await supabase
+    .from("bookings")
+    .insert({
+      client_id: clientId,
+      slot_id: null,
+      service_type: args.serviceType,
+      service_key: args.serviceKey,
+      session_type: args.sessionType,
+      status: "confirmed",
+      workflow_status: "session_scheduled",
+      session_at: args.sessionAtUtc,
+      duration_minutes: args.durationMinutes,
+      location_type: args.locationType,
+      location_details: args.locationDetails,
+      payment_status: args.paymentStatus,
+      amount_cents: args.amountCents,
+      stripe_session_id: args.stripeSessionId ?? null,
+      stripe_payment_intent_id: args.stripePaymentIntentId ?? null,
+      booking_invitation_id: args.invitationId,
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (bookingError || !booking) {
+    // A unique violation on booking_invitation_id / stripe_session_id means a
+    // concurrent accept or a duplicate webhook already finalized this invitation
+    // — treat it as idempotent and return the existing session.
+    if (bookingError?.code === "23505") {
+      const { data: existingForInvite } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("booking_invitation_id", args.invitationId)
+        .maybeSingle();
+      if (existingForInvite) return { bookingId: existingForInvite.id };
+      if (args.stripeSessionId) {
+        const { data: existingForSession } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("stripe_session_id", args.stripeSessionId)
+          .maybeSingle();
+        if (existingForSession) return { bookingId: existingForSession.id };
+      }
+    }
+    console.error("[finalizeSession] Failed to create booking:", bookingError);
+    return { error: "Could not create the session. Please try again." };
+  }
+
+  // Record the payment when money actually changed hands.
+  if (args.paymentStatus === "paid") {
+    await supabase.from("payments").insert({
+      client_id: clientId,
+      booking_id: booking.id,
+      stripe_payment_intent_id: args.stripePaymentIntentId ?? null,
+      amount_cents: args.amountCents ?? 0,
+      status: "paid",
+      service_type: args.serviceType,
+    });
+  }
+
+  // ─── Google Calendar event (best-effort) ─────────────────────────────────
+  let meetLink: string | null = null;
+  let calendarLink: string | null = null;
+  try {
+    const eventResult = await createCalendarEvent({
+      bookingId: booking.id,
+      serviceType: args.serviceType,
+      clientName: args.clientName || args.clientEmail,
+      clientEmail: args.clientEmail,
+      clientNotes: null,
+      startIso: args.sessionAtUtc,
+      endIso,
+      appUrl: APP_URL,
+      clientId,
+      locationType: args.locationType,
+      locationDetails: args.locationDetails,
+    });
+    if (eventResult) {
+      meetLink = eventResult.meetLink;
+      calendarLink = eventResult.htmlLink;
+      await supabase
+        .from("bookings")
+        .update({
+          meet_link: eventResult.meetLink,
+          calendar_event_id: eventResult.eventId,
+          meet_link_pending: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", booking.id);
+      await supabase.from("automation_log").upsert(
+        {
+          event_key: "calendar_event_created",
+          booking_id: booking.id,
+          client_id: clientId,
+          status: "success",
+          payload: { event_id: eventResult.eventId, meet_link: eventResult.meetLink },
+        },
+        { onConflict: "event_key,booking_id" }
+      );
+    } else {
+      // Only Meet sessions need a generated link; flag pending so the admin
+      // Sessions queue surfaces "Meet link needed".
+      if (args.locationType === "google_meet") {
+        await supabase
+          .from("bookings")
+          .update({ meet_link_pending: true, updated_at: new Date().toISOString() })
+          .eq("id", booking.id);
+      }
+      await supabase.from("automation_log").upsert(
+        {
+          event_key: "calendar_event_failed",
+          booking_id: booking.id,
+          client_id: clientId,
+          status: "failed",
+          error_message: "Calendar API returned no event (likely not connected or auth expired).",
+        },
+        { onConflict: "event_key,booking_id" }
+      );
+    }
+  } catch (err) {
+    if (args.locationType === "google_meet") {
+      await supabase
+        .from("bookings")
+        .update({ meet_link_pending: true, updated_at: new Date().toISOString() })
+        .eq("id", booking.id);
+    }
+    await supabase.from("automation_log").upsert(
+      {
+        event_key: "calendar_event_failed",
+        booking_id: booking.id,
+        client_id: clientId,
+        status: "failed",
+        error_message: err instanceof Error ? err.message : String(err),
+      },
+      { onConflict: "event_key,booking_id" }
+    );
+  }
+
+  // ─── Stamp the invitation + consume the chosen option ────────────────────
+  await supabase
+    .from("booking_invitations")
+    .update({
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+      accepted_option_id: args.optionId,
+      booking_id: booking.id,
+      client_id: clientId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", args.invitationId);
+  await supabase
+    .from("booking_invitation_options")
+    .update({ status: "consumed" })
+    .eq("id", args.optionId);
+  // Withdraw the remaining open/reserved options so the link can't be reused.
+  await supabase
+    .from("booking_invitation_options")
+    .update({ status: "withdrawn" })
+    .eq("invitation_id", args.invitationId)
+    .neq("id", args.optionId)
+    .in("status", ["open", "reserved"]);
+
+  // ─── Notifications + emails ──────────────────────────────────────────────
+  const sessionDate = formatCentralDate(args.sessionAtUtc);
+  const sessionTime = formatCentralTime(args.sessionAtUtc);
+  const sessionLength = formatDuration(args.durationMinutes);
+  const meetingType = meetingTypeLabel(args.locationType);
+  const meetingLocation = meetingLocationLine(args.locationType, args.locationDetails);
+  const sessionWorkspaceUrl = clientId ? `${APP_URL}/dashboard/sessions/${booking.id}` : "";
+  const adminSessionUrl = clientId
+    ? `${APP_URL}/admin/clients/${clientId}#booking-${booking.id}`
+    : `${APP_URL}/admin/sessions`;
+
+  await createAdminNotification({
+    type: "session_booked_via_invite",
+    title: `Session booked: ${args.clientName || args.clientEmail || "Unknown client"}`,
+    body: `${args.serviceType} · ${sessionDate} at ${sessionTime}`,
+    link: clientId ? `/admin/clients/${clientId}#booking-${booking.id}` : `/admin/sessions`,
+    bookingId: booking.id,
+    clientId,
+  });
+
+  await Promise.allSettled([
+    sendTemplated("session_confirmed", {
+      to: args.clientEmail,
+      bookingId: booking.id,
+      clientId: clientId ?? undefined,
+      idempotent: true,
+      data: {
+        client_name: args.clientName || "there",
+        service_type: args.serviceType,
+        session_date: sessionDate,
+        session_time: sessionTime,
+        session_length: sessionLength,
+        meeting_type: meetingType,
+        meeting_location: meetingLocation,
+        meet_link: meetLink ?? "",
+        session_workspace_url: sessionWorkspaceUrl,
+      },
+    }),
+    sendTemplated("new_session_booked", {
+      to: ADMIN_EMAIL,
+      bookingId: booking.id,
+      clientId: clientId ?? undefined,
+      idempotent: true,
+      eventKey: "new_session_booked_admin_sent",
+      // Admin alert — gate by the admin master switch, not the client one.
+      gateKey: "admin_email:new_session_booked",
+      data: {
+        client_name: args.clientName || args.clientEmail,
+        client_email: args.clientEmail,
+        service_type: args.serviceType,
+        session_type: args.sessionType ?? "",
+        session_date: sessionDate,
+        session_time: sessionTime,
+        session_length: sessionLength,
+        meeting_type: meetingType,
+        client_notes: "",
+        admin_session_url: adminSessionUrl,
+        calendar_link: calendarLink ?? "",
+      },
+    }),
+  ]);
+
+  return { bookingId: booking.id };
+}

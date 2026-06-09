@@ -55,6 +55,8 @@ All integrations are configured via environment variables. See `docs/environment
 **Webhook endpoint to register in Stripe:** `https://thryvegrowth.co/api/webhooks/stripe`
 **Events to enable:** `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
 
+**Invitation checkout (`metadata.flow = 'invitation'`):** Payment-ON booking invitations open a Checkout session carrying `metadata.flow='invitation'`, `invitationId`, and `optionId`, with `expires_at = now + 2h` so the payable window matches the reservation hold. The webhook checks this flag first and routes to `handleInvitationCheckoutCompleted` → `finalizeSession`. These sessions use ad-hoc `price_data` built from the invitation's `amount_cents` (or a `stripe_price_id` if set), so **no new env var or catalog price is required**. If `finalizeSession` rejects after payment (slot taken), the handler **refunds the PaymentIntent and alerts Rachel** via `notifyAdmin` — a paid booking is never silently dropped.
+
 **PaymentIntent expand:** Both checkout handlers call `stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] })` so the receipt email can render `payment_method_details.card.brand`, `last4`, and the Stripe-hosted `receipt_url`. The receipt template uses `{{#if card_last4}}` and `{{#if stripe_receipt_url}}` blocks so missing values render as empty — important for test mode + non-card payments (ACH, etc.).
 
 **Lazy Proxy singleton:** The Stripe client is wrapped in a JavaScript `Proxy` that defers `new Stripe(...)` until first access. This prevents `next build` from failing when `STRIPE_SECRET_KEY` is not set in the build environment.
@@ -154,6 +156,10 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 | Magic link sign-in | Supabase Send Email hook (`magiclink`) | `src/lib/email/auth-emails.ts → sendMagicLink` |
 | Booking confirmation (to client) | Stripe webhook on `checkout.session.completed` | `src/lib/email/resend.ts → sendBookingConfirmation` |
 | New booking alert (to Rachel) | Same webhook | `src/lib/email/resend.ts → sendAdminBookingAlert` |
+| Booking invitation (to client) | `sendBookingInvitation` (admin sends invite) | DB template `booking_invitation` via `sendTemplated` (default in `defaults.ts`) |
+| Session confirmed (to client) | `finalizeSession` (invitation accepted/paid) + `rescheduleSession` (re-send) | DB template `session_confirmed` |
+| New session booked (to Rachel) | `finalizeSession` | DB template `new_session_booked` (sent to `ADMIN_EMAIL`) |
+| Session reminder T-1h (to client) | `/api/cron/session-reminders` hourly + `sendSessionReminderNow` (manual) | DB template `session_reminder_1h` (critical — never seeded into `notification_settings`) |
 | Contact form submission (to Rachel) | `POST /api/contact` | `src/lib/email/resend.ts → sendContactFormSubmission` (sets `replyTo` to the submitter) |
 | Weekly job digest (to subscribers) | cron-job.org every Monday 9AM UTC | `src/app/api/cron/job-alerts/route.ts` — inline plain text |
 | Newsletter welcome | `POST /api/newsletter` (first-time signup) | `src/lib/email/newsletter-welcome.ts → sendWelcomeEmail` |
@@ -291,7 +297,7 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | `GET /api/cron/newsletter-milestones` | `0 14 * * *` | Daily 9am CDT / 8am CST |
 | `GET /api/cron/intake-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST |
 | `GET /api/cron/intake-overdue-alert` | `0 15 * * *` | Daily 10am CDT / 9am CST |
-| `GET /api/cron/session-reminders` | `0 * * * *` | Hourly at :00 |
+| `GET /api/cron/session-reminders` | `0 * * * *` | Hourly at :00 — T-24h + T-1h client reminders, T-2h Rachel prep summary, and the abandoned-reservation TTL sweep |
 | `GET /api/cron/auto-complete-sessions` | `30 * * * *` | Hourly at :30 |
 | `GET /api/cron/post-service-followup` | `0 16 * * *` | Daily 11am CDT / 10am CST |
 | `GET /api/cron/extend-availability` | `0 11 * * *` | Daily 6am CDT / 5am CST |

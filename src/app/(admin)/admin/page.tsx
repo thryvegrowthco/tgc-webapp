@@ -4,6 +4,7 @@ import { Calendar, Users, CheckCircle2, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
 import { AddTaskForm } from "@/components/admin/AddTaskForm";
+import { UpcomingSessionsWidget } from "@/components/admin/UpcomingSessionsWidget";
 import type { AdminTask } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -277,6 +278,9 @@ export default async function AdminOverviewPage() {
           <AddTaskForm triggerLabel="Add task" />
         </div>
       </div>
+
+      {/* Upcoming sessions (today + next 7 days) */}
+      <UpcomingSessionsWidget />
 
       {/* Recent Bookings */}
       <div className="bg-white rounded-xl border border-neutral-200">

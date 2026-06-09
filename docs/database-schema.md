@@ -96,23 +96,41 @@ Vacation, holidays, conferences — date ranges during which no slots should be 
 
 ### `bookings`
 
-One record per completed checkout, created by the Stripe webhook after `checkout.session.completed`.
+The single source of truth for a **session**. One record per completed checkout
+(Stripe webhook after `checkout.session.completed`) **or** per accepted booking
+invitation (via `finalizeSession()`). There is no separate `sessions` table.
 
 | Column | Type | Default | Notes |
 |---|---|---|---|
 | `id` | `UUID` | `gen_random_uuid()` | — |
-| `client_id` | `UUID` | `NULL` | FK to `profiles.id` |
-| `slot_id` | `UUID` | `NULL` | FK to `availability_slots.id`; NULL for non-bookable services |
+| `client_id` | `UUID` | `NULL` | FK to `profiles.id`; NULL when the booker has no account |
+| `slot_id` | `UUID` | `NULL` | FK to `availability_slots.id`; NULL for non-bookable services and invitation sessions |
 | `service_type` | `TEXT` | — | Human-readable service name |
-| `status` | `TEXT` | `'pending'` | CHECK: `pending`, `confirmed`, `completed`, `cancelled` |
+| `service_key` | `TEXT` | `NULL` | Maps to `ServiceKey` (added 0010) |
+| `status` | `TEXT` | `'pending'` | CHECK: `pending`, `confirmed`, `completed`, `cancelled` (coarse/legacy) |
+| `workflow_status` | `TEXT` | `'booked'` | UI source of truth. CHECK: `booked`, `intake_needed`, `intake_complete`, `session_scheduled`, `completed`, `follow_up_sent`, `cancelled`, **`no_show`**, **`rescheduled`** (last two added 0023) |
+| `session_at` | `TIMESTAMPTZ` | `NULL` | UTC session start (added 0010) |
+| `meet_link`, `calendar_event_id`, `meet_link_pending` | — | — | Google Calendar/Meet (added 0010) |
 | `client_notes` | `TEXT` | `NULL` | Submitted by client during booking |
-| `admin_notes` | `TEXT` | `NULL` | Not currently populated via UI |
+| `admin_notes` | `TEXT` | `NULL` | Rachel's internal notes |
+| `duration_minutes` | `INT` | `60` | Session length (added 0023) |
+| `location_type` | `TEXT` | `'google_meet'` | CHECK: `google_meet`, `phone`, `in_person`, `custom` (added 0023) |
+| `location_details` | `TEXT` | `NULL` | Phone/address/custom instructions (added 0023) |
+| `session_type` | `TEXT` | `NULL` | Free-text session type, e.g. "Discovery call" (added 0023) |
+| `payment_status` | `TEXT` | `'not_required'` | CHECK: `not_required`, `pending`, `paid`, `refunded`, `waived` (added 0023). Backfilled to `paid` for rows with a `stripe_session_id` |
+| `follow_up_needed` | `BOOLEAN` | `FALSE` | (added 0023) |
+| `session_summary` | `TEXT` | `NULL` | Post-session notes shared with the client (added 0023) |
+| `next_steps` | `TEXT` | `NULL` | Shown to the client in the portal (added 0023) |
+| `booking_invitation_id` | `UUID` | `NULL` | FK to `booking_invitations.id` when created from an invitation (added 0023). **UNIQUE** partial index (migration 0025) — one invitation → one session, enforced atomically |
+| `rescheduled_from_booking_id` | `UUID` | `NULL` | FK to the prior booking (Phase 2; added 0023) |
+| `reminder_1h_sent_at` | `TIMESTAMPTZ` | `NULL` | Idempotency for the T-1h client reminder (added 0024) |
 | `stripe_payment_intent_id` | `TEXT` | `NULL` | — |
-| `stripe_session_id` | `TEXT` | `NULL` | Checkout session ID |
+| `stripe_session_id` | `TEXT` | `NULL` | Checkout session ID (UNIQUE; webhook idempotency) |
 | `amount_cents` | `INT` | `NULL` | Amount charged in cents |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | Stamped on session edits (added 0023) |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
-**Key behavior:** Created in webhook with `status = 'confirmed'`. Status can only be changed to `completed` or `cancelled` via direct Supabase access — there is no admin UI for this.
+**Key behavior:** Paid `/book` sessions start at `workflow_status = 'intake_needed'`. Invitation sessions are created by `finalizeSession()` at `session_scheduled` (they skip the intake-first bucket). Status edits flow through `updateSession()` (`src/app/actions/booking.ts`).
 
 ---
 
@@ -132,6 +150,63 @@ Financial record per transaction. Always created alongside (or instead of) a boo
 | `status` | `TEXT` | — | Value from Stripe (`paid`, etc.) |
 | `service_type` | `TEXT` | `NULL` | — |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+For invitation sessions, a `payments` row is inserted only when `payment_status = 'paid'`; payment-off invitations carry their state on `bookings.payment_status` alone.
+
+---
+
+### `booking_invitations` (added 0023)
+
+One row per invitation Rachel sends. Rachel hand-picks date/time options for a
+specific client and emails a public token link; the client picks one and a
+session (`bookings` row) is created.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `token` | `TEXT` | `encode(gen_random_bytes(16),'hex')` | UNIQUE; the public bearer secret in the email link |
+| `client_id` | `UUID` | `NULL` | FK to `profiles.id`; NULL when the client has no account |
+| `client_email` | `TEXT` | — | Who the invitation is for |
+| `client_name` | `TEXT` | `NULL` | — |
+| `service_type` | `TEXT` | — | Display name shown to the client |
+| `service_key` | `TEXT` | `NULL` | Ties to intake schema / product catalog |
+| `session_type` | `TEXT` | `NULL` | — |
+| `duration_minutes` | `INT` | `60` | CHECK 15–480 |
+| `location_type` | `TEXT` | `'google_meet'` | CHECK: `google_meet`, `phone`, `in_person`, `custom` |
+| `location_details` | `TEXT` | `NULL` | — |
+| `requires_payment` | `BOOLEAN` | `FALSE` | When true, the client pays via Stripe before the session is created |
+| `amount_cents` | `INT` | `NULL` | Required when `requires_payment` |
+| `stripe_price_id` | `TEXT` | `NULL` | Optional; falls back to ad-hoc `price_data` from `amount_cents` |
+| `custom_message` | `TEXT` | `NULL` | Shown in the email + public page |
+| `internal_notes` | `TEXT` | `NULL` | Admin-only; never rendered to the client |
+| `status` | `TEXT` | `'pending'` | CHECK: `pending`, `sent`, `accepted`, `expired`, `cancelled` |
+| `expires_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `accepted_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `accepted_option_id` | `UUID` | `NULL` | FK to the chosen `booking_invitation_options.id` |
+| `booking_id` | `UUID` | `NULL` | FK to the finalized `bookings.id` |
+| `created_by` | `UUID` | `NULL` | FK to `profiles.id` (Rachel) |
+| `sent_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+### `booking_invitation_options` (added 0023)
+
+The free-form date/time choices for an invitation. A child table (not JSONB) so a
+single atomic conditional `UPDATE ... WHERE status='open'` reserves exactly one
+option and wins the race against concurrent acceptances.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `invitation_id` | `UUID` | — | FK to `booking_invitations.id` (CASCADE) |
+| `slot_date` | `DATE` | — | Central wall-clock date |
+| `start_time` | `TIME` | — | Central wall-clock time |
+| `session_at` | `TIMESTAMPTZ` | — | Precomputed UTC moment (`localCentralToUtcIso`) |
+| `status` | `TEXT` | `'open'` | CHECK: `open`, `reserved`, `consumed`, `withdrawn` |
+| `reserved_at` | `TIMESTAMPTZ` | `NULL` | Stamped on reserve; lets the cron sweep release abandoned holds (added 0024) |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| | | | UNIQUE `(invitation_id, session_at)` |
+
+**RLS:** both tables are **admin-only** (`is_admin()`). The client-`SELECT`-own policies were removed in migration 0025 — RLS is row-level, so they would have exposed the admin-only `internal_notes` column to the linked client. The **public booking page is unauthenticated** and reads/writes via the service client (the token is the bearer secret) — RLS cannot see a URL token.
 
 ---
 

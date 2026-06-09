@@ -6,6 +6,8 @@ import { sendAdminBookingAlert } from "@/lib/email/resend";
 import { sendTemplated } from "@/lib/email/render";
 import { syncBookingToGHL } from "@/lib/gohighlevel/client";
 import { createCalendarEvent } from "@/lib/google/calendar";
+import { finalizeSession } from "@/lib/booking/finalize";
+import type { LocationType } from "@/types/database";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
 import { createAdminNotification, notifyAdmin } from "@/lib/notifications/admin";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
@@ -102,7 +104,9 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.mode === "subscription") {
+    if (session.metadata?.flow === "invitation") {
+      await handleInvitationCheckoutCompleted(session);
+    } else if (session.mode === "subscription") {
       await handleSubscriptionCheckoutCompleted(session);
     } else {
       await handleCheckoutCompleted(session);
@@ -396,6 +400,113 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       : sendAdminBookingAlert(emailData),
     syncBookingToGHL({ clientEmail, clientName, serviceType }),
   ]);
+}
+
+/**
+ * Payment-ON booking invitation: the client picked a time, paid, and Stripe
+ * fired the completed event. We converge on the SAME finalizeSession() path the
+ * payment-OFF accept action uses, so the session record, calendar event,
+ * emails, and notifications are identical on both branches.
+ */
+async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const meta = session.metadata ?? {};
+  const invitationId = meta.invitationId || null;
+  const optionId = meta.optionId || null;
+  if (!invitationId || !optionId) {
+    console.warn("[Stripe Webhook] Invitation checkout missing invitationId/optionId");
+    return;
+  }
+
+  const supabase = createServiceClient();
+
+  const { data: invitation } = await supabase
+    .from("booking_invitations")
+    .select(
+      "id, booking_id, service_type, service_key, session_type, duration_minutes, location_type, location_details, client_id, client_email, client_name"
+    )
+    .eq("id", invitationId)
+    .maybeSingle();
+  if (!invitation) {
+    console.error("[Stripe Webhook] Invitation not found:", invitationId);
+    return;
+  }
+  if (invitation.booking_id) {
+    console.log("[Stripe Webhook] Invitation already finalized:", invitationId);
+    return;
+  }
+
+  const { data: option } = await supabase
+    .from("booking_invitation_options")
+    .select("id, session_at")
+    .eq("id", optionId)
+    .eq("invitation_id", invitationId)
+    .maybeSingle();
+  if (!option) {
+    console.error("[Stripe Webhook] Invitation option not found:", optionId);
+    return;
+  }
+
+  const result = await finalizeSession({
+    source: "invitation_paid",
+    invitationId: invitation.id,
+    optionId: option.id,
+    sessionAtUtc: option.session_at,
+    durationMinutes: invitation.duration_minutes,
+    locationType: invitation.location_type as LocationType,
+    locationDetails: invitation.location_details,
+    serviceType: invitation.service_type,
+    serviceKey: invitation.service_key,
+    sessionType: invitation.session_type,
+    clientId: invitation.client_id,
+    clientEmail: invitation.client_email,
+    clientName: invitation.client_name ?? "",
+    paymentStatus: "paid",
+    amountCents: session.amount_total ?? null,
+    stripeSessionId: session.id,
+    stripePaymentIntentId:
+      typeof session.payment_intent === "string" ? session.payment_intent : null,
+  });
+
+  if ("error" in result) {
+    console.error("[Stripe Webhook] finalizeSession (invitation) failed:", result.error);
+    // The client already paid but the session couldn't be created (e.g. the slot
+    // was taken in the meantime). Compensate: refund, release the hold, and alert
+    // Rachel so the charge is never silently dropped.
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+    let refunded = false;
+    if (paymentIntentId) {
+      try {
+        await stripe.refunds.create({ payment_intent: paymentIntentId });
+        refunded = true;
+      } catch (refundErr) {
+        console.error("[Stripe Webhook] invitation refund failed:", refundErr);
+      }
+    }
+    await supabase
+      .from("booking_invitation_options")
+      .update({ status: "open", reserved_at: null })
+      .eq("id", option.id)
+      .eq("status", "reserved");
+    await notifyAdmin({
+      type: "subscription_issue",
+      subject: `Action needed: paid booking could not be scheduled — ${invitation.client_name || invitation.client_email}`,
+      title: "Paid invitation could not be finalized",
+      body: refunded
+        ? "The client paid but the time was no longer available, so the session was not created and the payment was refunded automatically. Reach out to offer new times."
+        : "The client paid but the time was no longer available and the session was not created. The automatic refund FAILED — refund this payment in Stripe manually and offer new times.",
+      fields: [
+        { label: "Client", value: invitation.client_name || invitation.client_email },
+        { label: "Email", value: invitation.client_email },
+        { label: "Service", value: invitation.service_type },
+        { label: "Reason", value: result.error },
+        { label: "Refund", value: refunded ? "Issued automatically" : "FAILED — handle manually" },
+      ],
+      link: "/admin/invitations",
+      ctaLabel: "Open invitations",
+      replyTo: invitation.client_email || undefined,
+    });
+  }
 }
 
 async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Session) {

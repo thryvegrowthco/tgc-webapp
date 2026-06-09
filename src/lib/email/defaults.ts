@@ -205,4 +205,91 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 </p>
 <p style="margin:0;color:#475569;">— Rachel</p>`,
   },
+
+  booking_invitation: {
+    subject: "Choose a Time for Your Thryve Session",
+    placeholders: ["client_name", "booking_url", "custom_message", "service_type", "session_length", "meeting_type"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">I'm excited to get your session scheduled. Please choose the date and time that works best for you using the link below:</p>
+{{#if custom_message}}<p style="margin:0 0 16px;color:#475569;">{{custom_message}}</p>{{/if}}
+<p style="margin:0 0 28px;text-align:center;">
+  <a href="{{booking_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Choose My Session Time</a>
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 10px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;">Session details</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Service:</strong> {{service_type}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Session length:</strong> {{session_length}}</p>
+    <p style="margin:0;color:#0f172a;"><strong>Meeting type:</strong> {{meeting_type}}</p>
+  </td></tr>
+</table>
+<p style="margin:0 0 16px;color:#475569;">Once you select your time, you'll receive a confirmation email with the session details. If none of the times work, just reply to this email and I'll send over a few more options.</p>
+<p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>— Rachel</p>`,
+  },
+
+  session_confirmed: {
+    subject: "Your Thryve Session is Confirmed",
+    placeholders: ["client_name", "service_type", "session_date", "session_time", "session_length", "meeting_type", "meeting_location", "meet_link", "session_workspace_url"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">You're officially scheduled!</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 10px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;">Session details</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Service:</strong> {{service_type}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Date:</strong> {{session_date}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Time:</strong> {{session_time}} (CT)</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Length:</strong> {{session_length}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Meeting type:</strong> {{meeting_type}}</p>
+    {{#if meeting_location}}<p style="margin:0;color:#0f172a;"><strong>Where:</strong> {{meeting_location}}</p>{{/if}}
+  </td></tr>
+</table>
+{{#if meet_link}}<p style="margin:0 0 24px;text-align:center;">
+  <a href="{{meet_link}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Join Google Meet</a>
+</p>{{/if}}
+<p style="margin:0 0 16px;color:#475569;">Before your session, please complete any required intake forms or send over anything you'd like me to review in advance. You can also reply to this email if anything changes.</p>
+{{#if session_workspace_url}}<p style="margin:0 0 16px;color:#475569;">Your session workspace is <a href="{{session_workspace_url}}" style="color:#203e35;">here</a>.</p>{{/if}}
+<p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>— Rachel</p>`,
+  },
+
+  session_reminder_1h: {
+    subject: "Starting soon — your Thryve session at {{session_time}}",
+    placeholders: ["client_name", "session_date", "session_time", "meeting_type", "meet_link", "meeting_location", "session_workspace_url"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">Your session starts in about an hour. Here are the details so you're ready:</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border-radius:8px;border:1px solid #e2e8f0;">
+  <tr><td style="padding:16px;">
+    <p style="margin:0 0 8px;color:#64748b;font-size:14px;">When</p>
+    <p style="margin:0 0 16px;color:#0f172a;font-weight:600;">{{session_date}} at {{session_time}} (CT)</p>
+    <p style="margin:0 0 8px;color:#64748b;font-size:14px;">{{meeting_type}}</p>
+    {{#if meet_link}}<p style="margin:0;"><a href="{{meet_link}}" style="color:#203e35;font-weight:600;text-decoration:none;">{{meet_link}}</a></p>{{/if}}
+    {{#if meeting_location}}<p style="margin:0;color:#0f172a;">{{meeting_location}}</p>{{/if}}
+  </td></tr>
+</table>
+<p style="margin:0 0 16px;color:#475569;">See you soon!</p>
+<p style="margin:0;color:#475569;">— Rachel</p>`,
+  },
+
+  new_session_booked: {
+    subject: "New Session Booked: {{client_name}}",
+    placeholders: ["client_name", "client_email", "service_type", "session_type", "session_date", "session_time", "session_length", "meeting_type", "client_notes", "admin_session_url", "calendar_link"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi Rachel,</p>
+<p style="margin:0 0 16px;">A client has selected a session time.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Client:</strong> {{client_name}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Email:</strong> {{client_email}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Service:</strong> {{service_type}}</p>
+    {{#if session_type}}<p style="margin:0 0 6px;color:#0f172a;"><strong>Session type:</strong> {{session_type}}</p>{{/if}}
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Date:</strong> {{session_date}}</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Time:</strong> {{session_time}} (CT)</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>Duration:</strong> {{session_length}}</p>
+    <p style="margin:0;color:#0f172a;"><strong>Meeting type:</strong> {{meeting_type}}</p>
+  </td></tr>
+</table>
+{{#if client_notes}}<p style="margin:0 0 16px;color:#475569;"><strong>Client notes:</strong> {{client_notes}}</p>{{/if}}
+<p style="margin:0 0 28px;text-align:center;">
+  <a href="{{admin_session_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">View Session</a>
+</p>
+{{#if calendar_link}}<p style="margin:0;color:#475569;">Calendar event: <a href="{{calendar_link}}" style="color:#203e35;">open in Google Calendar</a></p>{{/if}}`,
+  },
 };

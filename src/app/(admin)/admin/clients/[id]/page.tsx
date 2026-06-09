@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Send } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { DocumentUploadForm } from "@/components/admin/DocumentUploadForm";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
 import { UpdateBookingStatusSelect } from "@/components/admin/UpdateBookingStatusSelect";
+import { SessionRecordEditor } from "@/components/admin/SessionRecordEditor";
 import { IntakeFormView } from "@/components/intake/IntakeFormView";
 import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
 import { AddTaskForm } from "@/components/admin/AddTaskForm";
@@ -23,6 +24,8 @@ const WORKFLOW_BADGES: Record<string, { label: string; className: string }> = {
   completed: { label: "Completed", className: "bg-green-100 text-green-700" },
   follow_up_sent: { label: "Wrapped up", className: "bg-neutral-100 text-neutral-600" },
   cancelled: { label: "Cancelled", className: "bg-red-100 text-red-700" },
+  no_show: { label: "No show", className: "bg-red-100 text-red-700" },
+  rescheduled: { label: "Rescheduled", className: "bg-amber-100 text-amber-700" },
 };
 
 export const metadata: Metadata = {
@@ -80,7 +83,7 @@ export default async function AdminClientDetailPage({
   ] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, service_type, service_key, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, created_at, slot_id")
+      .select("id, service_type, service_key, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, created_at, slot_id, duration_minutes, location_type, location_details, payment_status, follow_up_needed, session_summary, next_steps")
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -125,6 +128,13 @@ export default async function AdminClientDetailPage({
     meet_link_pending: boolean;
     created_at: string;
     slot_id: string | null;
+    duration_minutes: number;
+    location_type: string;
+    location_details: string | null;
+    payment_status: string;
+    follow_up_needed: boolean;
+    session_summary: string | null;
+    next_steps: string | null;
   };
   type IntakeResponseRow = {
     booking_id: string;
@@ -207,6 +217,14 @@ export default async function AdminClientDetailPage({
               })}
             </p>
           </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-neutral-100">
+          <Link
+            href={`/admin/invitations/new?clientId=${client.id}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+          >
+            <Send className="h-4 w-4" /> Create booking invitation
+          </Link>
         </div>
       </div>
 
@@ -310,35 +328,50 @@ export default async function AdminClientDetailPage({
                   const badge = WORKFLOW_BADGES[b.workflow_status] ?? WORKFLOW_BADGES.booked;
                   const intakeRow = intakeByBooking.get(b.id);
                   return (
-                    <div key={b.id} id={`booking-${b.id}`} className="px-6 py-3 flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-neutral-900">{b.service_type}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.className}`}>
-                            {badge.label}
+                    <div key={b.id} id={`booking-${b.id}`} className="px-6 py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-neutral-900">{b.service_type}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.className}`}>
+                              {badge.label}
+                            </span>
+                            {intakeRow?.submitted_at && (
+                              <a href={`#intake-${b.id}`} className="text-[10px] font-medium text-brand-700 hover:underline">
+                                View intake ↓
+                              </a>
+                            )}
+                            <p className="text-xs text-neutral-400">
+                              {new Date(b.created_at).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <UpdateBookingStatusSelect
+                            bookingId={b.id}
+                            currentStatus={b.status ?? "pending"}
+                          />
+                          <span className="text-xs text-neutral-500">
+                            ${((b.amount_cents ?? 0) / 100).toFixed(0)}
                           </span>
-                          {intakeRow?.submitted_at && (
-                            <a href={`#intake-${b.id}`} className="text-[10px] font-medium text-brand-700 hover:underline">
-                              View intake ↓
-                            </a>
-                          )}
-                          <p className="text-xs text-neutral-400">
-                            {new Date(b.created_at).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <UpdateBookingStatusSelect
+                      <div className="mt-2">
+                        <SessionRecordEditor
                           bookingId={b.id}
-                          currentStatus={b.status ?? "pending"}
+                          initial={{
+                            workflowStatus: b.workflow_status,
+                            paymentStatus: b.payment_status,
+                            sessionSummary: b.session_summary,
+                            nextSteps: b.next_steps,
+                            followUpNeeded: b.follow_up_needed,
+                            sessionAt: b.session_at,
+                          }}
                         />
-                        <span className="text-xs text-neutral-500">
-                          ${((b.amount_cents ?? 0) / 100).toFixed(0)}
-                        </span>
                       </div>
                     </div>
                   );

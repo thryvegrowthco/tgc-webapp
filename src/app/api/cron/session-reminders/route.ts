@@ -1,7 +1,10 @@
 // Session reminder cron — runs hourly.
 // Fires:
 //   • T-24h client reminder (window 23h–25h before session)
-//   • T-2h Rachel prep summary (window 1h–3h before session)
+//   • T-1h  client reminder (window 0h–1.5h before session)
+//   • T-2h  Rachel prep summary (window 1h–3h before session)
+// Also sweeps abandoned invitation-option reservations (payment-ON checkouts
+// that were never completed) back to 'open'.
 //
 // Idempotent via automation_log + the dedicated *_sent_at columns on bookings.
 
@@ -13,8 +16,12 @@ import { renderShell } from "@/lib/email/shell";
 import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime, formatCentralDateTime } from "@/lib/time/central";
+import { meetingTypeLabel, meetingLocationLine } from "@/lib/booking/display";
 import { createAdminNotification } from "@/lib/notifications/admin";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+
+// Release option holds left reserved this long by an abandoned paid checkout.
+const RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
 
 export const runtime = "nodejs";
 
@@ -36,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const { data: bookingsRaw } = await supabase
     .from("bookings")
-    .select("id, client_id, service_type, service_key, session_at, meet_link, workflow_status, session_reminder_sent_at, prep_summary_sent_at, client_notes")
+    .select("id, client_id, service_type, service_key, session_at, meet_link, workflow_status, session_reminder_sent_at, reminder_1h_sent_at, prep_summary_sent_at, client_notes, location_type, location_details")
     .in("workflow_status", ["intake_needed", "intake_complete", "session_scheduled"])
     .gte("session_at", horizonStart)
     .lte("session_at", horizonEnd);
@@ -50,8 +57,11 @@ export async function GET(request: NextRequest) {
     meet_link: string | null;
     workflow_status: string;
     session_reminder_sent_at: string | null;
+    reminder_1h_sent_at: string | null;
     prep_summary_sent_at: string | null;
     client_notes: string | null;
+    location_type: string;
+    location_details: string | null;
   };
   const bookings = (bookingsRaw ?? []) as Row[];
 
@@ -77,6 +87,7 @@ export async function GET(request: NextRequest) {
   const intakeMap = new Map(intakes.map((i) => [i.booking_id, i]));
 
   let clientReminders = 0;
+  let clientReminders1h = 0;
   let prepSummaries = 0;
 
   for (const booking of bookings) {
@@ -120,6 +131,33 @@ export async function GET(request: NextRequest) {
           bookingId: booking.id,
           clientId: booking.client_id,
         });
+      }
+    }
+
+    // T-1h client reminder (window 0–1.5h before; separate flag from the 24h one)
+    if (hoursUntil <= 1.5 && hoursUntil >= 0 && !booking.reminder_1h_sent_at) {
+      const result = await sendTemplated("session_reminder_1h", {
+        to: profile.email,
+        bookingId: booking.id,
+        clientId: booking.client_id,
+        idempotent: true,
+        eventKey: "session_reminder_1h_sent",
+        data: {
+          client_name: profile.full_name?.split(" ")[0] || "there",
+          session_date: formatCentralDate(sessionAt),
+          session_time: formatCentralTime(sessionAt),
+          meeting_type: meetingTypeLabel(booking.location_type),
+          meet_link: booking.meet_link ?? "",
+          meeting_location: meetingLocationLine(booking.location_type, booking.location_details),
+          session_workspace_url: `${APP_URL}/dashboard/sessions/${booking.id}`,
+        },
+      });
+      if (result.sent) {
+        await supabase
+          .from("bookings")
+          .update({ reminder_1h_sent_at: now.toISOString() })
+          .eq("id", booking.id);
+        clientReminders1h++;
       }
     }
 
@@ -181,12 +219,51 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ─── Reservation TTL sweep ───────────────────────────────────────────────
+  // Payment-ON checkouts that were abandoned (tab closed, never returned to
+  // cancel_url) leave an option 'reserved'. Release any held longer than the
+  // TTL on invitations that haven't been accepted, so the times reopen.
+  let releasedHolds = 0;
+  const cutoff = new Date(now.getTime() - RESERVATION_TTL_MS).toISOString();
+  const { data: staleOpts } = await supabase
+    .from("booking_invitation_options")
+    .select("id, invitation_id")
+    .eq("status", "reserved")
+    .lt("reserved_at", cutoff);
+  const staleInvIds = [...new Set((staleOpts ?? []).map((o) => o.invitation_id))];
+  if (staleInvIds.length > 0) {
+    const { data: liveInvs } = await supabase
+      .from("booking_invitations")
+      .select("id, status, booking_id")
+      .in("id", staleInvIds);
+    // Only release holds on invitations that are still awaiting a pick.
+    const releasable = new Set(
+      (liveInvs ?? [])
+        .filter((i) => !i.booking_id && i.status !== "accepted" && i.status !== "cancelled")
+        .map((i) => i.id)
+    );
+    const optIdsToRelease = (staleOpts ?? [])
+      .filter((o) => releasable.has(o.invitation_id))
+      .map((o) => o.id);
+    if (optIdsToRelease.length > 0) {
+      const { data: released } = await supabase
+        .from("booking_invitation_options")
+        .update({ status: "open", reserved_at: null })
+        .in("id", optIdsToRelease)
+        .eq("status", "reserved")
+        .select("id");
+      releasedHolds = released?.length ?? 0;
+    }
+  }
+
   return Response.json({
     ok: true,
     now: now.toISOString(),
     scanned: bookings.length,
     client_reminders: clientReminders,
+    client_reminders_1h: clientReminders1h,
     prep_summaries: prepSummaries,
+    released_holds: releasedHolds,
   });
 }
 
