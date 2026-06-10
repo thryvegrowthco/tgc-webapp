@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { AiAssistPanel } from "@/components/admin/AiAssistPanel";
+import { buildProposalScopePrompt } from "@/lib/ai/prompts";
 import { localCentralToUtcIso } from "@/lib/time/central";
 import {
   createProposal,
@@ -50,11 +52,20 @@ export interface ProposalFormInitial {
   internalNotes: string | null;
 }
 
+export interface ProposalLeadContext {
+  notes?: string | null;
+  target_role?: string | null;
+  timeline?: string | null;
+  current_position?: string | null;
+  admin_notes?: string | null;
+}
+
 export interface ProposalFormProps {
   prefillClientId?: string | null;
   prefillLeadId?: string | null;
   prefillClientEmail?: string | null;
   prefillClientName?: string | null;
+  leadContext?: ProposalLeadContext | null;
   initial?: ProposalFormInitial;
 }
 
@@ -63,6 +74,7 @@ export function ProposalForm({
   prefillLeadId,
   prefillClientEmail,
   prefillClientName,
+  leadContext,
   initial,
 }: ProposalFormProps) {
   const router = useRouter();
@@ -249,6 +261,18 @@ export function ProposalForm({
         <p className="text-xs text-neutral-500">
           The full proposal body the client reviews — deliverables, timeline, terms.
         </p>
+        <AiAssistPanel
+          label="Draft scope & terms with ChatGPT"
+          instructions="Copy this into ChatGPT, then paste the drafted scope into the editor below and refine it."
+          prompt={buildProposalScopePrompt({
+            clientName,
+            title,
+            serviceType,
+            summary,
+            amountLabel: totalLabel,
+            lead: leadContext ?? null,
+          })}
+        />
         <RichTextEditor
           initialContent={content}
           onChange={setContent}

@@ -54,6 +54,7 @@ src/
 │   ├── stripe/                 ← client.ts (lazy Proxy), products.ts (all price IDs)
 │   ├── email/                  ← resend.ts (lazy Proxy + email send functions)
 │   ├── gohighlevel/            ← client.ts (contact sync)
+│   ├── ai/                     ← prompts.ts ("Draft with ChatGPT" prompt builders + parser; no API)
 │   └── job-api/                ← jsearch.ts (search + normalize)
 ├── proxy.ts                    ← Route protection (renamed from middleware.ts)
 └── types/
@@ -438,6 +439,45 @@ A searchable, printable in-app documentation center that renders curated admin-f
 **Print → PDF:** browser `window.print()` only (no server-side PDF). `print:hidden` is set on `AdminNav`'s `<aside>`, the admin layout `<header>`, and the help sidebar/TOC/search; the article uses `print:border-0 print:p-0`. Mermaid SVGs print natively (`print:break-inside-avoid`).
 
 **Deps added:** `react-markdown`, `remark-gfm`, `rehype-slug`, `github-slugger`, `mermaid` (the last is client-only + lazy).
+
+---
+
+## AI assist suite (Phase 4 — bring-your-own-ChatGPT)
+
+A "Draft with ChatGPT" assist suite that gives Rachel a head start on her recurring writing tasks. **It is deliberately NOT an API integration:** there are no API keys, no new dependencies, no env vars, and no DB migration. The app assembles a context-rich **prompt**; Rachel clicks **Copy prompt**, opens her own ChatGPT (an "Open ChatGPT" link → `chatgpt.com`), pastes it, then pastes the reply back into the app — which either fills the relevant fields or saves it. Every output is human-reviewed before it is saved or sent (human-in-the-loop).
+
+**Prompt library — `src/lib/ai/prompts.ts`:** Pure string functions, intentionally free of React and server-only imports so the same module runs client-side **and** in the unit test.
+- **Eight `build*Prompt(ctx)` builders**, each taking a typed context object and returning prompt text: `buildSessionSummaryPrompt`, `buildPrepBriefPrompt`, `buildResumeReviewPrompt`, `buildJobMatchPrompt`, `buildCoverLetterPrompt`, `buildProposalScopePrompt`, `buildMessageReplyPrompt`, `buildLeadFollowupPrompt`. A shared `PERSONA` string sets Rachel's voice; helpers (`clip`, `line`, `block`) keep prompts tidy and omit empty fields, with a per-field char cap.
+- **`humanizeIntake(serviceKey, responses)`** — renders a service's intake JSON as readable `- Label: answer` lines using `getSchemaForService` from `src/lib/intake/schemas.ts` (the same schema the intake UI uses); skips empty answers, renders uploaded files by filename (never `[object Object]`), and falls back to raw keys when no schema is registered.
+- **`splitInOrder(text, labels)`** — parses ChatGPT's labelled reply into an ordered array aligned to `labels`. Anchors on headers like `### SUMMARY` / `**SUMMARY**` / `SUMMARY:` on their own line (case-insensitive); if **no** header is found, all text goes to the first label and the rest are empty (graceful fallback for a clumsy paste).
+
+**Shared panel — `src/components/admin/AiAssistPanel.tsx` (`"use client"`):** The one reusable collapsible panel. It shows the prompt read-only with a **Copy prompt** button + **Open ChatGPT** link. It is domain-agnostic: when an `onApply(pastedText)` handler is passed it also renders a paste-back `Textarea` + apply button (the handler receives the RAW pasted text and each caller parses/routes it); when `onApply` is omitted it is **copy-only**. Props: `label`, `prompt`, `instructions?`, `applyHint?`, `onApply?`, `applyLabel?` (default "Apply to fields"), `defaultOpen?`. The panel toasts on copy; callers toast on apply.
+
+**The eight wiring points** (apply = paste-back fills fields/saves; copy = copy-only):
+
+| # | Assist | Mode | Where it lives | Apply path reuses |
+|---|---|---|---|---|
+| 1 | Session summary + next steps | apply | `src/components/admin/SessionRecordEditor.tsx` (new optional `aiContext` prop) | `splitInOrder(raw, ["SUMMARY","NEXT STEPS"])` → sets the Summary + Next steps state; saved via the existing `updateSession` (`src/app/actions/booking.ts`) |
+| 2 | Pre-session prep brief (for Rachel) | copy | also in `SessionRecordEditor.tsx` | — |
+| 3 | Resume review | apply → save | `src/components/admin/ResumeReviewAssist.tsx`, in the Documents area of the client-detail page | pasted review saved as a private note via the existing `addClientNote` (`src/app/actions/documents.ts`) |
+| 4 | Job-match "why it matches" + recommended action | apply | `src/components/admin/WatchlistManager.tsx` (new `watchlistProfile` prop) | `splitInOrder(raw, ["MATCH REASON","RECOMMENDED ACTION"])` → fills the two fields before the existing `assignJobToClient` curate-and-send (`src/app/actions/watchlist.ts`) |
+| 5 | Cover letter | copy | also in `WatchlistManager.tsx` | — |
+| 6 | Proposal scope & terms | copy | `src/components/admin/ProposalForm.tsx`, near the rich-text editor (the Tiptap editor has no programmatic set, so Rachel pastes the draft in herself) | — |
+| 7 | Message reply | apply | `src/components/messaging/MessageThread.tsx` (admin only; new `aiReplyClientName` prop) | sets the reply `body` state; sent via the existing `sendMessage` (`src/app/actions/messages.ts`) |
+| 8 | Lead follow-up email | copy | `src/components/admin/LeadFollowupAssist.tsx`, a client island on the server-rendered lead page | — |
+
+**Page-level prop wiring (where the context comes from):**
+- `src/app/(admin)/admin/clients/[id]/page.tsx` — passes `aiContext` to `SessionRecordEditor` and renders `ResumeReviewAssist`. Its bookings `.select(...)` was **widened** to include `session_type, client_notes, admin_notes` to feed the prompts.
+- `src/app/(admin)/admin/watchlists/[clientId]/page.tsx` — passes `watchlistProfile` to `WatchlistManager`.
+- `src/app/(admin)/admin/messages/[clientId]/page.tsx` — passes `aiReplyClientName` to `MessageThread`.
+- `src/app/(admin)/admin/proposals/new/page.tsx` — now also fetches the lead's `notes, target_role, timeline, current_position, admin_notes` and passes them as a `leadContext` prop to `ProposalForm`.
+- `src/app/(admin)/admin/leads/[id]/page.tsx` — renders `LeadFollowupAssist`.
+
+**Controlled-field refactor:** `WatchlistManager.tsx`'s five manual-add fields (title, company, description, "why it matches", recommended action) were refactored to controlled React state so the job-match apply handler can write "Why it matches" and "Recommended action" into them.
+
+**Reused with NO change:** `updateSession`, `addClientNote`, `assignJobToClient`, `sendMessage`. No new tables, env vars, or dependencies.
+
+**Unit test — `scripts/test-phase4-prompts.mts`:** Pure tests for the builders + parser, with **no DB, env, or network**. Asserts `splitInOrder` header parsing and the no-header fallback, that `humanizeIntake` renders clean Q&A (no `undefined` / `[object Object]` / `null`), and that every builder produces clean output. Run with `npx tsx scripts/test-phase4-prompts.mts`.
 
 ---
 

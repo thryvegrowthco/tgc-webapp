@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { updateSession } from "@/app/actions/booking";
 import { rescheduleSession, sendSessionReminderNow, cancelSession } from "@/app/actions/sessions";
+import { AiAssistPanel } from "@/components/admin/AiAssistPanel";
+import {
+  buildSessionSummaryPrompt,
+  buildPrepBriefPrompt,
+  splitInOrder,
+  type SessionSummaryContext,
+} from "@/lib/ai/prompts";
 
 const SELECT_CLASS =
   "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500";
@@ -58,9 +65,11 @@ export interface SessionRecordEditorProps {
     followUpNeeded: boolean;
     sessionAt: string | null;
   };
+  /** Context for the "Draft with ChatGPT" assists (omit to hide them). */
+  aiContext?: SessionSummaryContext;
 }
 
-export function SessionRecordEditor({ bookingId, initial }: SessionRecordEditorProps) {
+export function SessionRecordEditor({ bookingId, initial, aiContext }: SessionRecordEditorProps) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -132,6 +141,14 @@ export function SessionRecordEditor({ bookingId, initial }: SessionRecordEditorP
 
   return (
     <div className="w-full mt-2 rounded-lg border border-neutral-200 bg-neutral-50/60 p-4 space-y-4">
+      {aiContext && (
+        <AiAssistPanel
+          label="Prep brief with ChatGPT"
+          instructions="A quick brief for you before the session. Copy into ChatGPT and read the result."
+          prompt={buildPrepBriefPrompt(aiContext)}
+        />
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Status</Label>
@@ -150,6 +167,21 @@ export function SessionRecordEditor({ bookingId, initial }: SessionRecordEditorP
           </select>
         </div>
       </div>
+
+      {aiContext && (
+        <AiAssistPanel
+          label="Draft summary & next steps with ChatGPT"
+          applyHint="Paste ChatGPT's reply (with ### SUMMARY and ### NEXT STEPS) to fill both fields below — then review and Save."
+          applyLabel="Apply to summary & next steps"
+          prompt={buildSessionSummaryPrompt(aiContext)}
+          onApply={(raw) => {
+            const [s, n] = splitInOrder(raw, ["SUMMARY", "NEXT STEPS"]);
+            if (s) setSessionSummary(s);
+            if (n) setNextSteps(n);
+            toast.success("Draft applied — review the fields and click Save.");
+          }}
+        />
+      )}
 
       <div className="space-y-1">
         <Label className="text-xs">Session summary (shared with client)</Label>

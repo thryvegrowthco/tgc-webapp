@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { ProposalForm } from "@/components/admin/ProposalForm";
+import { ProposalForm, type ProposalLeadContext } from "@/components/admin/ProposalForm";
 
 export const metadata: Metadata = {
   title: "New Proposal — Admin",
@@ -26,6 +26,7 @@ export default async function NewProposalPage({
   // converted into a proposal without re-typing contact details.
   let prefillEmail: string | null = null;
   let prefillName: string | null = null;
+  let leadContext: ProposalLeadContext | null = null;
   if (clientId) {
     const { data: client } = await supabase
       .from("profiles")
@@ -38,12 +39,31 @@ export default async function NewProposalPage({
   } else if (leadId) {
     const { data: lead } = await supabase
       .from("leads")
-      .select("email, full_name")
+      .select("email, full_name, notes, target_role, timeline, current_position, admin_notes")
       .eq("id", leadId)
       .maybeSingle();
-    const l = lead as { email: string; full_name: string | null } | null;
+    const l = lead as
+      | {
+          email: string;
+          full_name: string | null;
+          notes: string | null;
+          target_role: string | null;
+          timeline: string | null;
+          current_position: string | null;
+          admin_notes: string | null;
+        }
+      | null;
     prefillEmail = l?.email ?? null;
     prefillName = l?.full_name ?? null;
+    if (l) {
+      leadContext = {
+        notes: l.notes,
+        target_role: l.target_role,
+        timeline: l.timeline,
+        current_position: l.current_position,
+        admin_notes: l.admin_notes,
+      };
+    }
   }
 
   return (
@@ -67,6 +87,7 @@ export default async function NewProposalPage({
         prefillLeadId={leadId ?? null}
         prefillClientEmail={prefillEmail}
         prefillClientName={prefillName}
+        leadContext={leadContext}
       />
     </div>
   );

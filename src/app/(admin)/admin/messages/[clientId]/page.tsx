@@ -75,6 +75,7 @@ export default async function AdminMessageThreadPage({
         viewerRole="admin"
         clientId={clientId}
         emptyMessage="No messages from this client yet."
+        aiReplyClientName={client.full_name ?? client.email}
       />
     </div>
   );

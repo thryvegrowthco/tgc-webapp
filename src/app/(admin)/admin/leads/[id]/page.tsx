@@ -5,6 +5,7 @@ import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Calendar, FileSignature } fr
 import { createClient } from "@/lib/supabase/server";
 import { LeadStatusSelect } from "@/components/admin/LeadStatusSelect";
 import { LeadAdminNotesForm } from "@/components/admin/LeadAdminNotesForm";
+import { LeadFollowupAssist } from "@/components/admin/LeadFollowupAssist";
 import type { Lead } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -109,6 +110,18 @@ export default async function AdminLeadDetailPage({ params }: Props) {
           </p>
         </div>
       )}
+
+      {/* AI follow-up draft */}
+      <LeadFollowupAssist
+        context={{
+          fullName: lead.full_name,
+          targetRole: lead.target_role,
+          currentPosition: lead.current_position,
+          timeline: lead.timeline ? formatTimeline(lead.timeline) : null,
+          notes: lead.notes,
+          source: lead.source,
+        }}
+      />
 
       {/* Proposals for this lead */}
       {proposals.length > 0 && (

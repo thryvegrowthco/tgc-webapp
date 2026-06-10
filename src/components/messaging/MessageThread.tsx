@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { sendMessage, uploadMessageAttachment } from "@/app/actions/messages";
+import { AiAssistPanel } from "@/components/admin/AiAssistPanel";
+import { buildMessageReplyPrompt } from "@/lib/ai/prompts";
 
 export interface ThreadMessage {
   id: string;
@@ -27,9 +29,11 @@ interface MessageThreadProps {
   /** When the viewer is admin, identifies the client whose thread this is. */
   clientId?: string;
   emptyMessage: string;
+  /** Admin only: the client's name enables the "Draft reply with ChatGPT" assist. */
+  aiReplyClientName?: string;
 }
 
-export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: MessageThreadProps) {
+export function MessageThread({ messages, viewerRole, clientId, emptyMessage, aiReplyClientName }: MessageThreadProps) {
   const router = useRouter();
   const [body, setBody] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
@@ -37,6 +41,8 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
   const [error, setError] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const replyRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const showAiReply = viewerRole === "admin" && !!aiReplyClientName;
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -130,6 +136,21 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
       </div>
 
       <form onSubmit={handleSubmit} className="border-t border-neutral-100 p-4 space-y-3">
+        {showAiReply && (
+          <AiAssistPanel
+            label="Draft a reply with ChatGPT"
+            applyHint="Paste ChatGPT's reply to drop it into the box below — then edit and send."
+            applyLabel="Use as reply"
+            prompt={buildMessageReplyPrompt({
+              clientName: aiReplyClientName as string,
+              messages: messages.map((m) => ({ sender_role: m.sender_role, body: m.body, created_at: m.created_at })),
+            })}
+            onApply={(raw) => {
+              setBody(raw.trim());
+              replyRef.current?.focus();
+            }}
+          />
+        )}
         {error && (
           <p className="text-xs text-red-600">{error}</p>
         )}
@@ -167,6 +188,7 @@ export function MessageThread({ messages, viewerRole, clientId, emptyMessage }: 
             <Paperclip className="h-4 w-4" />
           </Button>
           <Textarea
+            ref={replyRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={viewerRole === "client" ? "Message Rachel…" : "Reply to client…"}

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AiAssistPanel } from "@/components/admin/AiAssistPanel";
+import { buildJobMatchPrompt, buildCoverLetterPrompt, splitInOrder } from "@/lib/ai/prompts";
 import {
   addManualJob,
   assignJobToClient,
@@ -13,15 +15,44 @@ import {
   removeJobMatch,
 } from "@/app/actions/watchlist";
 
-interface Props {
-  clientId: string;
+export interface WatchlistProfileContext {
+  target_roles?: string[] | null;
+  industries?: string[] | null;
+  skills?: string[] | null;
+  must_haves?: string[] | null;
+  preferences_notes?: string | null;
 }
 
-export function WatchlistManager({ clientId }: Props) {
+interface Props {
+  clientId: string;
+  watchlistProfile?: WatchlistProfileContext | null;
+}
+
+export function WatchlistManager({ clientId, watchlistProfile }: Props) {
   const router = useRouter();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [fetchingJobs, setFetchingJobs] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+
+  // Controlled so the "Draft with ChatGPT" prompt reads live values and the
+  // paste-back can write match_reason / recommended_action. They keep `name`, so
+  // FormData still serializes them on submit.
+  const [title, setTitle] = React.useState("");
+  const [company, setCompany] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [matchReason, setMatchReason] = React.useState("");
+  const [recommendedAction, setRecommendedAction] = React.useState("");
+
+  const jobContext = {
+    jobTitle: title,
+    company,
+    jobDescription: description,
+    targetRoles: watchlistProfile?.target_roles ?? null,
+    industries: watchlistProfile?.industries ?? null,
+    skills: watchlistProfile?.skills ?? null,
+    mustHaves: watchlistProfile?.must_haves ?? null,
+    preferencesNotes: watchlistProfile?.preferences_notes ?? null,
+  };
 
   // ── Manual job add ──────────────────────────────────────────────────────
   async function handleManualJobSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -49,6 +80,11 @@ export function WatchlistManager({ clientId }: Props) {
     toast.success("Job curated and sent to the client.");
     setShowAddForm(false);
     setSubmitting(false);
+    setTitle("");
+    setCompany("");
+    setDescription("");
+    setMatchReason("");
+    setRecommendedAction("");
     router.refresh();
   }
 
@@ -100,11 +136,11 @@ export function WatchlistManager({ clientId }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Job Title *</label>
-              <input name="title" required placeholder="e.g. HR Manager" className={fieldClass} />
+              <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. HR Manager" className={fieldClass} />
             </div>
             <div>
               <label className={labelClass}>Company *</label>
-              <input name="company" required placeholder="e.g. Acme Corp" className={fieldClass} />
+              <input name="company" required value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Acme Corp" className={fieldClass} />
             </div>
           </div>
 
@@ -126,7 +162,7 @@ export function WatchlistManager({ clientId }: Props) {
 
           <div>
             <label className={labelClass}>Description (optional)</label>
-            <textarea name="description" rows={2} placeholder="Brief job description…" className={fieldClass} />
+            <textarea name="description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief job description… (paste the posting for a better AI draft)" className={fieldClass} />
           </div>
 
           <div className="flex items-center gap-2">
@@ -145,11 +181,31 @@ export function WatchlistManager({ clientId }: Props) {
             <p className="text-xs font-semibold text-brand-700 mb-2">Your curation (shown to the client)</p>
 
             <div className="space-y-3">
+              <AiAssistPanel
+                label="Draft why-it-matches & action with ChatGPT"
+                applyHint="Paste ChatGPT's reply (with ### MATCH REASON and ### RECOMMENDED ACTION) to fill both fields below."
+                applyLabel="Apply to curation fields"
+                prompt={buildJobMatchPrompt(jobContext)}
+                onApply={(raw) => {
+                  const [reason, action] = splitInOrder(raw, ["MATCH REASON", "RECOMMENDED ACTION"]);
+                  if (reason) setMatchReason(reason);
+                  if (action) setRecommendedAction(action);
+                  toast.success("Draft applied — review the fields below.");
+                }}
+              />
+              <AiAssistPanel
+                label="Draft a cover letter with ChatGPT"
+                instructions="Drafts a tailored cover letter for this job. Copy it and save it as a deliverable for the client if you want."
+                prompt={buildCoverLetterPrompt(jobContext)}
+              />
+
               <div>
                 <label className={labelClass}>Why it matches</label>
                 <textarea
                   name="match_reason"
                   rows={2}
+                  value={matchReason}
+                  onChange={(e) => setMatchReason(e.target.value)}
                   placeholder="A sentence on why this is a strong fit for them…"
                   className={fieldClass}
                 />
@@ -169,6 +225,8 @@ export function WatchlistManager({ clientId }: Props) {
                   <label className={labelClass}>Recommended action</label>
                   <input
                     name="recommended_action"
+                    value={recommendedAction}
+                    onChange={(e) => setRecommendedAction(e.target.value)}
                     placeholder="e.g. Apply this week; mention referral"
                     className={fieldClass}
                   />

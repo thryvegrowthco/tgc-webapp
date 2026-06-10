@@ -21,6 +21,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 11. [Resources](#11-resources)
 11b. [Testimonials](#11b-testimonials)
 11c. [Client Goals & Progress](#11c-client-goals--progress)
+11d. [Draft with ChatGPT](#11d-draft-with-chatgpt)
 12. [Visitor Tracking (Pixels and Consent)](#12-visitor-tracking-pixels-and-consent)
 13. [Known Limitations](#13-known-limitations)
 14. [Troubleshooting](#14-troubleshooting)
@@ -675,6 +676,44 @@ Clients have a **Progress** area in their own dashboard where they can add and u
 
 **The session history:**
 On their Progress page, clients also see a tidy timeline of their past sessions — the **summary** and **next steps** you wrote for each one (in the Manage panel on their booking) — newest first. This gives them an easy place to look back on everything you've covered together. You don't do anything extra for this; it simply gathers up the session notes you're already writing.
+
+---
+
+## 11d. Draft with ChatGPT
+
+In several places around the admin, you'll see a little **Draft with ChatGPT** helper — a collapsible box with a sparkle icon. It's there to give you a head start on the writing you do all the time: session summaries, a quick prep brief before a call, a resume review, a job's "why it matches you" note, a cover letter, a proposal's scope and terms, a reply to a client message, and a follow-up to a new lead.
+
+**The most important thing to know:** this uses **your own ChatGPT** — the one you already sign into at `chatgpt.com`. Nothing is ever sent anywhere automatically, and there's no extra cost beyond whatever ChatGPT plan you already have. The helper simply writes a detailed, ready-to-use prompt for you (already filled in with the relevant details, like the client's role, goals, and what they shared), so you don't have to explain the situation to ChatGPT from scratch. **You stay in control the whole way:** nothing is saved or sent until you read it, edit it, and decide it's good.
+
+**How it works (the same four steps everywhere):**
+
+1. Click the **Draft with ChatGPT** box to open it. Inside you'll see the prompt already written for you.
+2. Click **Copy prompt**. Then click **Open ChatGPT** — it opens `chatgpt.com` in a new tab.
+3. In ChatGPT, paste the prompt and press enter. ChatGPT writes a draft.
+4. Copy ChatGPT's answer and bring it back to the admin. What happens next depends on the helper:
+   - **Some helpers fill the boxes for you.** Paste ChatGPT's answer into the "Paste ChatGPT's reply here" box and click the button (e.g. **Apply to fields**). The helper drops the text into the right places for you to review and tidy.
+   - **Some helpers are copy-only.** There's no paste-back box — you just copy ChatGPT's answer and put it where you need it yourself (for example, into the proposal editor, or into an email you send from your own inbox).
+
+Either way, **always read and edit the draft before you save or send it.** Think of ChatGPT as a fast first draft, not the final word — it's writing in your voice, but it's your name on it.
+
+**Where you'll find it, and what each one does:**
+
+- **On a client's session (in the Manage panel of a booking):**
+  - **A session prep brief** — a short briefing *for you* before the call: who this person is, what they likely want, and a few questions to open with. Copy-only.
+  - **A session summary and next steps** — a warm recap written *to the client* plus a few concrete next steps. This one fills the **Summary** and **Next steps** boxes for you when you paste the reply back.
+- **On a client's page, in the Documents area:**
+  - **A resume review** — feedback you can refine before sharing. **You upload the client's resume into ChatGPT yourself** (the prompt reminds you to), then paste ChatGPT's review back and it's saved as a **private note** on the client for you to polish.
+- **On a client's job watchlist (when adding a job):**
+  - **A "why it matches" + recommended action** — fills the "Why it matches" and "Recommended action" boxes for that job before you send it to the client.
+  - **A cover letter** — a tailored draft for the client applying to that job. Copy-only.
+- **On a new proposal:**
+  - **A proposal's scope & terms** — a clean draft of deliverables, timeline, and terms. Copy-only — you paste it into the proposal editor yourself and refine it there.
+- **On a client message thread:**
+  - **A reply** — drafts a response to the client's latest message and drops it into your reply box for you to edit and send.
+- **On a new lead's page:**
+  - **A follow-up email** — a warm, personal note to someone who reached out. Copy-only — you copy it and send it from your own inbox.
+
+**A note on what ChatGPT sees:** the prompt only includes the details that are already in your admin (the client's role, goals, notes, the message thread, the job details, and so on) — and only you can see it. For the resume review, ChatGPT only sees the resume if *you* upload it into your ChatGPT.
 
 ---
 

@@ -9,6 +9,7 @@ import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
 import { UpdateBookingStatusSelect } from "@/components/admin/UpdateBookingStatusSelect";
 import { SessionRecordEditor } from "@/components/admin/SessionRecordEditor";
+import { ResumeReviewAssist } from "@/components/admin/ResumeReviewAssist";
 import { IntakeFormView } from "@/components/intake/IntakeFormView";
 import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
 import { AddTaskForm } from "@/components/admin/AddTaskForm";
@@ -87,7 +88,7 @@ export default async function AdminClientDetailPage({
   ] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, service_type, service_key, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, created_at, slot_id, duration_minutes, location_type, location_details, payment_status, follow_up_needed, session_summary, next_steps")
+      .select("id, service_type, service_key, session_type, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, created_at, slot_id, duration_minutes, location_type, location_details, payment_status, follow_up_needed, session_summary, next_steps, client_notes, admin_notes")
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -154,6 +155,9 @@ export default async function AdminClientDetailPage({
     follow_up_needed: boolean;
     session_summary: string | null;
     next_steps: string | null;
+    session_type: string | null;
+    client_notes: string | null;
+    admin_notes: string | null;
   };
   type IntakeResponseRow = {
     booking_id: string;
@@ -185,6 +189,8 @@ export default async function AdminClientDetailPage({
   const intake = intakeRaw as IntakeRow | null;
   const intakeResponses = (intakeResponsesRaw ?? []) as IntakeResponseRow[];
   const intakeByBooking = new Map(intakeResponses.map((r) => [r.booking_id, r]));
+  const resumeIntake =
+    intakeResponses.find((r) => r.service_key === "resume_review" || r.service_key === "resume_rewrite") ?? null;
   const tasks = (tasksRaw ?? []) as AdminTask[];
   type PackageRow = { id: string; service_type: string; sessions_total: number; sessions_used: number; status: string; expires_at: string | null };
   const packages = (packagesRaw ?? []) as PackageRow[];
@@ -475,6 +481,26 @@ export default async function AdminClientDetailPage({
                             followUpNeeded: b.follow_up_needed,
                             sessionAt: b.session_at,
                           }}
+                          aiContext={{
+                            serviceType: b.service_type,
+                            sessionType: b.session_type,
+                            serviceKey: intakeRow?.service_key ?? b.service_key,
+                            sessionAt: b.session_at,
+                            clientNotes: b.client_notes,
+                            adminNotes: b.admin_notes,
+                            profile: intake
+                              ? {
+                                  current_position: intake.current_position,
+                                  company: intake.company,
+                                  industry: intake.industry,
+                                  years_experience: intake.years_experience,
+                                  primary_goal: intake.primary_goal,
+                                  location: intake.location,
+                                }
+                              : null,
+                            intakeResponses: intakeRow?.responses ?? null,
+                            recentNotes: notes.slice(0, 5).map((n) => n.note),
+                          }}
                         />
                       </div>
                     </div>
@@ -548,6 +574,24 @@ export default async function AdminClientDetailPage({
               <p className="text-xs text-neutral-400 mt-0.5">Upload files for this client.</p>
             </div>
             <div className="p-6 space-y-4">
+              <ResumeReviewAssist
+                clientId={id}
+                context={{
+                  serviceKey: resumeIntake?.service_key ?? "resume_review",
+                  profile: intake
+                    ? {
+                        current_position: intake.current_position,
+                        company: intake.company,
+                        industry: intake.industry,
+                        years_experience: intake.years_experience,
+                        primary_goal: intake.primary_goal,
+                        location: intake.location,
+                      }
+                    : null,
+                  intakeResponses: resumeIntake?.responses ?? null,
+                }}
+              />
+
               <DocumentUploadForm clientId={id} />
 
               {documents.length > 0 && (

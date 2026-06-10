@@ -183,7 +183,20 @@ export default async function AdminWatchlistClientPage({
       )}
 
       {/* WatchlistManager: add jobs, fetch from JSearch */}
-      <WatchlistManager clientId={clientId} />
+      <WatchlistManager
+        clientId={clientId}
+        watchlistProfile={
+          watchlist
+            ? {
+                target_roles: watchlist.target_roles,
+                industries: watchlist.industries,
+                skills: watchlist.skills,
+                must_haves: watchlist.must_haves,
+                preferences_notes: watchlist.preferences_notes,
+              }
+            : null
+        }
+      />
 
       {/* Auto-match */}
       <div className="bg-white rounded-xl border border-neutral-200 p-5 flex items-center justify-between gap-4">
