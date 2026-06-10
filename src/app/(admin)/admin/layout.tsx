@@ -52,10 +52,10 @@ export default async function AdminLayout({
     <div className="flex min-h-screen bg-neutral-50">
       <AdminNav />
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-end gap-2 h-12 px-4 lg:px-6 border-b border-neutral-200 bg-white">
+        <header className="flex items-center justify-end gap-2 h-12 px-4 lg:px-6 border-b border-neutral-200 bg-white print:hidden">
           <NotificationBell notifications={notifications} unreadCount={unreadCount ?? 0} />
         </header>
-        <main className="flex-1 p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-6 lg:p-8 print:p-0">{children}</main>
       </div>
     </div>
   );

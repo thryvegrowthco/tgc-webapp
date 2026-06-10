@@ -409,6 +409,27 @@ ALTER DATABASE postgres SET app.admin_email = 'rachel@thryvegrowth.co';
 
 ---
 
+## Admin Help Center (`/admin/help`)
+
+A searchable, printable in-app documentation center that renders curated admin-facing markdown docs **read-only**.
+
+**Content delivery — build-time generated module (deliberate, not runtime `fs`):**
+- `scripts/generate-help-content.mjs` runs via the `predev`/`prebuild` npm lifecycle hooks. It reads the curated docs from `/docs` and writes `src/lib/help/content.generated.ts` (`HELP_CONTENT: Record<slug, string>`), which the app imports normally.
+- **Why not `fs` at request time:** `/docs` lives outside `src/`; reading it in a serverless function needs `outputFileTracingIncludes`, and a mismatch fails **only** in the deployed Vercel function (invisible to `next dev`/`next start`). A bundled import eliminates that failure class. `/docs` stays the single source of truth — the generator only reads it. The generated file is committed so `tsc`/lint resolve it; `prebuild` regenerates it on every deploy.
+- Curated docs (slugs): `rachel-admin-guide`, `admin-email-reference`, `admin-faq`, `booking-invitation-flow`. The two `admin-*` docs are admin-audience references authored for the help center.
+
+**Library — `src/lib/help/docs.ts`:** `HELP_DOCS` registry (`{slug,title,category,description}`), `getDoc(slug)`, `parseToc()` (scans `##`/`###`, **skips fenced code blocks**, slugs with `github-slugger` for exact anchor parity with `rehype-slug`), and `buildSearchIndex()` (passed to the client search).
+
+**Rendering — `src/components/help/`:** `MarkdownDoc.tsx` (RSC) renders with `react-markdown` + `remark-gfm` + `rehype-slug`, styled with the blog's `prose` classes; its `code`/`pre` overrides turn ```mermaid fences into `<Mermaid>`. `Mermaid.tsx` (`"use client"`) lazy-imports `mermaid` (own code-split chunk, admin-only; falls back to raw source on parse error). `DocSearch.tsx` (`"use client"`) does in-memory ranked substring search over the prop index. `PrintButton.tsx` mirrors the signed-agreement `window.print()` button.
+
+**Routes — `src/app/(admin)/admin/help/`:** `layout.tsx` (header + global search), `page.tsx` (category-grouped doc cards), `[slug]/page.tsx` (`generateStaticParams` over the 4 slugs; renders `MarkdownDoc` + a sticky TOC + Print). Admin gating is inherited from the `(admin)` layout.
+
+**Print → PDF:** browser `window.print()` only (no server-side PDF). `print:hidden` is set on `AdminNav`'s `<aside>`, the admin layout `<header>`, and the help sidebar/TOC/search; the article uses `print:border-0 print:p-0`. Mermaid SVGs print natively (`print:break-inside-avoid`).
+
+**Deps added:** `react-markdown`, `remark-gfm`, `rehype-slug`, `github-slugger`, `mermaid` (the last is client-only + lazy).
+
+---
+
 ## Known Gaps
 
 1. **No role management UI** — `profiles.role` can only be changed via the Supabase dashboard or SQL. There is no admin panel control.

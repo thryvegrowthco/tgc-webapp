@@ -21,6 +21,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 12. [Visitor Tracking (Pixels and Consent)](#12-visitor-tracking-pixels-and-consent)
 13. [Known Limitations](#13-known-limitations)
 14. [Troubleshooting](#14-troubleshooting)
+15. [Help Center](#15-help-center)
 
 ---
 
@@ -653,3 +654,23 @@ Correct — booked slots cannot be deleted. The booking remains in the system. O
 
 **"The slug error won't go away when writing a post"**
 Each blog post must have a unique slug. Try adding a word or number to make it unique (e.g., change `resume-tips` to `resume-tips-2024`).
+
+---
+
+## 15. Help Center
+
+**URL:** `/admin/help` (the **Help** item at the bottom of the sidebar)
+
+This is your built-in library of guides — including this one. It's the fastest way to look something up without leaving the admin.
+
+**What's in it:**
+- **Admin Guide** — this complete walkthrough of every admin feature.
+- **Email Reference** — every automated email: when it sends, what it says, and how to edit it.
+- **FAQ & Status Glossary** — what each status means and answers to common questions.
+- **Booking Flow Diagrams** — visual maps of the booking-invitation workflow.
+
+**Searching:** type in the search box at the top of the Help Center. Results jump you straight to the right guide — and often the exact section.
+
+**Saving or printing a guide:** open any guide and click **Print / Save as PDF**. Your browser's print window opens; choose "Save as PDF" to keep a copy or print it on paper. The sidebar and buttons are automatically hidden so only the guide content prints.
+
+**Staying current:** these guides update automatically whenever the app is updated, so they always match how the admin actually works. You don't maintain them — they're read-only.

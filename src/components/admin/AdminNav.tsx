@@ -22,6 +22,7 @@ import {
   Briefcase,
   FileBox,
   Settings,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logOut } from "@/app/actions/auth";
@@ -46,6 +47,7 @@ const navItems = [
   { label: "Watchlists", href: "/admin/watchlists", icon: Briefcase, exact: false },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart2, exact: false },
   { label: "Settings", href: "/admin/settings", icon: Settings, exact: false },
+  { label: "Help", href: "/admin/help", icon: LifeBuoy, exact: false },
 ];
 
 export function AdminNav() {
@@ -56,7 +58,7 @@ export function AdminNav() {
   }
 
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col border-r border-neutral-200 bg-white min-h-screen">
+    <aside className="w-64 flex-shrink-0 flex flex-col border-r border-neutral-200 bg-white min-h-screen print:hidden">
       {/* Logo + admin badge */}
       <div className="px-6 py-5 border-b border-neutral-100">
         <Logo />
