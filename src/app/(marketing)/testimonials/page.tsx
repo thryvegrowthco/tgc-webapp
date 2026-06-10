@@ -1,54 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import type { Testimonial } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Client Testimonials",
   description: "What clients say about working with Thryve Growth Co.",
+  // Kept noindex until enough approved testimonials have accumulated; flip to
+  // index:true once the page is populated.
   robots: {
     index: false,
     follow: true,
   },
 };
-
-const testimonials = [
-  {
-    quote:
-      "I had been in the same role for six years telling myself I was fine. Rachel was the first person who helped me see I had completely outgrown it. She didn't tell me what I wanted to hear. She asked the right questions and held me accountable to actually doing something about it. Three months later I accepted a director-level offer I never would have chased on my own.",
-    name: "Marcus T.",
-    title: "Director of Operations",
-    service: "Career & Leadership Coaching",
-  },
-  {
-    quote:
-      "I had bombed three final-round interviews before working with Rachel. In two sessions she helped me understand exactly why: I was answering questions like I was still in my old role instead of the one I was applying for. Her feedback was direct and a little uncomfortable, which is exactly what I needed. I got an offer the next time out.",
-    name: "Danielle K.",
-    title: "Senior Product Manager, Healthcare Tech",
-    service: "Interview Preparation",
-  },
-  {
-    quote:
-      "Rachel rewrote my resume and I couldn't believe it was about me. She took ten years of job history I thought was unremarkable and made it read like a career that had direction. Within two weeks of sending it out I had more callbacks than I'd had in the previous six months combined.",
-    name: "James R.",
-    title: "Operations Manager",
-    service: "Resume Rewrite",
-  },
-  {
-    quote:
-      "We had grown to 22 employees and were still running HR like a startup, with no documented processes, no accountability structure, and managers making it up as they went. Rachel came in, assessed where we were, and gave us a framework we could actually use. She didn't overcomplicate it. Six months in, our managers are more confident and our turnover has dropped noticeably.",
-    name: "Priya S.",
-    title: "COO, Regional Logistics Company",
-    service: "HR Consulting",
-  },
-  {
-    quote:
-      "We'd done engagement surveys for years and done nothing with them. Rachel helped us understand that was the actual problem: not our scores, but our inability to act on what we were hearing. She ran a culture assessment, gave us honest feedback about where leadership was falling short, and helped us build a real action plan. The difference in team energy over the next quarter was noticeable.",
-    name: "Tom B.",
-    title: "VP of People, 60-person SaaS Company",
-    service: "Culture & Engagement",
-  },
-];
 
 const QuoteIcon = () => (
   <svg
@@ -62,7 +28,34 @@ const QuoteIcon = () => (
   </svg>
 );
 
-export default function TestimonialsPage() {
+function Stars({ rating }: { rating: number | null }) {
+  if (!rating) return null;
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${rating} of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={n <= rating ? "h-4 w-4 fill-amber-400 text-amber-400" : "h-4 w-4 text-neutral-200"}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default async function TestimonialsPage() {
+  const supabase = await createClient();
+  // RLS exposes only approved rows to the public; the JS filter is defensive so
+  // an admin browsing this page doesn't see pending/hidden ones (the admin RLS
+  // policy would otherwise return all statuses). No `.eq("status")` — it narrows
+  // the typed result to never.
+  const { data: rows } = await supabase
+    .from("testimonials")
+    .select("id, quote, author_name, author_title, service_type, rating, status")
+    .order("approved_at", { ascending: false })
+    .order("submitted_at", { ascending: false })
+    .limit(60);
+  const testimonials = ((rows ?? []) as Testimonial[]).filter((t) => t.status === "approved");
+
   return (
     <>
       <section className="bg-gradient-to-br from-brand-50 via-white to-brand-50 py-16 lg:py-24 border-b border-neutral-100">
@@ -83,28 +76,46 @@ export default function TestimonialsPage() {
 
       <section className="py-20 lg:py-28 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {testimonials.map((t) => (
-              <div
-                key={t.name}
-                className="flex flex-col gap-5 rounded-2xl border border-neutral-100 bg-white p-8 shadow-sm"
-              >
-                <QuoteIcon />
-                <blockquote className="flex-1 text-neutral-700 leading-relaxed italic">
-                  &ldquo;{t.quote}&rdquo;
-                </blockquote>
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-neutral-900">{t.name}</p>
-                    <p className="text-sm text-neutral-500">{t.title}</p>
+          {testimonials.length === 0 ? (
+            <div className="mx-auto max-w-xl text-center">
+              <QuoteIcon />
+              <h2 className="font-display text-2xl font-bold text-neutral-900 mt-4">
+                Stories are on the way
+              </h2>
+              <p className="text-neutral-600 leading-relaxed mt-2">
+                We&apos;re gathering testimonials from recent clients. In the meantime, the best way to
+                see how Rachel works is a conversation.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {testimonials.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex flex-col gap-5 rounded-2xl border border-neutral-100 bg-white p-8 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <QuoteIcon />
+                    <Stars rating={t.rating} />
                   </div>
-                  <span className="shrink-0 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-800">
-                    {t.service}
-                  </span>
+                  <blockquote className="flex-1 text-neutral-700 leading-relaxed italic">
+                    &ldquo;{t.quote}&rdquo;
+                  </blockquote>
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-neutral-900">{t.author_name}</p>
+                      {t.author_title && <p className="text-sm text-neutral-500">{t.author_title}</p>}
+                    </div>
+                    {t.service_type && (
+                      <span className="shrink-0 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-800">
+                        {t.service_type}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-16 text-center">
             <Button asChild size="lg">

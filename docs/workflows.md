@@ -971,3 +971,109 @@ Client books via invitation            → session_booked_via_invite → lib/boo
 Pre-existing admin alerts unchanged: contact form, consultation, job-watchlist lead, one-time booking + intake (`sendAdminBookingAlert`), newsletter feedback. Notification types were added to the `admin_notifications` CHECK in `0021_admin_notification_types.sql` and `0023_booking_invitations.sql` (`session_booked_via_invite`). The invitation flow's bell row is created directly via `createAdminNotification`; its admin **email** is the editable `new_session_booked` template (not `sendAdminAlert`).
 
 **Toggles:** every non-critical notification above (admin + client/lead, email + bell) can be switched off at `/admin/settings`, backed by `notification_settings` (migration `0022`) and enforced by `isNotificationDisabled()` (`src/lib/notifications/settings.ts`) inside the four helpers + the direct send-sites. Fail-open; must-send/critical notifications (receipts, welcome, intake_complete, deliverable_ready, client session reminders, auth) have no row and always send.
+
+---
+
+## 14. Testimonials Flow (Phase 3)
+
+**Capture → approve → display.** Replaces the old hardcoded `/testimonials`
+array and fixes the dead `/testimonial` 404 the post-service email used to link
+to. Server actions live in `src/app/actions/testimonials.ts`.
+
+Key files: `src/app/actions/testimonials.ts`,
+`src/app/api/cron/post-service-followup/route.ts`,
+`src/app/(testimonial)/testimonial/[token]/` (+ `/thanks`),
+`src/components/testimonial/TestimonialForm.tsx`,
+`src/app/(admin)/admin/testimonials/` (queue + `[id]` edit + `new`),
+`src/components/admin/TestimonialStatusControl.tsx`,
+`src/components/admin/TestimonialEditForm.tsx`,
+`src/app/(marketing)/testimonials/page.tsx`.
+
+```
+Post-service follow-up cron (GET /api/cron/post-service-followup, daily)
+  - selects bookings.testimonial_token alongside the other fields
+  - testimonial_url = ${APP_URL}/testimonial/${booking.testimonial_token}
+        (null-token fallback → ${APP_URL}/testimonials — never a dead link)
+  - sends the post_service_followup email 24h after completion (idempotent
+    via follow_up_sent_at + automation_log; email template unchanged)
+        │
+        ▼
+Client clicks the per-booking link → /testimonial/[token]
+  Public, unauthenticated, robots noindex; minimal branded shell
+  (route group (testimonial)/layout.tsx, mirrors (proposals)).
+  Service client resolves the booking by testimonial_token:
+    - no booking found / already submitted → ClosedState (gracious copy)
+    - else prefills author name from the client's profile (editable)
+  TestimonialForm collects: quote, name, optional title, 1–5 star rating
+        │
+   submit ── submitTestimonial({ token, ... })  [token bearer; no auth; service client]
+        - resolves booking by testimonial_token; snapshots client_id,
+          booking_id, service_type
+        - inserts status='pending'; one-per-booking guard (pre-check +
+          unique-index race fallback → friendly "already have yours")
+        → /testimonial/[token]/thanks
+        │
+        ▼
+Rachel: /admin/testimonials  (moderation queue — all statuses grouped
+        pending → approved → hidden, with counts)
+  TestimonialStatusControl → setTestimonialStatus(id, status)  [requireAdmin]
+    - approve (stamps approved_at) / hide / unhide / delete
+  Edit → /admin/testimonials/[id] → TestimonialEditForm → updateTestimonial
+  Manual add → /admin/testimonials/new → createTestimonial
+    (booking_id null, defaults to status='approved' — a quote a client emailed)
+  Every admin action revalidates /testimonials + /admin/testimonials.
+        │
+        ▼
+Public display: /testimonials (server component)
+  Reads approved rows via RLS (testimonials_public_select, anon-readable);
+  no .eq("status") — a defensive JS filter keeps it to approved even when an
+  admin browses (admin RLS would otherwise return all statuses). Renders cards
+  + conditional star rating; graceful empty state. Page starts EMPTY — the 5
+  old hardcoded testimonials were intentionally NOT migrated; kept robots
+  noindex until populated.
+```
+
+The submit path uses the **service client** (the booking token is the bearer
+secret — RLS cannot see a URL token), exactly like the proposal / booking-
+invitation public pages. There is no anon INSERT policy on `testimonials`.
+
+---
+
+## 15. Client Goals & Progress (Phase 3)
+
+**Dual-owner goals + a session recap timeline.** A `client_goals` table that
+both the client (from their dashboard) and Rachel (from the client detail page)
+manage with one shared set of actions in `src/app/actions/goals.ts`.
+
+Key files: `src/app/actions/goals.ts`,
+`src/app/(dashboard)/dashboard/progress/page.tsx`,
+`src/components/dashboard/GoalsManager.tsx`,
+`src/app/(admin)/admin/clients/[id]/page.tsx` (Goals panel).
+
+```
+createGoal / updateGoal / deleteGoal  (src/app/actions/goals.ts)
+  - ALL go through the SERVER client (createClient()); RLS does the gating.
+    client_goals has two permissive policies that OR-compose:
+      client_goals_owner  (client_id = auth.uid())  → client self-serve
+      client_goals_admin  (is_admin())              → Rachel on behalf
+  - createGoal: client_id = input.clientId ?? user.id; created_by = user.id.
+    When clientId differs from the caller, it pre-checks the admin role for a
+    clean error (RLS also enforces it).
+  - revalidates /dashboard/progress + /admin/clients/<clientId>
+        │
+        ├─ Client view: /dashboard/progress
+        │    GoalsManager (add/edit/complete/delete + status select) over the
+        │    client's own goals, PLUS a read-only Session history timeline:
+        │    the client's bookings that have a session_summary or next_steps,
+        │    reverse-chronological. session_summary/next_steps are existing
+        │    bookings columns (written by SessionRecordEditor → updateSession);
+        │    no schema change for those — Phase 3 only surfaces them here.
+        │
+        └─ Admin view: /admin/clients/[id] → "Goals" panel
+             client_goals added to the page's parallel Promise.all; renders the
+             same GoalsManager with adminMode so Rachel manages the client's
+             goals on their behalf.
+```
+
+Nav: "Progress" added to `src/components/dashboard/DashboardNav.tsx` (after My
+Packages). Everyone — client and Rachel — sees the same goal rows.

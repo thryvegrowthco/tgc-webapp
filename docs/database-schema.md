@@ -124,6 +124,7 @@ invitation (via `finalizeSession()`). There is no separate `sessions` table.
 | `booking_invitation_id` | `UUID` | `NULL` | FK to `booking_invitations.id` when created from an invitation (added 0023). **UNIQUE** partial index (migration 0025) — one invitation → one session, enforced atomically |
 | `rescheduled_from_booking_id` | `UUID` | `NULL` | FK to the prior booking (Phase 2; added 0023) |
 | `reminder_1h_sent_at` | `TIMESTAMPTZ` | `NULL` | Idempotency for the T-1h client reminder (added 0024) |
+| `testimonial_token` | `TEXT` | `encode(gen_random_bytes(16),'hex')` | Per-booking bearer secret for the testimonial submit link (added 0029). Distinct from `id` (which is already public in `/dashboard/sessions/[bookingId]`). Backfilled in four lock-light steps (add nullable → backfill → attach default → unique index); **UNIQUE** partial index `bookings_testimonial_token_key` (WHERE NOT NULL) |
 | `stripe_payment_intent_id` | `TEXT` | `NULL` | — |
 | `stripe_session_id` | `TEXT` | `NULL` | Checkout session ID (UNIQUE; webhook idempotency) |
 | `amount_cents` | `INT` | `NULL` | Amount charged in cents |
@@ -270,6 +271,52 @@ One row per consulting quote Rachel sends. Rachel builds a scoped proposal (scop
 **Indexes:** `proposals_client_email_idx`, `proposals_status_idx`; partial indexes on `client_id`, `lead_id`, and `expires_at` (WHERE NOT NULL); unique partial index `proposals_stripe_session_key` on `stripe_session_id` (WHERE NOT NULL — webhook idempotency).
 
 **RLS:** `proposals_admin` — admins manage everything (`is_admin()`). `proposals_select_own` — a logged-in client can SELECT proposals where `client_id = auth.uid()`. The **public token page is unauthenticated** and reads/writes via the service client (the token is the bearer secret), exactly like the booking-invitation page — RLS cannot see a URL token.
+
+---
+
+### `testimonials` (added 0029)
+
+Client testimonials, captured → approved → displayed. A client submits one via the per-booking `bookings.testimonial_token` link in the post-service email (prefilled), it lands as `pending`, Rachel approves it, and the public `/testimonials` page renders approved rows. Rachel can also add one manually (e.g. a quote a client emailed her). Server actions live in `src/app/actions/testimonials.ts`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `client_id` | `UUID` | `NULL` | FK to `profiles.id` (ON DELETE SET NULL); nullable — the submitter may have no account |
+| `booking_id` | `UUID` | `NULL` | FK to `bookings.id` (ON DELETE SET NULL); nullable — manual entries have none |
+| `quote` | `TEXT` | — | Required; the testimonial body |
+| `author_name` | `TEXT` | — | Required; prefilled from the client's profile on the submit form, editable |
+| `author_title` | `TEXT` | `NULL` | Optional role/title shown under the name |
+| `service_type` | `TEXT` | `NULL` | Snapshot of the booking's service at submit time (free text, not a FK) |
+| `rating` | `INT` | `NULL` | CHECK 1–5; nullable — manual entries may omit a rating |
+| `status` | `TEXT` | `'pending'` | CHECK: `pending`, `approved`, `hidden`. Only `approved` rows render publicly |
+| `submitted_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `approved_at` | `TIMESTAMPTZ` | `NULL` | Stamped when status → `approved`; cleared otherwise |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**Indexes:** `testimonials_status_idx` on `status`; partial index `testimonials_client_idx` on `client_id` (WHERE NOT NULL); **unique** partial index `testimonials_booking_key` on `booking_id` (WHERE NOT NULL — one testimonial per booking; manual entries with NULL `booking_id` don't collide).
+
+**RLS:** `testimonials_admin` — admins manage everything (`is_admin()`). `testimonials_public_select` — **anyone, including anon, may SELECT rows where `status = 'approved'`** (NOT scoped to `authenticated`); the public marketing page relies on this. There is **no anon INSERT policy** — submissions go through the service client keyed by the booking token (the token is the bearer secret), so RLS does not gate the write.
+
+---
+
+### `client_goals` (added 0029)
+
+Career goals for a client, manageable by **both** the client (from `/dashboard/progress`) and Rachel (from the client detail page). The progress timeline reuses the existing `bookings.session_summary` / `bookings.next_steps` columns — no schema change for those. Server actions live in `src/app/actions/goals.ts`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `client_id` | `UUID` | — | Required; FK to `profiles.id` (ON DELETE CASCADE) — the goal's owner |
+| `title` | `TEXT` | — | Required; short headline |
+| `detail` | `TEXT` | `NULL` | Optional longer description |
+| `status` | `TEXT` | `'active'` | CHECK: `active`, `in_progress`, `completed`, `paused` |
+| `target_date` | `DATE` | `NULL` | Optional target |
+| `created_by` | `UUID` | `NULL` | FK to `profiles.id` (ON DELETE SET NULL) — the client or the admin who added it |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**Indexes:** `client_goals_client_status_idx` on `(client_id, status)`.
+
+**RLS:** two **permissive** policies that **OR-compose**, so both audiences work through the **server client** (`createClient()` — no service client). `client_goals_admin` — admins manage all (`is_admin()`), for Rachel on the client detail page. `client_goals_owner` — `USING (client_id = auth.uid()) WITH CHECK (client_id = auth.uid())`, for client self-serve from the dashboard. RLS does the gating; the actions also pre-check the admin role only when acting on someone else's goals, to return a clean error instead of a raw policy violation.
 
 ---
 
@@ -746,6 +793,8 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 | `client_job_matches` | None | SELECT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
 | `leads` | None | None | SELECT all, INSERT, UPDATE | Full (used by `/api/leads` + `/api/consultation` for public inserts) |
 | `proposals` | None | SELECT own (`client_id`) | ALL | Full (public token page reads/writes via service client) |
+| `testimonials` | **SELECT approved** | SELECT approved | ALL | Full (public submit goes through the service client, keyed by the booking token) |
+| `client_goals` | None | ALL own (`client_id = auth.uid()`) | ALL | Not used — both audiences go through the server client; RLS gates |
 | `admin_client_notes` | None | None | ALL | Full |
 | `blog_posts` | SELECT published | SELECT published | ALL | Full |
 | `newsletter_subscribers` | INSERT only | None | ALL | Full (used by `/api/newsletter*` routes for public subscribe/unsubscribe/manage) |

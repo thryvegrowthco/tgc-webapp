@@ -152,6 +152,7 @@ export type Database = {
           booking_invitation_id: string | null;
           rescheduled_from_booking_id: string | null;
           session_package_id: string | null;
+          testimonial_token: string | null;
           updated_at: string;
           created_at: string;
         };
@@ -200,6 +201,7 @@ export type Database = {
           booking_invitation_id?: string | null;
           rescheduled_from_booking_id?: string | null;
           session_package_id?: string | null;
+          testimonial_token?: string | null;
           updated_at?: string;
           created_at?: string;
         };
@@ -248,6 +250,7 @@ export type Database = {
           booking_invitation_id?: string | null;
           rescheduled_from_booking_id?: string | null;
           session_package_id?: string | null;
+          testimonial_token?: string | null;
           updated_at?: string;
           created_at?: string;
         };
@@ -550,6 +553,90 @@ export type Database = {
           paid_at?: string | null;
           sent_at?: string | null;
           viewed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      testimonials: {
+        Row: {
+          id: string;
+          client_id: string | null;
+          booking_id: string | null;
+          quote: string;
+          author_name: string;
+          author_title: string | null;
+          service_type: string | null;
+          rating: number | null;
+          status: "pending" | "approved" | "hidden";
+          submitted_at: string;
+          approved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id?: string | null;
+          booking_id?: string | null;
+          quote: string;
+          author_name: string;
+          author_title?: string | null;
+          service_type?: string | null;
+          rating?: number | null;
+          status?: "pending" | "approved" | "hidden";
+          submitted_at?: string;
+          approved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string | null;
+          booking_id?: string | null;
+          quote?: string;
+          author_name?: string;
+          author_title?: string | null;
+          service_type?: string | null;
+          rating?: number | null;
+          status?: "pending" | "approved" | "hidden";
+          submitted_at?: string;
+          approved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      client_goals: {
+        Row: {
+          id: string;
+          client_id: string;
+          title: string;
+          detail: string | null;
+          status: "active" | "in_progress" | "completed" | "paused";
+          target_date: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          title: string;
+          detail?: string | null;
+          status?: "active" | "in_progress" | "completed" | "paused";
+          target_date?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          title?: string;
+          detail?: string | null;
+          status?: "active" | "in_progress" | "completed" | "paused";
+          target_date?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1844,6 +1931,10 @@ export type LocationType = Booking["location_type"];
 export type PaymentStatus = Booking["payment_status"];
 export type Resource = Database["public"]["Tables"]["resources"]["Row"];
 export type ResourceCtaType = Resource["cta_type"];
+export type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
+export type TestimonialStatus = Testimonial["status"];
+export type ClientGoal = Database["public"]["Tables"]["client_goals"]["Row"];
+export type ClientGoalStatus = ClientGoal["status"];
 export type TrackingPixel = Database["public"]["Tables"]["tracking_pixels"]["Row"];
 export type TrackingProvider =
   | "google_analytics_4"

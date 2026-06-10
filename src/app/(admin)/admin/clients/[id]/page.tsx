@@ -13,8 +13,9 @@ import { IntakeFormView } from "@/components/intake/IntakeFormView";
 import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
 import { AddTaskForm } from "@/components/admin/AddTaskForm";
 import { getSchemaForService } from "@/lib/intake/schemas";
+import { GoalsManager } from "@/components/dashboard/GoalsManager";
 import { formatCentralDateTime } from "@/lib/time/central";
-import type { AdminTask } from "@/types/database";
+import type { AdminTask, ClientGoal } from "@/types/database";
 
 const WORKFLOW_BADGES: Record<string, { label: string; className: string }> = {
   booked: { label: "Booked", className: "bg-neutral-100 text-neutral-600" },
@@ -82,6 +83,7 @@ export default async function AdminClientDetailPage({
     { data: tasksRaw },
     { data: packagesRaw },
     { data: proposalsRaw },
+    { data: goalsRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -123,6 +125,11 @@ export default async function AdminClientDetailPage({
     supabase
       .from("proposals")
       .select("id, title, status, amount_cents, created_at")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("client_goals")
+      .select("id, client_id, title, detail, status, target_date, created_by, created_at, updated_at")
       .eq("client_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -183,6 +190,7 @@ export default async function AdminClientDetailPage({
   const packages = (packagesRaw ?? []) as PackageRow[];
   type ProposalRow = { id: string; title: string; status: string; amount_cents: number; created_at: string };
   const proposals = (proposalsRaw ?? []) as ProposalRow[];
+  const goals = (goalsRaw ?? []) as ClientGoal[];
   const clientDisplayName = client.full_name ?? client.email;
   const tasksWithClient: TaskListItem[] = tasks.map((t) => ({
     ...t,
@@ -396,6 +404,19 @@ export default async function AdminClientDetailPage({
                 ))}
               </div>
             )}
+          </section>
+
+          {/* Goals */}
+          <section className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100">
+              <h2 className="font-semibold text-neutral-900">Goals</h2>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Shared with the client — they see these on their Progress page and can edit their own.
+              </p>
+            </div>
+            <div className="px-6 py-4">
+              <GoalsManager clientId={client.id} goals={goals} adminMode />
+            </div>
           </section>
 
           {/* Bookings */}

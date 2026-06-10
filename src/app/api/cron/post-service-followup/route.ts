@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const { data: bookingsRaw } = await supabase
     .from("bookings")
-    .select("id, client_id, service_type, completed_at, follow_up_sent_at")
+    .select("id, client_id, service_type, completed_at, follow_up_sent_at, testimonial_token")
     .eq("workflow_status", "completed")
     .is("follow_up_sent_at", null)
     .lt("completed_at", cutoff);
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     service_type: string;
     completed_at: string | null;
     follow_up_sent_at: string | null;
+    testimonial_token: string | null;
   };
   const bookings = (bookingsRaw ?? []) as Row[];
 
@@ -64,7 +65,11 @@ export async function GET(request: NextRequest) {
         client_name: profile.full_name?.split(" ")[0] || "there",
         service_type: booking.service_type,
         session_workspace_url: `${APP_URL}/dashboard/sessions/${booking.id}`,
-        testimonial_url: `${APP_URL}/testimonial`,
+        // Per-booking testimonial link (prefilled, one submission per booking).
+        // Fall back to the public page if a token is somehow missing — never a dead link.
+        testimonial_url: booking.testimonial_token
+          ? `${APP_URL}/testimonial/${booking.testimonial_token}`
+          : `${APP_URL}/testimonials`,
         book_url: `${APP_URL}/book`,
       },
     });

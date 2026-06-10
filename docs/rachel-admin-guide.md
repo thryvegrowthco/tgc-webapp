@@ -19,6 +19,8 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 9. [The Weekly Newsletter](#9-the-weekly-newsletter)
 10. [Notifications and Tasks](#10-notifications-and-tasks)
 11. [Resources](#11-resources)
+11b. [Testimonials](#11b-testimonials)
+11c. [Client Goals & Progress](#11c-client-goals--progress)
 12. [Visitor Tracking (Pixels and Consent)](#12-visitor-tracking-pixels-and-consent)
 13. [Known Limitations](#13-known-limitations)
 14. [Troubleshooting](#14-troubleshooting)
@@ -632,6 +634,47 @@ Click "Edit" on any row to change the title, description, category, price (use "
 
 **A note on the Buy / Download button:**
 Right now, when you flip a resource ON, the public card shows a muted "Coming soon" badge where the Buy or Download button used to be. That's intentional — none of the resources have a real download URL or purchase link wired up yet. When you actually finish building one (a real PDF, a Stripe price for a paid template, a Gumroad link, etc.), ping your developer to swap the badge for a working button. The Edit form already remembers whether the resource is supposed to be a "Buy Now" or a "Download" so the developer knows what to wire up.
+
+---
+
+## 11b. Testimonials
+
+**URL:** `/admin/testimonials`
+
+This is where you collect and manage the kind words clients say about working with you, and decide which ones appear on your public site.
+
+**How clients leave one:**
+The day after a session is marked complete, the client gets a follow-up email that includes a friendly invitation to share their experience. They click the link, write a short note, add their name (and optionally a title and a star rating), and submit. There's nothing they need to log in for, and each session can leave one testimonial.
+
+**Where they land:**
+Every testimonial a client submits shows up on your Testimonials page as **Pending**. Pending ones are waiting for you — they are **not** on your public site yet. The page groups everything by status (Pending first, then Approved, then Hidden) and shows a count for each, so you can see at a glance what needs your attention.
+
+**What you can do with each one:**
+- **Approve** — this is what makes it appear on your public Testimonials page.
+- **Hide** — takes an approved one back off the public page without deleting it (you can un-hide it later).
+- **Edit** — fix a typo, tidy the wording, adjust the name or title, or change the star rating.
+- **Delete** — remove it for good.
+
+**Adding one yourself:**
+Sometimes a client emails you a lovely note instead of using the link. Click **New** (or "Add testimonial") to type it in yourself — the quote, their name, and an optional title, service, and rating. Ones you add this way are set to **Approved** right away, so they go straight to your public page (you can still hide or edit them).
+
+**A note on your public page:**
+Your public Testimonials page **starts empty** — none of the old sample quotes were carried over. It will stay that way (showing a friendly "stories are on the way" message) until you approve a few. Once you've approved a handful, ask your developer to make the page show up in search results.
+
+---
+
+## 11c. Client Goals & Progress
+
+This is a shared space for tracking what a client is working toward and looking back on what each session covered.
+
+**Adding goals for a client:**
+Open any client's page and you'll find a **Goals** panel. Add a goal with a title, an optional description, a status (Active, In progress, Completed, or Paused), and an optional target date. You can edit, mark complete, or delete a goal at any time.
+
+**Clients can add their own, too:**
+Clients have a **Progress** area in their own dashboard where they can add and update goals themselves. You and the client are looking at the **same list** — anything you add shows up for them, and anything they add shows up for you. It's a shared, two-way picture of what they're working on.
+
+**The session history:**
+On their Progress page, clients also see a tidy timeline of their past sessions — the **summary** and **next steps** you wrote for each one (in the Manage panel on their booking) — newest first. This gives them an easy place to look back on everything you've covered together. You don't do anything extra for this; it simply gathers up the session notes you're already writing.
 
 ---
 

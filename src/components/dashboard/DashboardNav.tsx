@@ -12,6 +12,7 @@ import {
   CreditCard,
   MessageCircle,
   Package,
+  Target,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const navItems = [
   { label: "Documents", href: "/dashboard/documents", icon: FileText, exact: false },
   { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
   { label: "My Packages", href: "/dashboard/packages", icon: Package, exact: false },
+  { label: "Progress", href: "/dashboard/progress", icon: Target, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: CreditCard, exact: false },
   { label: "Account Settings", href: "/dashboard/profile", icon: User, exact: false },
 ];
