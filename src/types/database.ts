@@ -423,6 +423,7 @@ export type Database = {
           id: string;
           client_id: string | null;
           booking_id: string | null;
+          proposal_id: string | null;
           stripe_payment_intent_id: string | null;
           stripe_subscription_id: string | null;
           amount_cents: number;
@@ -435,6 +436,7 @@ export type Database = {
           id?: string;
           client_id?: string | null;
           booking_id?: string | null;
+          proposal_id?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_subscription_id?: string | null;
           amount_cents: number;
@@ -447,6 +449,7 @@ export type Database = {
           id?: string;
           client_id?: string | null;
           booking_id?: string | null;
+          proposal_id?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_subscription_id?: string | null;
           amount_cents?: number;
@@ -454,6 +457,102 @@ export type Database = {
           status?: string;
           service_type?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      proposals: {
+        Row: {
+          id: string;
+          token: string;
+          client_id: string | null;
+          lead_id: string | null;
+          client_email: string;
+          client_name: string | null;
+          title: string;
+          summary: string | null;
+          content: Json;
+          line_items: Json | null;
+          amount_cents: number;
+          service_type: string | null;
+          requires_signature: boolean;
+          status: "draft" | "sent" | "accepted" | "paid" | "declined" | "expired" | "cancelled";
+          expires_at: string | null;
+          internal_notes: string | null;
+          stripe_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          accepted_at: string | null;
+          accepted_name: string | null;
+          accepted_ip: string | null;
+          accepted_snapshot: Json | null;
+          declined_at: string | null;
+          paid_at: string | null;
+          sent_at: string | null;
+          viewed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          token?: string;
+          client_id?: string | null;
+          lead_id?: string | null;
+          client_email: string;
+          client_name?: string | null;
+          title: string;
+          summary?: string | null;
+          content?: Json;
+          line_items?: Json | null;
+          amount_cents?: number;
+          service_type?: string | null;
+          requires_signature?: boolean;
+          status?: "draft" | "sent" | "accepted" | "paid" | "declined" | "expired" | "cancelled";
+          expires_at?: string | null;
+          internal_notes?: string | null;
+          stripe_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          accepted_at?: string | null;
+          accepted_name?: string | null;
+          accepted_ip?: string | null;
+          accepted_snapshot?: Json | null;
+          declined_at?: string | null;
+          paid_at?: string | null;
+          sent_at?: string | null;
+          viewed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          token?: string;
+          client_id?: string | null;
+          lead_id?: string | null;
+          client_email?: string;
+          client_name?: string | null;
+          title?: string;
+          summary?: string | null;
+          content?: Json;
+          line_items?: Json | null;
+          amount_cents?: number;
+          service_type?: string | null;
+          requires_signature?: boolean;
+          status?: "draft" | "sent" | "accepted" | "paid" | "declined" | "expired" | "cancelled";
+          expires_at?: string | null;
+          internal_notes?: string | null;
+          stripe_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          accepted_at?: string | null;
+          accepted_name?: string | null;
+          accepted_ip?: string | null;
+          accepted_snapshot?: Json | null;
+          declined_at?: string | null;
+          paid_at?: string | null;
+          sent_at?: string | null;
+          viewed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -1429,7 +1528,7 @@ export type Database = {
       admin_notifications: {
         Row: {
           id: string;
-          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite";
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite" | "proposal_accepted" | "proposal_paid";
           title: string;
           body: string | null;
           link: string | null;
@@ -1440,7 +1539,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite";
+          type: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite" | "proposal_accepted" | "proposal_paid";
           title: string;
           body?: string | null;
           link?: string | null;
@@ -1451,7 +1550,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite";
+          type?: "new_booking" | "intake_submitted" | "client_doc_upload" | "intake_overdue" | "session_in_24h" | "new_subscriber" | "subscriber_unsubscribed" | "subscriber_updated" | "new_subscription" | "subscription_issue" | "watchlist_updated" | "application_status" | "client_message" | "session_booked_via_invite" | "proposal_accepted" | "proposal_paid";
           title?: string;
           body?: string | null;
           link?: string | null;
@@ -1771,4 +1870,5 @@ export type EmailTemplateKey =
   | "booking_invitation"
   | "session_confirmed"
   | "new_session_booked"
-  | "session_reminder_1h";
+  | "session_reminder_1h"
+  | "proposal_sent";

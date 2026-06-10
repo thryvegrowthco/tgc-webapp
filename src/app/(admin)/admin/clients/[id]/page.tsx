@@ -81,6 +81,7 @@ export default async function AdminClientDetailPage({
     { data: intakeResponsesRaw },
     { data: tasksRaw },
     { data: packagesRaw },
+    { data: proposalsRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -119,6 +120,11 @@ export default async function AdminClientDetailPage({
       .select("id, service_type, sessions_total, sessions_used, status, expires_at")
       .eq("client_id", id)
       .order("purchased_at", { ascending: false }),
+    supabase
+      .from("proposals")
+      .select("id, title, status, amount_cents, created_at")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   type BookingRow = {
@@ -175,6 +181,8 @@ export default async function AdminClientDetailPage({
   const tasks = (tasksRaw ?? []) as AdminTask[];
   type PackageRow = { id: string; service_type: string; sessions_total: number; sessions_used: number; status: string; expires_at: string | null };
   const packages = (packagesRaw ?? []) as PackageRow[];
+  type ProposalRow = { id: string; title: string; status: string; amount_cents: number; created_at: string };
+  const proposals = (proposalsRaw ?? []) as ProposalRow[];
   const clientDisplayName = client.full_name ?? client.email;
   const tasksWithClient: TaskListItem[] = tasks.map((t) => ({
     ...t,
@@ -351,6 +359,44 @@ export default async function AdminClientDetailPage({
               </div>
             </section>
           )}
+
+          {/* Proposals */}
+          <section className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+              <h2 className="font-semibold text-neutral-900">Proposals</h2>
+              <Link
+                href={`/admin/proposals/new?clientId=${client.id}`}
+                className="text-xs font-medium text-brand-700 hover:underline"
+              >
+                + New proposal
+              </Link>
+            </div>
+            {proposals.length === 0 ? (
+              <p className="px-6 py-8 text-sm text-neutral-400 text-center">No proposals yet.</p>
+            ) : (
+              <div className="divide-y divide-neutral-100">
+                {proposals.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/admin/proposals${["accepted", "paid", "declined"].includes(p.status) ? "" : `/${p.id}`}`}
+                    className="px-6 py-3 flex items-center justify-between gap-4 hover:bg-neutral-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-neutral-900 truncate">{p.title}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        {p.amount_cents > 0
+                          ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(p.amount_cents / 100)
+                          : "No charge"}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 flex-shrink-0">
+                      {p.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
 
           {/* Bookings */}
           <section className="bg-white rounded-xl border border-neutral-200">

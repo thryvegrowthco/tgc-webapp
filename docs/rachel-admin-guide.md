@@ -10,6 +10,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 2. [The Dashboard Overview](#2-the-dashboard-overview)
 3. [Managing Your Availability](#3-managing-your-availability)
 3b. [Sending a Booking Invitation](#3b-sending-a-booking-invitation)
+3c. [Sending a Proposal](#3c-sending-a-proposal)
 4. [Managing Clients](#4-managing-clients)
 5. [Writing Blog Posts](#5-writing-blog-posts)
 6. [Managing Job Watchlists](#6-managing-job-watchlists)
@@ -174,6 +175,42 @@ Click **Send Booking Options** and the client gets a branded email with a "Choos
 - If they have an account, the session also appears in their dashboard.
 
 The time they chose is locked in, and the booking link stops working so it can't be used twice. On the Invitations page you can copy the link, re-send the email, or cancel an invitation that hasn't been used yet.
+
+---
+
+## 3c. Sending a Proposal
+
+Use a proposal when the work is quote-based — recruitment, HR projects, culture consulting, or any custom engagement where you scope the work and agree on a price rather than selling a fixed session. You write up the scope and terms, set a price, and send the client a link. They review it, accept it by typing their name, and pay online — all in one place.
+
+**Where:** click **Proposals** in the sidebar, then **New proposal**. You can also start one straight from a **lead's page** (the "Create proposal" button) or from a **client's page** (the "+ New proposal" link in their Proposals panel) — either way it fills in the name and email for you.
+
+**What you fill in:**
+- **Who it's for** — the client's name and email. They do not need an account.
+- **Title** — a short name for the proposal, like "Recruitment Support — Q3."
+- **Scope & terms** — the main body. Write out what you'll do, what's included, and any conditions, using the same editor you use for blog posts (headings, bold, lists, links, images).
+- **Price** — enter a single total, or list out individual line items that add up to a breakdown the client can see. Set the price to **$0** if this is a no-charge agreement you just want signed.
+- **Require a signature** — leave this on so the client has to type their name to accept (recommended). You can turn it off for an informal proposal.
+- **Expiry date (optional)** — after this date the link stops working, so you can keep offers time-limited.
+- **Internal notes (optional)** — only for you; the client never sees these.
+
+You can **Save draft** to keep working on it later, or **Send** to email it right away. When you send, the client gets a branded email with a "Review & Accept Proposal" button.
+
+**What the client does:**
+- They open the link and read the full proposal.
+- To accept, they type their name (their signature) and click to accept.
+- If there's a price, they're taken straight to a secure card payment to pay for it. If it's a $0 proposal, accepting is all they need to do.
+- They can also **decline** if it's not right for them.
+
+**What you get back:**
+- A notification (email and bell) the moment they **accept**.
+- A second notification when the **payment goes through**, along with a receipt sent to the client automatically.
+- A notification if they **decline**, so you can follow up with adjusted terms.
+
+On the Proposals page you can copy the link, edit a draft, send it, or cancel one that hasn't been acted on yet.
+
+**Important:** once a client accepts a proposal, it's locked — you can no longer edit it, because the accepted version is a signed record. If you need to change something after that, create a new proposal. And a proposal that's already been paid can't be cancelled here — if you need to refund it, do that in Stripe.
+
+**Tip:** when someone fills out your free consultation form, they're now automatically saved as a **lead**. That means you can open their lead, talk it through, and turn it into a proposal in a couple of clicks without retyping their details.
 
 ---
 

@@ -5,6 +5,7 @@ import {
 } from "@/lib/email/resend";
 import { syncContactToGHL } from "@/lib/gohighlevel/client";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_MESSAGE_LENGTH = 5000;
@@ -123,6 +124,22 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[consultation] GHL sync failed:", err);
+  }
+
+  // Capture the request as a lead so Rachel can track + convert it to a proposal
+  // (best-effort; the request still succeeds if this fails).
+  try {
+    await createServiceClient().from("leads").insert({
+      full_name: `${data.firstName} ${data.lastName}`.trim(),
+      email: data.email,
+      phone: data.phone || null,
+      timeline: data.timing || null,
+      notes: data.message,
+      source: "consultation",
+      status: "new",
+    });
+  } catch (err) {
+    console.error("[consultation] lead capture failed:", err);
   }
 
   return NextResponse.json({ ok: true });

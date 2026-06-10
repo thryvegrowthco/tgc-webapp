@@ -143,6 +143,7 @@ Financial record per transaction. Always created alongside (or instead of) a boo
 | `id` | `UUID` | `gen_random_uuid()` | — |
 | `client_id` | `UUID` | `NULL` | FK to `profiles.id` |
 | `booking_id` | `UUID` | `NULL` | FK to `bookings.id`; NULL for subscription payments |
+| `proposal_id` | `UUID` | `NULL` | FK to `proposals.id` (ON DELETE SET NULL); set when the payment came from an accepted proposal (added 0028). Indexed (partial, WHERE NOT NULL) |
 | `stripe_payment_intent_id` | `TEXT` | — | UNIQUE constraint |
 | `stripe_subscription_id` | `TEXT` | `NULL` | Populated for subscription payments |
 | `amount_cents` | `INT` | — | Required |
@@ -228,6 +229,47 @@ Credit ledger for multi-session packages (`coaching_package` = 4, `interview_pac
 | `created_at` / `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
 `bookings.session_package_id` (added 0027) links a redeemed/first session to its package. RLS: client SELECT own + admin all. Redeeming decrements via an optimistic guard; cancelling a package session returns the credit (`returnPackageCredit` in `src/app/actions/sessions.ts`).
+
+---
+
+### `proposals` (added 0028)
+
+One row per consulting quote Rachel sends. Rachel builds a scoped proposal (scope/terms via the rich-text editor + a price), emails a branded token link, and the client reviews it on a public page, accepts (types their name — an immutable signature snapshot, mirroring `signed_service_agreements`), and pays via Stripe Checkout. A `$0` proposal is sign-only with no checkout. Server actions live in `src/app/actions/proposals.ts`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `token` | `TEXT` | `encode(gen_random_bytes(16),'hex')` | UNIQUE; the public bearer secret in the email link |
+| `client_id` | `UUID` | `NULL` | FK to `profiles.id` (ON DELETE SET NULL); NULL when the prospect has no account yet |
+| `lead_id` | `UUID` | `NULL` | FK to `leads.id` (ON DELETE SET NULL); the consultation lead this converts, if any |
+| `client_email` | `TEXT` | — | Who the proposal is for |
+| `client_name` | `TEXT` | `NULL` | — |
+| `title` | `TEXT` | — | Required; shown in the email + page header |
+| `summary` | `TEXT` | `NULL` | Short plain-text intro shown in the email + page header |
+| `content` | `JSONB` | `'{}'` | Scope / terms as Tiptap ProseMirror JSON (same format as blog + agreements) |
+| `line_items` | `JSONB` | `NULL` | Optional display-only breakdown: `[{ description, amount_cents }]`; `amount_cents` below is the authoritative figure charged |
+| `amount_cents` | `INT` | `0` | CHECK ≥ 0; the authoritative charge. `0` = no charge (sign-only, no checkout) |
+| `service_type` | `TEXT` | `NULL` | Display label |
+| `requires_signature` | `BOOLEAN` | `TRUE` | When true, the client must type their name to accept |
+| `status` | `TEXT` | `'draft'` | CHECK: `draft`, `sent`, `accepted`, `paid`, `declined`, `expired`, `cancelled` |
+| `expires_at` | `TIMESTAMPTZ` | `NULL` | Past this moment the public page refuses the proposal |
+| `internal_notes` | `TEXT` | `NULL` | Admin-only; never rendered to the client |
+| `stripe_session_id` | `TEXT` | `NULL` | Checkout session ID; **UNIQUE** (partial, webhook idempotency) |
+| `stripe_payment_intent_id` | `TEXT` | `NULL` | — |
+| `accepted_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `accepted_name` | `TEXT` | `NULL` | Typed signature captured at acceptance |
+| `accepted_ip` | `TEXT` | `NULL` | First `x-forwarded-for` IP captured at acceptance |
+| `accepted_snapshot` | `JSONB` | `NULL` | Copy of `content` at the moment of acceptance (immutable record) |
+| `declined_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `paid_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `sent_at` | `TIMESTAMPTZ` | `NULL` | Stamped by `sendProposal` |
+| `viewed_at` | `TIMESTAMPTZ` | `NULL` | — |
+| `created_by` | `UUID` | `NULL` | FK to `profiles.id` (Rachel); ON DELETE SET NULL |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+**Indexes:** `proposals_client_email_idx`, `proposals_status_idx`; partial indexes on `client_id`, `lead_id`, and `expires_at` (WHERE NOT NULL); unique partial index `proposals_stripe_session_key` on `stripe_session_id` (WHERE NOT NULL — webhook idempotency).
+
+**RLS:** `proposals_admin` — admins manage everything (`is_admin()`). `proposals_select_own` — a logged-in client can SELECT proposals where `client_id = auth.uid()`. The **public token page is unauthenticated** and reads/writes via the service client (the token is the bearer secret), exactly like the booking-invitation page — RLS cannot see a URL token.
 
 ---
 
@@ -526,7 +568,7 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 | Column | Type | Default | Notes |
 |---|---|---|---|
 | `id` | `UUID` | `gen_random_uuid()` | — |
-| `type` | `TEXT` | — | CHECK (widened in 0021): `new_booking`, `intake_submitted`, `client_doc_upload`, `intake_overdue`, `session_in_24h`, `new_subscriber`, `subscriber_unsubscribed`, `subscriber_updated`, `new_subscription`, `subscription_issue`, `watchlist_updated`, `application_status`, `client_message` |
+| `type` | `TEXT` | — | CHECK (widened in 0021, 0023, 0028): `new_booking`, `intake_submitted`, `client_doc_upload`, `intake_overdue`, `session_in_24h`, `new_subscriber`, `subscriber_unsubscribed`, `subscriber_updated`, `new_subscription`, `subscription_issue`, `watchlist_updated`, `application_status`, `client_message`, `session_booked_via_invite`, `proposal_accepted`, `proposal_paid` |
 | `title` | `TEXT` | — | Headline shown in the bell + inbox |
 | `body` | `TEXT` | `NULL` | Optional supporting line |
 | `link` | `TEXT` | `NULL` | Where clicking the row sends Rachel (usually `/admin/clients/{id}#...`) |
@@ -537,7 +579,7 @@ One row per notable event Rachel should see in-app. Mirrors the email alerts but
 
 **Indexes:** partial index on `created_at DESC WHERE read_at IS NULL` for the unread-count query; full index on `created_at DESC` for the inbox.
 
-**Writers:** Stripe webhook (`new_booking`, `new_subscription`, `subscription_issue`), `saveIntake` action (`intake_submitted`, `client_doc_upload`), intake-overdue cron (`intake_overdue`), session-reminders cron (`session_in_24h`), newsletter routes (`new_subscriber`, `subscriber_unsubscribed`, `subscriber_updated`), `saveWatchlistProfile` (`watchlist_updated`), `updateMatchStatus` (`application_status`), `sendMessage` (`client_message`). Helpers: `src/lib/notifications/admin.ts → createAdminNotification` (bell only) and `notifyAdmin` (email + bell in one call).
+**Writers:** Stripe webhook (`new_booking`, `new_subscription`, `subscription_issue`, `proposal_paid`), `saveIntake` action (`intake_submitted`, `client_doc_upload`), intake-overdue cron (`intake_overdue`), session-reminders cron (`session_in_24h`), newsletter routes (`new_subscriber`, `subscriber_unsubscribed`, `subscriber_updated`), `saveWatchlistProfile` (`watchlist_updated`), `updateMatchStatus` (`application_status`), `sendMessage` (`client_message`), proposal actions (`proposal_accepted` on accept/decline; `src/app/actions/proposals.ts`). Helpers: `src/lib/notifications/admin.ts → createAdminNotification` (bell only) and `notifyAdmin` (email + bell in one call).
 
 ---
 
@@ -702,7 +744,8 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 | `watchlist_profiles` | None | SELECT own, INSERT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
 | `job_listings` | None | SELECT all | ALL | Full |
 | `client_job_matches` | None | SELECT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
-| `leads` | None | None | SELECT all, INSERT, UPDATE | Full (used by `/api/leads` for public inserts) |
+| `leads` | None | None | SELECT all, INSERT, UPDATE | Full (used by `/api/leads` + `/api/consultation` for public inserts) |
+| `proposals` | None | SELECT own (`client_id`) | ALL | Full (public token page reads/writes via service client) |
 | `admin_client_notes` | None | None | ALL | Full |
 | `blog_posts` | SELECT published | SELECT published | ALL | Full |
 | `newsletter_subscribers` | INSERT only | None | ALL | Full (used by `/api/newsletter*` routes for public subscribe/unsubscribe/manage) |

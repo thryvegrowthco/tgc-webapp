@@ -177,6 +177,72 @@ gated by `bookings.reminder_1h_sent_at`)**, and T-2h Rachel prep summary.
 
 ---
 
+## 1d. Proposal → Accept → Pay Flow (Phase 2)
+
+**Admin-initiated, quote-based consulting revenue.** HR / recruitment / culture
+work is scoped per engagement, so Rachel builds a proposal (scope + terms via the
+rich-text editor + a price), emails a public token link, and the client reviews
+it on a public page, accepts (typed-signature, immutable snapshot — mirrors
+`signed_service_agreements`), and **pays on accept** via Stripe Checkout. A `$0`
+proposal is sign-only with no checkout (covers fixed-scope no-charge agreements).
+
+Key files: `src/app/actions/proposals.ts`, `src/app/api/webhooks/stripe/route.ts`
+(`handleProposalCheckoutCompleted`), `src/app/(proposals)/proposal/[token]/`,
+`src/components/admin/ProposalForm.tsx`, `src/components/proposals/ProposalContent.tsx`,
+`src/components/proposals/ProposalAcceptClient.tsx`.
+
+```
+Rachel: /admin/proposals/new  (or "Create proposal" on a lead/client page,
+        prefilled via ?leadId= / ?clientId=)
+  ProposalForm → createProposal(input, sendNow?)   [requireAdmin]
+    - validates (valid email, title, amount ≥ 0; paid must be ≥ $0.50)
+    - inserts proposals row (status 'draft'); content = Tiptap JSON
+    - Save draft → stays 'draft';  Send → sendProposal()
+  sendProposal(id)  [requireAdmin]
+    - sendTemplated('proposal_sent') with proposal_url = /proposal/{token}
+    - status='sent', sent_at stamped (never downgrades an accepted/paid row)
+        │
+        ▼
+Client receives "Your Proposal from Thryve Growth Co." email → /proposal/[token]
+  Public, unauthenticated; service client looks up the proposal by token.
+  loadLiveProposal guards: not-found | paid | cancelled | declined | expired
+  ProposalContent renders scope/terms (Tiptap extensions match RichTextEditor,
+  incl. Image); ProposalAcceptClient shows the signature input + accept/decline.
+        │
+   client types name + accepts ── acceptProposal({token, signedName})  [token bearer; no admin gate]
+        - records acceptance ONCE (idempotent on retry): status='accepted',
+          accepted_at/name/ip, accepted_snapshot = copy of content
+        - notifyAdmin('proposal_accepted') → Rachel (bell + email)
+        ├─ amount_cents == 0 ── redirect → /proposal/[token]/accepted (done; sign-only)
+        └─ amount_cents  > 0 ── Stripe Checkout (ad-hoc price_data,
+              metadata.flow='proposal', proposalId)
+              success_url → /proposal/[token]/accepted ; cancel_url → ?cancelled=1
+              → webhook checkout.session.completed → handleProposalCheckoutCompleted
+                  - idempotent (proposals.status check + UNIQUE stripe_session_id)
+                  - status='paid', paid_at + stripe ids stamped
+                  - INSERT payments (proposal_id set; service_type = service_type||title)
+                  - sendTemplated('receipt') → client
+                  - notifyAdmin('proposal_paid') → Rachel
+        │
+   client declines ──────────── declineProposal({token})  [token bearer]
+        - status='declined', declined_at; notifyAdmin → Rachel (follow-up)
+        │
+        ▼
+Client → /proposal/[token]/accepted (confirmation).
+```
+
+**Locked once acted on:** `updateProposal` refuses edits when status is
+`accepted`/`paid`/`declined` (an accepted proposal is an immutable record).
+`cancelProposal` refuses to cancel a `paid` proposal (refund in Stripe instead).
+A re-run of `acceptProposal` after an abandoned checkout preserves the original
+signature snapshot and just re-opens checkout.
+
+**Lead capture:** a free-consultation request now also writes a `leads` row
+(see **6b**), so Rachel can convert it straight into a proposal from
+`/admin/leads/[id]` (the proposal carries `lead_id`).
+
+---
+
 ## 2. Job Alerts Subscription Flow
 
 **Service:** Job Alerts & Watchlists ($50/month)
@@ -568,7 +634,10 @@ ConsultationForm (src/components/marketing/ConsultationForm.tsx)
        (warm acknowledgement, 1–2 business day response promise)
   4. Best-effort: syncContactToGHL with tags ["thryve-lead", "consultation-requested"]
        - timing (when provided) written to consultation_timing custom field
-  5. Return { ok: true } → ConsultationForm shows "Request received!"
+  5. Best-effort: INSERT a leads row (service client) — source='consultation',
+     status='new', timeline=timing, notes=message — so Rachel can track it and
+     convert it into a proposal (see 1d). Failure does not fail the request.
+  6. Return { ok: true } → ConsultationForm shows "Request received!"
 ```
 
 **Why separate from /book:** `/book` is the paid Stripe session selector. `/consultation` is the
@@ -578,9 +647,10 @@ in Header, Home final CTA, AboutCTA, all SectionCTA usages, FAQ + contact inline
 want a paid session directly can still reach `/book` from the consultation page sidebar, the
 dashboard, or the `/services/interview-prep` page.
 
-**Best-effort behavior:** Auto-reply and GHL sync are wrapped in their own try/catch — if either
-fails, the request still succeeds for the submitter because Rachel already has the admin alert.
-This matches the booking-flow philosophy of not blocking on non-critical side effects.
+**Best-effort behavior:** Auto-reply, GHL sync, and the `leads` insert are each wrapped in their
+own try/catch — if any fails, the request still succeeds for the submitter because Rachel already
+has the admin alert. This matches the booking-flow philosophy of not blocking on non-critical
+side effects.
 
 ---
 

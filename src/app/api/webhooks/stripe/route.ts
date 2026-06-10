@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.metadata?.flow === "invitation") {
       await handleInvitationCheckoutCompleted(session);
+    } else if (session.metadata?.flow === "proposal") {
+      await handleProposalCheckoutCompleted(session);
     } else if (session.mode === "subscription") {
       await handleSubscriptionCheckoutCompleted(session);
     } else {
@@ -537,6 +539,112 @@ async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Sessio
       replyTo: invitation.client_email || undefined,
     });
   }
+}
+
+/**
+ * Proposal payment (Phase 2): the client accepted a consulting proposal and paid
+ * via Stripe Checkout (ad-hoc price_data, metadata.flow='proposal'). Mark the
+ * proposal paid, record the payment, receipt the client, and alert Rachel. The
+ * partial unique index on proposals.stripe_session_id keeps this idempotent.
+ */
+async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const meta = session.metadata ?? {};
+  const proposalId = meta.proposalId || null;
+  if (!proposalId) {
+    console.warn("[Stripe Webhook] Proposal checkout missing proposalId");
+    return;
+  }
+
+  const supabase = createServiceClient();
+  const { data: proposal } = await supabase
+    .from("proposals")
+    .select("id, status, title, service_type, client_id, client_email, client_name, amount_cents")
+    .eq("id", proposalId)
+    .maybeSingle();
+  if (!proposal) {
+    console.error("[Stripe Webhook] Proposal not found:", proposalId);
+    return;
+  }
+  const prop = proposal as {
+    id: string;
+    status: string;
+    title: string;
+    service_type: string | null;
+    client_id: string | null;
+    client_email: string;
+    client_name: string | null;
+    amount_cents: number;
+  };
+  if (prop.status === "paid") {
+    console.log("[Stripe Webhook] Proposal already paid:", proposalId);
+    return;
+  }
+
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
+  const serviceLabel = prop.service_type || prop.title;
+
+  await supabase
+    .from("proposals")
+    .update({
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      stripe_session_id: session.id,
+      stripe_payment_intent_id: paymentIntentId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", prop.id)
+    .neq("status", "paid");
+
+  await supabase.from("payments").insert({
+    client_id: prop.client_id,
+    proposal_id: prop.id,
+    stripe_payment_intent_id: paymentIntentId,
+    amount_cents: session.amount_total ?? prop.amount_cents,
+    status: session.payment_status ?? "paid",
+    service_type: serviceLabel,
+  });
+
+  const amountFormatted = formatCents(session.amount_total ?? prop.amount_cents);
+  const paymentSummary = await fetchPaymentMethodSummary(paymentIntentId);
+
+  await Promise.allSettled([
+    sendTemplated("receipt", {
+      to: prop.client_email,
+      clientId: prop.client_id ?? undefined,
+      data: {
+        client_name: prop.client_name?.split(" ")[0] || "there",
+        service_type: serviceLabel,
+        amount_formatted: amountFormatted,
+        payment_date: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+        transaction_id: paymentIntentId ?? session.id,
+        card_brand: paymentSummary.cardBrand,
+        card_last4: paymentSummary.cardLast4,
+        stripe_receipt_url: paymentSummary.receiptUrl,
+        support_email: SUPPORT_EMAIL,
+      },
+    }),
+    notifyAdmin({
+      type: "proposal_paid",
+      subject: `Proposal paid: ${prop.client_name || prop.client_email}`,
+      title: `Payment received — ${prop.title}`,
+      body: "The client paid their proposal. Time to kick off the engagement.",
+      fields: [
+        { label: "Client", value: prop.client_name || prop.client_email },
+        { label: "Email", value: prop.client_email },
+        { label: "Proposal", value: prop.title },
+        { label: "Amount", value: amountFormatted },
+      ],
+      link: "/admin/proposals",
+      ctaLabel: "Open proposals",
+      clientId: prop.client_id,
+      replyTo: prop.client_email || undefined,
+    }),
+  ]);
 }
 
 async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Session) {

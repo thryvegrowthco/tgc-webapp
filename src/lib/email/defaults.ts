@@ -292,4 +292,26 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 </p>
 {{#if calendar_link}}<p style="margin:0;color:#475569;">Calendar event: <a href="{{calendar_link}}" style="color:#203e35;">open in Google Calendar</a></p>{{/if}}`,
   },
+
+  proposal_sent: {
+    subject: "Your Proposal from Thryve Growth Co.",
+    placeholders: ["client_name", "proposal_title", "proposal_url", "service_type", "amount_formatted", "custom_message", "expiry_note"],
+    bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
+<p style="margin:0 0 16px;">Thank you for the conversation. I've put together a proposal outlining the scope, terms, and investment for working together. You can review the full details and accept it using the link below:</p>
+{{#if custom_message}}<p style="margin:0 0 16px;color:#475569;">{{custom_message}}</p>{{/if}}
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 10px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;">Proposal</p>
+    <p style="margin:0 0 6px;color:#0f172a;"><strong>{{proposal_title}}</strong></p>
+    {{#if service_type}}<p style="margin:0 0 6px;color:#0f172a;"><strong>Service:</strong> {{service_type}}</p>{{/if}}
+    {{#if amount_formatted}}<p style="margin:0;color:#0f172a;"><strong>Investment:</strong> {{amount_formatted}}</p>{{/if}}
+  </td></tr>
+</table>
+<p style="margin:0 0 28px;text-align:center;">
+  <a href="{{proposal_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Review &amp; Accept Proposal</a>
+</p>
+{{#if expiry_note}}<p style="margin:0 0 16px;color:#475569;">{{expiry_note}}</p>{{/if}}
+<p style="margin:0 0 16px;color:#475569;">If you have any questions or would like to adjust anything, just reply to this email and we'll work it out together.</p>
+<p style="margin:0;color:#475569;">Looking forward to partnering with you!<br/>— Rachel</p>`,
+  },
 };

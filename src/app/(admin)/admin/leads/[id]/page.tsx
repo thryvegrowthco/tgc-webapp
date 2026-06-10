@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Calendar } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Calendar, FileSignature } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { LeadStatusSelect } from "@/components/admin/LeadStatusSelect";
 import { LeadAdminNotesForm } from "@/components/admin/LeadAdminNotesForm";
@@ -27,6 +27,20 @@ export default async function AdminLeadDetailPage({ params }: Props) {
   const lead = leadRaw as Lead | null;
   if (!lead) notFound();
 
+  // Proposals already created for this lead (so the convert action isn't duplicated).
+  const { data: proposalRows } = await supabase
+    .from("proposals")
+    .select("id, title, status, amount_cents, created_at")
+    .eq("lead_id", id)
+    .order("created_at", { ascending: false });
+  const proposals = (proposalRows ?? []) as {
+    id: string;
+    title: string;
+    status: string;
+    amount_cents: number;
+    created_at: string;
+  }[];
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Link
@@ -46,7 +60,15 @@ export default async function AdminLeadDetailPage({ params }: Props) {
               {new Date(lead.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
             </p>
           </div>
-          <LeadStatusSelect leadId={lead.id} currentStatus={lead.status} />
+          <div className="flex flex-col items-end gap-2">
+            <LeadStatusSelect leadId={lead.id} currentStatus={lead.status} />
+            <Link
+              href={`/admin/proposals/new?leadId=${lead.id}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors whitespace-nowrap"
+            >
+              <FileSignature className="h-3.5 w-3.5" /> Create proposal
+            </Link>
+          </div>
         </div>
 
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
@@ -85,6 +107,32 @@ export default async function AdminLeadDetailPage({ params }: Props) {
           <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
             {lead.notes}
           </p>
+        </div>
+      )}
+
+      {/* Proposals for this lead */}
+      {proposals.length > 0 && (
+        <div className="bg-white border border-neutral-200 rounded-xl p-6">
+          <h2 className="font-display font-bold text-neutral-900 mb-3">Proposals</h2>
+          <div className="space-y-2">
+            {proposals.map((p) => (
+              <Link
+                key={p.id}
+                href={`/admin/proposals${["accepted", "paid", "declined"].includes(p.status) ? "" : `/${p.id}`}`}
+                className="flex items-center justify-between gap-3 rounded-lg border border-neutral-100 px-3 py-2 hover:bg-neutral-50 transition-colors"
+              >
+                <span className="min-w-0 truncate text-sm text-neutral-800">{p.title}</span>
+                <span className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-neutral-500">
+                    {p.amount_cents > 0
+                      ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(p.amount_cents / 100)
+                      : "No charge"}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wide text-neutral-400">{p.status}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
