@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
-import { DollarSign, Calendar, CheckCircle2, XCircle, Clock, Users, Bell, TrendingUp, Download, Briefcase } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle2, XCircle, Clock, Users, Bell, TrendingUp, Download, Briefcase, Filter, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { computeJobAlertsReport } from "@/lib/reporting/job-alerts";
+import { resolveRange } from "@/lib/reporting/range";
+import { computeRevenueByServiceReport } from "@/lib/reporting/revenue-by-service";
+import { computeNoShowReport } from "@/lib/reporting/no-show";
+import { computeFunnelReport } from "@/lib/reporting/funnel";
+import { computeClientLtvReport } from "@/lib/reporting/client-ltv";
+import { computePackageUtilizationReport } from "@/lib/reporting/package-utilization";
+import { RangePicker } from "@/components/admin/RangePicker";
+import { RevenueBarChart } from "@/components/admin/charts/RevenueBarChart";
+import { NoShowChart } from "@/components/admin/charts/NoShowChart";
+import { FunnelChart } from "@/components/admin/charts/FunnelChart";
+import { UtilizationDonut } from "@/components/admin/charts/UtilizationDonut";
 
 export const metadata: Metadata = {
   title: "Analytics — Admin",
   robots: { index: false, follow: false },
 };
+
+const CSV_LINK =
+  "inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:text-brand-800 flex-shrink-0";
 
 function formatCurrency(cents: number) {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -20,10 +34,28 @@ function formatMonth(yyyyMM: string) {
   });
 }
 
-export default async function AdminAnalyticsPage() {
+export default async function AdminAnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
   const supabase = await createClient();
 
-  // Date helpers
+  // ── Range-driven "deeper insights" (the NEW sections) ──────────────────────
+  const { range } = await searchParams;
+  const r = resolveRange(range);
+  const [revenueByService, noShow, funnel, ltv, packageUtil] = await Promise.all([
+    computeRevenueByServiceReport(r),
+    computeNoShowReport(r),
+    computeFunnelReport(r),
+    computeClientLtvReport(r),
+    computePackageUtilizationReport(r),
+  ]);
+  const ltvTop = ltv.rows.slice(0, 20);
+  const conversionRate = funnel.leadsCreated > 0 ? funnel.convertedClients / funnel.leadsCreated : 0;
+
+  // ── Existing cards (intentionally fixed windows — all-time / this month /
+  //    this week / last 6 months — NOT affected by the range selector above) ──
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const dayOfWeek = now.getDay(); // 0 = Sunday
@@ -108,6 +140,141 @@ export default async function AdminAnalyticsPage() {
         <h1 className="font-display text-2xl font-bold text-neutral-900">Analytics</h1>
         <p className="text-sm text-neutral-500 mt-1">Business overview from your Supabase data.</p>
       </div>
+
+      {/* ── Deeper insights (range-driven; uses the selector below) ───────── */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-neutral-400" />
+            <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">Insights — {r.label}</h2>
+          </div>
+          <RangePicker active={r.preset} />
+        </div>
+
+        {/* Revenue by service */}
+        <div className="bg-white rounded-xl border border-neutral-200">
+          <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-neutral-900">Revenue by service</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {formatCurrency(revenueByService.totalCents)} from {revenueByService.paymentCount} payment{revenueByService.paymentCount === 1 ? "" : "s"}
+              </p>
+            </div>
+            <a href={`/api/admin/analytics/revenue/export?range=${r.preset}`} className={CSV_LINK}>
+              <Download className="h-4 w-4" /> CSV
+            </a>
+          </div>
+          <div className="p-4">
+            <RevenueBarChart data={revenueByService.rows} />
+          </div>
+        </div>
+
+        {/* Funnel + No-show */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100">
+              <h3 className="font-semibold text-neutral-900">Lead → client funnel</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {Math.round(conversionRate * 100)}% of {funnel.leadsCreated} lead{funnel.leadsCreated === 1 ? "" : "s"} became clients
+              </p>
+            </div>
+            <div className="p-4">
+              <FunnelChart stages={funnel.stages} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100">
+              <h3 className="font-semibold text-neutral-900">No-show rate</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {Math.round(noShow.rate * 100)}% overall ({noShow.noShow} of {noShow.noShow + noShow.completed} sessions)
+              </p>
+            </div>
+            <div className="p-4">
+              <NoShowChart data={noShow.rows} />
+            </div>
+          </div>
+        </div>
+
+        {/* Package utilization + Client value summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-neutral-900">Package utilization</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  {packageUtil.usedSessions} of {packageUtil.totalSessions} sessions used
+                  {packageUtil.lostCredits > 0 ? ` · ${packageUtil.lostCredits} expired unused` : ""}
+                </p>
+              </div>
+              <a href={`/api/admin/analytics/packages/export?range=${r.preset}`} className={CSV_LINK}>
+                <Download className="h-4 w-4" /> CSV
+              </a>
+            </div>
+            <div className="p-4">
+              <UtilizationDonut used={packageUtil.usedSessions} total={packageUtil.totalSessions} />
+              {packageUtil.rows.length > 0 && (
+                <div className="mt-2 divide-y divide-neutral-100 border-t border-neutral-100">
+                  {packageUtil.rows.map((row) => (
+                    <div key={row.service} className="py-2 flex items-center justify-between gap-3 text-sm">
+                      <span className="text-neutral-700 truncate">{row.service}</span>
+                      <span className="text-neutral-500 flex-shrink-0">
+                        {row.usedSessions}/{row.totalSessions} · {Math.round(row.utilization * 100)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 content-start">
+            <ReportCard label="Paying clients" value={ltv.payingClients} icon={UserCheck} color="text-brand-600" bg="bg-brand-50" />
+            <ReportCard label="Avg client value" value={formatCurrency(ltv.avgLtvCents)} icon={DollarSign} color="text-green-600" bg="bg-green-50" />
+            <ReportCard label="Repeat-booking rate" value={`${Math.round(ltv.repeatRate * 100)}%`} icon={TrendingUp} color="text-blue-600" bg="bg-blue-50" />
+            <ReportCard label="Revenue (range)" value={formatCurrency(ltv.totalRevenueCents)} icon={DollarSign} color="text-brand-600" bg="bg-brand-50" />
+          </div>
+        </div>
+
+        {/* Top clients by value */}
+        <div className="bg-white rounded-xl border border-neutral-200">
+          <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-neutral-900">Top clients by value</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">Revenue in selected range · top 20 (full list in CSV)</p>
+            </div>
+            <a href={`/api/admin/analytics/ltv/export?range=${r.preset}`} className={CSV_LINK}>
+              <Download className="h-4 w-4" /> CSV
+            </a>
+          </div>
+          {ltvTop.length === 0 ? (
+            <p className="px-6 py-8 text-sm text-neutral-400 text-center">No client revenue in this range yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-100 text-left">
+                    <th className="px-6 py-3 font-medium text-neutral-500">Client</th>
+                    <th className="px-6 py-3 font-medium text-neutral-500 text-right">Revenue</th>
+                    <th className="px-6 py-3 font-medium text-neutral-500 text-right">Payments</th>
+                    <th className="px-6 py-3 font-medium text-neutral-500 text-right">Sessions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {ltvTop.map((c) => (
+                    <tr key={c.clientId}>
+                      <td className="px-6 py-3 text-neutral-800 truncate max-w-[14rem]">{c.name || c.email || "—"}</td>
+                      <td className="px-6 py-3 text-neutral-900 font-medium text-right">{formatCurrency(c.revenueCents)}</td>
+                      <td className="px-6 py-3 text-neutral-500 text-right">{c.payments}</td>
+                      <td className="px-6 py-3 text-neutral-500 text-right">{c.completedBookings}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Revenue */}
       <section>

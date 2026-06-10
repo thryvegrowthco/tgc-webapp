@@ -481,6 +481,32 @@ A "Draft with ChatGPT" assist suite that gives Rachel a head start on her recurr
 
 ---
 
+## Analytics / reporting (Phase 5 — deeper insights)
+
+Five read-only "deeper insights" metrics on top of the existing `/admin/analytics` page, each with a recharts chart, a shared preset date-range selector, and per-table CSV export. **No DB migration, no new env vars** — every metric is a read-only aggregation over existing tables. The only new dependency is `recharts@^3` (`"recharts": "^3.8.1"` in `package.json`; React-19 compatible).
+
+**Reporting libraries — `src/lib/reporting/`:** Each compute function mirrors the existing `job-alerts.ts` pattern — `createServiceClient()` (admin-only callers), broad `.select(...)`, in-memory aggregation in TypeScript (union-literal columns like `workflow_status` / `status` are filtered in TS, never via a typed `.eq()`/`.in()` that would narrow to `never`), and returns plain serializable arrays/objects (RSC-safe).
+
+- `range.ts` — `resolveRange(preset)` maps `?range=` (`this_month` / `last_90` / `this_year` / `all`) to a **UTC ISO lower bound** computed in **Central time** via `localCentralToUtcIso` (`src/lib/time/central.ts`), NOT native-Date UTC math (which is off by up to ~6h at month boundaries on Vercel's UTC process tz). Each preset is a lower bound only (`startIso`; `endIso` is always `null` — no future-dated rows), so reports apply `.gte(col, startIso)`. Default preset is `this_year`; an unknown value falls back to it. Exports `RangePreset`, `RANGE_PRESETS` (value/label pairs the picker renders), `ResolvedRange`, and the `ReportRange` slice (`startIso` / `endIso`) the compute fns consume.
+- `csv.ts` — shared `csvCell(value)` (RFC-4180 quoting) + `toCsv(headers, rows)`. Extracted so every admin export quotes identically (CRLF line endings).
+- `revenue-by-service.ts` — `computeRevenueByServiceReport(range)`: paid `payments` grouped by `service_type`, range-filtered by `created_at`. Returns `{ totalCents, paymentCount, rows[] }`.
+- `no-show.ts` — `computeNoShowReport(range)`: `no_show / (no_show + completed)` over `bookings.workflow_status`, overall + by service. Time-bound by `COALESCE(session_at, created_at)`. Other workflow statuses (cancelled, confirmed, …) count toward neither numerator nor denominator. Returns rates in `[0,1]`.
+- `funnel.ts` — `computeFunnelReport(range)`: leads → engaged → proposal sent/accepted/paid → became client, counting **DISTINCT** leads per stage (via `proposals.lead_id` Sets + `leads.converted_profile_id` for "became client"). Range-filtered by `leads.created_at`; the cohort is tracked through later proposals/conversion. Stages are intentionally **not** strictly monotonic ("became client" is status-based, independent of a paid proposal).
+- `client-ltv.ts` — `computeClientLtvReport(range)`: revenue per client (paid `payments`) + completed-booking count + repeat rate. A client appears if they have a paid payment **OR** ≥1 completed booking (free/waived clients have completed bookings but no payment row). Revenue is in-range, not true all-time (labeled as such on the page). Returns the full list sorted by revenue desc (the page slices top-20).
+- `package-utilization.ts` — `computePackageUtilizationReport(range)`: `sessions_used / sessions_total` over `session_packages`, overall + by service, range-filtered by `purchased_at`. Denominator **excludes `refunded`** packages. "Lost credits" = `expired` packages with unused sessions (`sessions_used < sessions_total`).
+
+**Chart components — `src/components/admin/charts/`:** `RevenueBarChart`, `NoShowChart`, `FunnelChart`, `UtilizationDonut`. All are recharts client components (`"use client"`) rendered inside a fixed-height/sized parent (recharts' `ResponsiveContainer` needs a sized ancestor). They are imported **directly** into the analytics page (no barrel/index re-export) so recharts stays in the `/admin/analytics` route chunk and never leaks into other admin routes. Each renders an empty-state message when its data is empty.
+
+**Range picker — `src/components/admin/RangePicker.tsx`:** A zero-JS segmented control — each preset is a Next `<Link href="?range=<preset>" scroll={false}>`, highlighting `active`. No client state; navigation re-renders the server page.
+
+**Page wiring — `src/app/(admin)/admin/analytics/page.tsx`:** `await searchParams` for `range` → `resolveRange(range)` → `Promise.all` of the five compute fns. Renders an "Insights — &lt;range label&gt;" block (the `RangePicker` + the five sections: revenue-by-service bar, lead→client funnel, no-show rate, package-utilization donut + by-service table, top-20 client-LTV table + summary `ReportCard`s). The on-page **Download CSV** links carry the active `?range=` (`/api/admin/analytics/{revenue,ltv,packages}/export?range=<preset>`). The **existing** cards below (all-time / this-month / this-week revenue, bookings-by-status, monthly-revenue table, Job Alerts report) are intentionally left on their own fixed windows and are NOT affected by the selector — a code comment marks this.
+
+**CSV export routes — `src/app/api/admin/analytics/{revenue,ltv,packages}/export/route.ts`:** Each is admin-gated (`401` if no user, `403` if `profiles.role !== 'admin'`), reads `?range=` → `resolveRange` → the matching compute fn, and returns `text/csv` via `toCsv` with a `Content-Disposition` filename of `<report>-<preset>-<YYYY-MM-DD>.csv` and `Cache-Control: no-store`. `runtime = "nodejs"`.
+
+**Read-only harness — `scripts/test-phase5-analytics.mts`:** Validates all five reports against the live DB with **no writes and no cleanup**. Asserts shapes + non-negative integers, all rates in `[0,1]`, per-service rows summing to overall totals, range monotonicity (`last_90 ≤ all`), funnel bounds (`0 ≤ count ≤ leadsCreated`; `paid ⊆ accepted ⊆ sent`), and a reconciliation that revenue-by-service's all-time total equals a direct sum of paid `payments`. Run with `npx tsx scripts/test-phase5-analytics.mts`.
+
+---
+
 ## Known Gaps
 
 1. **No role management UI** — `profiles.role` can only be changed via the Supabase dashboard or SQL. There is no admin panel control.

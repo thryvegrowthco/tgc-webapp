@@ -449,6 +449,22 @@ If the booking is for a service that doesn't require a time slot (Resume Review,
 
 The Analytics page shows a live snapshot of your business performance, pulled directly from your database.
 
+**Deeper Insights (the new section at the top):**
+
+At the very top of the page is an **Insights** area with five richer views of your business, plus charts. Above them on the right is a **date-range selector** with four buttons: **This month**, **Last 90 days**, **This year**, and **All-time**. Pick one and the whole Insights area updates to that window — so you can ask "how did last quarter look?" without doing any math. (The selector only changes the Insights area; the older cards further down the page always show their own fixed time windows, described below.)
+
+The five insights are:
+
+- **Revenue by service** — A bar chart showing how much money each service brought in for the selected window, with the total and number of payments. Click **CSV** to download these figures as a spreadsheet for the same window.
+- **Lead → client funnel** — A chart that follows your leads through each stage: how many came in, how many you engaged, how many got a proposal (sent, then accepted, then paid), and how many actually became clients. The heading shows the share of leads that became clients. Great for spotting where people drop off.
+- **No-show rate** — The share of sessions where the client did not show up, out of all sessions that either happened or were missed (other statuses like cancelled don't count). Shown overall and broken down by service so you can see if one service has more no-shows.
+- **Package utilization** — For clients on multi-session packages, a donut chart showing how many of their purchased sessions have actually been used, overall and by service. It also flags **expired unused credits** — sessions a client paid for in a package that expired before they were used. Click **CSV** to export the by-service breakdown.
+- **Top clients by value** — Your most valuable clients for the selected window: revenue, number of payments, and completed sessions, with summary cards for paying clients, average client value, and repeat-booking rate. The table shows your top 20; click **CSV** to download the full list.
+
+The three **CSV** buttons (revenue, top clients, and package utilization) always download data for whichever date range is currently selected, so the file matches what you see on screen.
+
+The older cards below stay on their own fixed time windows regardless of the selector:
+
 **Revenue section:**
 - **All-Time Revenue** — Total money collected since the site launched
 - **This Month** — Revenue collected since the first of the current month
