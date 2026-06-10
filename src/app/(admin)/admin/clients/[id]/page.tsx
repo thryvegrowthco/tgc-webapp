@@ -80,6 +80,7 @@ export default async function AdminClientDetailPage({
     { data: intakeRaw },
     { data: intakeResponsesRaw },
     { data: tasksRaw },
+    { data: packagesRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -113,6 +114,11 @@ export default async function AdminClientDetailPage({
       .order("completed_at", { ascending: true, nullsFirst: true })
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(50),
+    supabase
+      .from("session_packages")
+      .select("id, service_type, sessions_total, sessions_used, status, expires_at")
+      .eq("client_id", id)
+      .order("purchased_at", { ascending: false }),
   ]);
 
   type BookingRow = {
@@ -167,6 +173,8 @@ export default async function AdminClientDetailPage({
   const intakeResponses = (intakeResponsesRaw ?? []) as IntakeResponseRow[];
   const intakeByBooking = new Map(intakeResponses.map((r) => [r.booking_id, r]));
   const tasks = (tasksRaw ?? []) as AdminTask[];
+  type PackageRow = { id: string; service_type: string; sessions_total: number; sessions_used: number; status: string; expires_at: string | null };
+  const packages = (packagesRaw ?? []) as PackageRow[];
   const clientDisplayName = client.full_name ?? client.email;
   const tasksWithClient: TaskListItem[] = tasks.map((t) => ({
     ...t,
@@ -315,6 +323,35 @@ export default async function AdminClientDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column */}
         <div className="space-y-8">
+          {/* Session packages */}
+          {packages.length > 0 && (
+            <section className="bg-white rounded-xl border border-neutral-200">
+              <div className="px-6 py-4 border-b border-neutral-100">
+                <h2 className="font-semibold text-neutral-900">Session packages</h2>
+              </div>
+              <div className="divide-y divide-neutral-100">
+                {packages.map((pkg) => {
+                  const remaining = pkg.sessions_total - pkg.sessions_used;
+                  const expired = pkg.status === "expired" || (pkg.expires_at != null && new Date(pkg.expires_at) < new Date());
+                  return (
+                    <div key={pkg.id} className="px-6 py-3 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">{pkg.service_type}</p>
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          {pkg.sessions_used} of {pkg.sessions_total} used
+                          {pkg.status === "active" && !expired && remaining > 0 && ` · ${remaining} left`}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">
+                        {expired ? "expired" : pkg.status}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* Bookings */}
           <section className="bg-white rounded-xl border border-neutral-200">
             <div className="px-6 py-4 border-b border-neutral-100">

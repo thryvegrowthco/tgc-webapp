@@ -7,6 +7,7 @@ import { sendTemplated } from "@/lib/email/render";
 import { syncBookingToGHL } from "@/lib/gohighlevel/client";
 import { createCalendarEvent } from "@/lib/google/calendar";
 import { finalizeSession } from "@/lib/booking/finalize";
+import { PACKAGE_SESSIONS, isPackageService, type ServiceKey } from "@/lib/stripe/products";
 import type { LocationType } from "@/types/database";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
 import { createAdminNotification, notifyAdmin } from "@/lib/notifications/admin";
@@ -20,6 +21,8 @@ const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? "hello@thryvegrowth.co";
 const NON_SLOT_INTAKE_DAYS = 7;
 // Job Alerts subscription: intake (watchlist setup) due in 3 days.
 const SUBSCRIPTION_INTAKE_DAYS = 3;
+// Package credits expire 90 days after purchase (per the service agreement).
+const PACKAGE_EXPIRY_DAYS = 90;
 
 interface PaymentMethodSummary {
   cardBrand: string;
@@ -235,6 +238,33 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     status: session.payment_status ?? "paid",
     service_type: serviceType,
   });
+
+  // Multi-session package: grant credits. The slot they just booked is session 1;
+  // the rest are redeemed from the client portal without a new payment. The
+  // unique index on session_packages.stripe_session_id makes this idempotent.
+  if (serviceKey && isPackageService(serviceKey) && userId) {
+    const total = PACKAGE_SESSIONS[serviceKey as ServiceKey] ?? 1;
+    const expiresAt = new Date();
+    expiresAt.setUTCDate(expiresAt.getUTCDate() + PACKAGE_EXPIRY_DAYS);
+    const { data: pkg } = await supabase
+      .from("session_packages")
+      .insert({
+        client_id: userId,
+        service_key: serviceKey,
+        service_type: serviceType,
+        sessions_total: total,
+        sessions_used: 1, // the session booked at checkout
+        amount_cents: session.amount_total ?? 0,
+        stripe_session_id: session.id,
+        status: total <= 1 ? "exhausted" : "active",
+        expires_at: expiresAt.toISOString(),
+      })
+      .select("id")
+      .single();
+    if (pkg) {
+      await supabase.from("bookings").update({ session_package_id: pkg.id }).eq("id", booking.id);
+    }
+  }
 
   // Attempt Google Calendar event creation. On failure, mark the booking so
   // the admin queue surfaces "manual meeting link needed".

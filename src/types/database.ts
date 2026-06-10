@@ -151,6 +151,7 @@ export type Database = {
           next_steps: string | null;
           booking_invitation_id: string | null;
           rescheduled_from_booking_id: string | null;
+          session_package_id: string | null;
           updated_at: string;
           created_at: string;
         };
@@ -198,6 +199,7 @@ export type Database = {
           next_steps?: string | null;
           booking_invitation_id?: string | null;
           rescheduled_from_booking_id?: string | null;
+          session_package_id?: string | null;
           updated_at?: string;
           created_at?: string;
         };
@@ -245,6 +247,7 @@ export type Database = {
           next_steps?: string | null;
           booking_invitation_id?: string | null;
           rescheduled_from_booking_id?: string | null;
+          session_package_id?: string | null;
           updated_at?: string;
           created_at?: string;
         };
@@ -364,6 +367,54 @@ export type Database = {
           status?: "open" | "reserved" | "consumed" | "withdrawn";
           reserved_at?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      session_packages: {
+        Row: {
+          id: string;
+          client_id: string | null;
+          service_key: string;
+          service_type: string;
+          sessions_total: number;
+          sessions_used: number;
+          amount_cents: number | null;
+          stripe_session_id: string | null;
+          status: "active" | "exhausted" | "expired" | "refunded";
+          purchased_at: string;
+          expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id?: string | null;
+          service_key: string;
+          service_type: string;
+          sessions_total: number;
+          sessions_used?: number;
+          amount_cents?: number | null;
+          stripe_session_id?: string | null;
+          status?: "active" | "exhausted" | "expired" | "refunded";
+          purchased_at?: string;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string | null;
+          service_key?: string;
+          service_type?: string;
+          sessions_total?: number;
+          sessions_used?: number;
+          amount_cents?: number | null;
+          stripe_session_id?: string | null;
+          status?: "active" | "exhausted" | "expired" | "refunded";
+          purchased_at?: string;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -1688,6 +1739,7 @@ export type JobSourceRow = Database["public"]["Tables"]["job_sources"]["Row"];
 export type NotificationSetting = Database["public"]["Tables"]["notification_settings"]["Row"];
 export type AdminTask = Database["public"]["Tables"]["admin_tasks"]["Row"];
 export type BookingInvitation = Database["public"]["Tables"]["booking_invitations"]["Row"];
+export type SessionPackage = Database["public"]["Tables"]["session_packages"]["Row"];
 export type BookingInvitationOption = Database["public"]["Tables"]["booking_invitation_options"]["Row"];
 export type LocationType = Booking["location_type"];
 export type PaymentStatus = Booking["payment_status"];

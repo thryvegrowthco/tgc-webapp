@@ -79,6 +79,16 @@ Client redirected to /book/success?session_id=...
 
 ---
 
+## 1c. Session Packages & Client Self-Service (Phase 1)
+
+**Package credits.** Buying `coaching_package`/`interview_package` (`isPackageService`, `PACKAGE_SESSIONS` in `src/lib/stripe/products.ts`) creates the first session at checkout AND a `session_packages` row (`sessions_used = 1`) in the Stripe webhook (`handleCheckoutCompleted`). The client redeems the rest at **`/dashboard/packages`** → `PackageRedeemClient` (reuses `BookingCalendar`/`TimeSlotPicker` + `GET /api/booking/slots`) → `redeemPackageCredit` (`src/app/actions/packages.ts`): atomically claims the slot (`is_booked` guard), creates the session via **`createSessionBooking`** (no charge, `payment_status='paid'` covered by the package), decrements `sessions_used` (optimistic guard), and marks the package `exhausted` when full. Rachel sees usage on the client detail page.
+
+**Shared core.** `createSessionBooking` (`src/lib/booking/finalize.ts`) is the no-charge session-creation core (insert + calendar + `session_confirmed` + admin notify) shared by `finalizeSession` (invitations) and `redeemPackageCredit` (packages).
+
+**Client self-reschedule / cancel.** On `/dashboard/sessions/[bookingId]`, `ClientSessionActions` (shown only when the session is **>24h out**) calls `clientRescheduleSession` / `clientCancelSession` (`src/app/actions/sessions.ts`) — ownership-gated wrappers around the same `performReschedule`/`performCancel` cores the admin actions use. Both notify Rachel (`notifyAdmin`); cancel returns a package credit (`returnPackageCredit`). Within 24h the UI says "reply to Rachel."
+
+---
+
 ## 1b. Booking Invitation → Session Flow
 
 **Admin-initiated** (the inverse of the client-driven `/book` flow above). Rachel

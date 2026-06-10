@@ -210,6 +210,27 @@ option and wins the race against concurrent acceptances.
 
 ---
 
+### `session_packages` (added 0027)
+
+Credit ledger for multi-session packages (`coaching_package` = 4, `interview_package` = 3). A purchase grants `sessions_total` credits; the client redeems each by booking an open slot from the portal (no new payment). The session booked at checkout counts as session 1.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `client_id` | `UUID` | — | FK to `profiles.id` |
+| `service_key` / `service_type` | `TEXT` | — | The package service |
+| `sessions_total` | `INT` | — | CHECK > 0 |
+| `sessions_used` | `INT` | `0` | CHECK 0 ≤ used ≤ total |
+| `amount_cents` | `INT` | `NULL` | — |
+| `stripe_session_id` | `TEXT` | `NULL` | The purchase Checkout session; **UNIQUE** (webhook idempotency) |
+| `status` | `TEXT` | `'active'` | CHECK: `active`, `exhausted`, `expired`, `refunded` |
+| `purchased_at` / `expires_at` | `TIMESTAMPTZ` | `NOW()` / +90d | Credits expire 90 days after purchase |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+`bookings.session_package_id` (added 0027) links a redeemed/first session to its package. RLS: client SELECT own + admin all. Redeeming decrements via an optimistic guard; cancelling a package session returns the credit (`returnPackageCredit` in `src/app/actions/sessions.ts`).
+
+---
+
 ### `documents`
 
 Metadata for files uploaded by admin to a client. Actual file lives in Supabase Storage.

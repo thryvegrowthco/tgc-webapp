@@ -113,6 +113,21 @@ export const BOOKABLE_SERVICES: ServiceKey[] = [
   "interview_package",
 ];
 
+// Multi-session packages → how many sessions (credits) the purchase grants.
+// Buying one creates the first session at checkout; the rest are redeemed from
+// the client portal without a new payment.
+export const PACKAGE_SESSIONS: Partial<Record<ServiceKey, number>> = {
+  coaching_package: 4,
+  interview_package: 3,
+};
+
+export const PACKAGE_SERVICES = Object.keys(PACKAGE_SESSIONS) as ServiceKey[];
+
+export function isPackageService(serviceKey: string | null | undefined): boolean {
+  return !!serviceKey && serviceKey in PACKAGE_SESSIONS;
+}
+
+
 // Label → ServiceKey mapping for the booking form dropdown
 export const SERVICE_SELECT_OPTIONS = [
   { value: "coaching_single", label: "Career & Leadership Coaching: Single Session ($125)" },

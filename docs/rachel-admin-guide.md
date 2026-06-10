@@ -199,6 +199,10 @@ Each booking also has a **Manage** link. Click it to open a panel where you can:
 
 Your dashboard home now also has an **Upcoming sessions** panel showing everything in the next 7 days, with quick buttons to send a reminder or mark a session complete. Clients are automatically reminded 24 hours and 1 hour before each session.
 
+**Session packages.** When a client buys a multi-session package (e.g. a 4-session coaching plan), the first session is booked at checkout and the rest become **credits** they can schedule themselves from their dashboard — no extra payment. The client's record shows a **Session packages** panel with "X of N used." If you cancel a session that came from a package, the credit goes back automatically.
+
+**Clients can now reschedule or cancel themselves** — but only **more than 24 hours** before the session. When they do, you get a notification and an email, the calendar updates, and they get a new confirmation. Within 24 hours, they're told to reply to your email instead, so last-minute changes still come through you.
+
 **Session Notes** — Private notes only you can see. Clients cannot see these.
 
 To add a note:

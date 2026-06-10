@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/require";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { notifyAdmin } from "@/lib/notifications/admin";
 import {
   createCalendarEvent,
   updateCalendarEvent,
@@ -31,17 +33,45 @@ interface SessionBooking {
   calendar_event_id: string | null;
   meet_link: string | null;
   workflow_status: string;
+  session_package_id: string | null;
 }
 
 async function loadBooking(supabase: Svc, bookingId: string): Promise<SessionBooking | null> {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, client_id, booking_invitation_id, service_type, session_at, duration_minutes, location_type, location_details, calendar_event_id, meet_link, workflow_status"
+      "id, client_id, booking_invitation_id, service_type, session_at, duration_minutes, location_type, location_details, calendar_event_id, meet_link, workflow_status, session_package_id"
     )
     .eq("id", bookingId)
     .maybeSingle();
   return (data as SessionBooking | null) ?? null;
+}
+
+const SELF_SERVICE_NOTICE_MS = 24 * 60 * 60 * 1000;
+
+/** Clients can self-reschedule/cancel only while a session is >24h away. */
+function canSelfModify(sessionAt: string | null): boolean {
+  if (!sessionAt) return false;
+  return new Date(sessionAt).getTime() > Date.now() + SELF_SERVICE_NOTICE_MS;
+}
+
+/** Return a package credit when a package-linked session is cancelled. */
+async function returnPackageCredit(supabase: Svc, packageId: string | null): Promise<void> {
+  if (!packageId) return;
+  const { data: pkg } = await supabase
+    .from("session_packages")
+    .select("id, sessions_used, status")
+    .eq("id", packageId)
+    .maybeSingle();
+  if (!pkg || pkg.sessions_used <= 0) return;
+  await supabase
+    .from("session_packages")
+    .update({
+      sessions_used: pkg.sessions_used - 1,
+      status: pkg.status === "exhausted" ? "active" : pkg.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", pkg.id);
 }
 
 /** Resolve the client's email + name from their profile or the source invitation. */
@@ -79,24 +109,19 @@ function revalidateSession(clientId: string | null) {
 /**
  * Move a session to a new Central date/time. Patches the existing Google Calendar
  * event (or creates one if missing), resets the reminder flags so they re-fire,
- * and re-sends the confirmation email to the client.
+ * and re-sends the confirmation email to the client. Auth/ownership is the
+ * caller's responsibility (admin wrapper or client wrapper).
  */
-export async function rescheduleSession(
-  bookingId: string,
+async function performReschedule(
+  supabase: Svc,
+  booking: SessionBooking,
   dateCentral: string,
   timeCentral: string
 ): Promise<{ error?: string; success?: boolean }> {
-  const auth = await requireAdmin();
-  if (!auth.ok) return { error: auth.error };
   if (!DATE_RE.test(dateCentral) || !TIME_RE.test(timeCentral)) {
     return { error: "Pick a valid date and time." };
   }
-
-  const supabase = createServiceClient();
-  const booking = await loadBooking(supabase, bookingId);
-  if (!booking) return { error: "Session not found." };
-  if (booking.workflow_status === "cancelled") return { error: "This session was cancelled." };
-
+  const bookingId = booking.id;
   const newSessionAt = localCentralToUtcIso(dateCentral, timeCentral);
   const startMs = new Date(newSessionAt).getTime();
   const endMs = startMs + booking.duration_minutes * 60_000;
@@ -205,6 +230,21 @@ export async function rescheduleSession(
   return { success: true };
 }
 
+/** Admin: reschedule any session. */
+export async function rescheduleSession(
+  bookingId: string,
+  dateCentral: string,
+  timeCentral: string
+): Promise<{ error?: string; success?: boolean }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking) return { error: "Session not found." };
+  if (booking.workflow_status === "cancelled") return { error: "This session was cancelled." };
+  return performReschedule(supabase, booking, dateCentral, timeCentral);
+}
+
 async function tryCreateEvent(
   booking: SessionBooking,
   email: string | null,
@@ -273,17 +313,12 @@ export async function sendSessionReminderNow(
   return { success: true };
 }
 
-/** Cancel a session: mark cancelled and remove the calendar event. */
-export async function cancelSession(
-  bookingId: string
+/** Cancel a session: mark cancelled, remove the calendar event, return any
+ * package credit. Auth/ownership is the caller's responsibility. */
+async function performCancel(
+  supabase: Svc,
+  booking: SessionBooking
 ): Promise<{ error?: string; success?: boolean }> {
-  const auth = await requireAdmin();
-  if (!auth.ok) return { error: auth.error };
-
-  const supabase = createServiceClient();
-  const booking = await loadBooking(supabase, bookingId);
-  if (!booking) return { error: "Session not found." };
-
   if (booking.calendar_event_id) {
     await deleteCalendarEvent(booking.calendar_event_id);
   }
@@ -294,8 +329,93 @@ export async function cancelSession(
       status: "cancelled",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", bookingId);
-
+    .eq("id", booking.id);
+  await returnPackageCredit(supabase, booking.session_package_id);
   revalidateSession(booking.client_id);
   return { success: true };
+}
+
+/** Admin: cancel any session. */
+export async function cancelSession(
+  bookingId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking) return { error: "Session not found." };
+  return performCancel(supabase, booking);
+}
+
+// ─── Client self-service (ownership + >24h notice) ──────────────────────────
+
+async function notifyClientChange(
+  supabase: Svc,
+  booking: SessionBooking,
+  action: "rescheduled" | "cancelled",
+  detail?: string
+): Promise<void> {
+  const client = await resolveClient(supabase, booking);
+  await notifyAdmin({
+    type: "new_booking",
+    subject: `Client ${action} a session: ${client.name || client.email || "client"}`,
+    title: `Client ${action} their session`,
+    body: `${booking.service_type}${detail ? ` · ${detail}` : ""}`,
+    link: booking.client_id
+      ? `/admin/clients/${booking.client_id}#booking-${booking.id}`
+      : "/admin/sessions",
+    ctaLabel: "Open session",
+    replyTo: client.email ?? undefined,
+    bookingId: booking.id,
+    clientId: booking.client_id,
+  });
+}
+
+async function loadOwnSession(
+  bookingId: string
+): Promise<{ error: string } | { supabase: Svc; booking: SessionBooking }> {
+  const auth = await createClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) return { error: "Sign in to continue." };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking || booking.client_id !== user.id) return { error: "Session not found." };
+  if (booking.workflow_status === "cancelled") return { error: "This session was already cancelled." };
+  if (!canSelfModify(booking.session_at)) {
+    return {
+      error: "Sessions can only be changed more than 24 hours in advance. Reply to Rachel's email and she'll help.",
+    };
+  }
+  return { supabase, booking };
+}
+
+/** Client: reschedule their own session (>24h out). */
+export async function clientRescheduleSession(
+  bookingId: string,
+  dateCentral: string,
+  timeCentral: string
+): Promise<{ error?: string; success?: boolean }> {
+  const ctx = await loadOwnSession(bookingId);
+  if ("error" in ctx) return { error: ctx.error };
+  const res = await performReschedule(ctx.supabase, ctx.booking, dateCentral, timeCentral);
+  if (res.success) {
+    revalidatePath(`/dashboard/sessions/${bookingId}`);
+    await notifyClientChange(ctx.supabase, ctx.booking, "rescheduled", `${dateCentral} ${timeCentral} CT`);
+  }
+  return res;
+}
+
+/** Client: cancel their own session (>24h out). */
+export async function clientCancelSession(
+  bookingId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const ctx = await loadOwnSession(bookingId);
+  if ("error" in ctx) return { error: ctx.error };
+  const res = await performCancel(ctx.supabase, ctx.booking);
+  if (res.success) {
+    revalidatePath(`/dashboard/sessions/${bookingId}`);
+    revalidatePath("/dashboard/bookings");
+    await notifyClientChange(ctx.supabase, ctx.booking, "cancelled");
+  }
+  return res;
 }

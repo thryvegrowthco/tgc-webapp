@@ -15,6 +15,7 @@ import { getSchemaForService } from "@/lib/intake/schemas";
 import { IntakeFormRenderer, type IntakeResponses } from "@/components/intake/IntakeFormRenderer";
 import { formatCentralDate, formatCentralTime, CENTRAL_TIMEZONE_LABEL } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
+import { ClientSessionActions } from "@/components/dashboard/ClientSessionActions";
 
 const STATUS_COPY: Record<string, { label: string; className: string }> = {
   booked: { label: "Booked", className: "bg-yellow-100 text-yellow-700" },
@@ -72,6 +73,14 @@ export default async function SessionWorkspacePage({
   const statusInfo = STATUS_COPY[booking.workflow_status] ?? STATUS_COPY.booked;
   const sessionAt = booking.session_at ? new Date(booking.session_at) : null;
   const intakeDueAt = booking.intake_due_at ? new Date(booking.intake_due_at) : null;
+
+  const now = new Date();
+  const cutoff24 = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const isUpcoming =
+    sessionAt != null &&
+    sessionAt > now &&
+    !["cancelled", "completed", "follow_up_sent", "no_show"].includes(booking.workflow_status);
+  const canSelfModify = sessionAt != null && sessionAt > cutoff24;
 
   const initialResponses = (intake?.responses ?? {}) as IntakeResponses;
 
@@ -176,6 +185,23 @@ export default async function SessionWorkspacePage({
                 {formatCentralTime(sessionAt)} ({CENTRAL_TIMEZONE_LABEL})
               </p>
               <p className="text-xs text-neutral-400 mt-1">{formatDuration(booking.duration_minutes)}</p>
+            </div>
+          )}
+
+          {/* Manage session (reschedule / cancel) — only while upcoming */}
+          {isUpcoming && (
+            <div className="bg-white border border-neutral-200 rounded-xl p-5">
+              <div className="flex items-center gap-2 text-neutral-500 text-xs uppercase tracking-wide mb-2">
+                <Calendar className="h-3.5 w-3.5" />
+                Manage
+              </div>
+              {canSelfModify ? (
+                <ClientSessionActions bookingId={booking.id} />
+              ) : (
+                <p className="text-sm text-neutral-500">
+                  Need to change this? It&apos;s within 24 hours — reply to Rachel&apos;s email and she&apos;ll help.
+                </p>
+              )}
             </div>
           )}
 
