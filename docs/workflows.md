@@ -1077,3 +1077,122 @@ createGoal / updateGoal / deleteGoal  (src/app/actions/goals.ts)
 
 Nav: "Progress" added to `src/components/dashboard/DashboardNav.tsx` (after My
 Packages). Everyone — client and Rachel — sees the same goal rows.
+
+---
+
+## 16. "Draft with ChatGPT" AI Assists (Phase 4)
+
+**Bring-your-own-ChatGPT — no API call, no key, no dependency, no migration.**
+The app assembles a context-rich prompt from data already on screen; Rachel
+copies it into her own ChatGPT, then pastes the reply back. Every draft is
+reviewed by Rachel before it touches a client. Nothing is auto-sent.
+
+Key files: `src/lib/ai/prompts.ts` (pure prompt/parse builders — no React, no
+server imports, runs client-side + in unit tests),
+`src/components/admin/AiAssistPanel.tsx` (the one reusable collapsible panel).
+
+**The panel.** `AiAssistPanel` is domain-agnostic: it renders a read-only prompt
+textarea + "Copy prompt" + an "Open ChatGPT" link, and — only when an `onApply`
+handler is passed — a paste-back box. `onApply(rawPastedText)` receives the RAW
+reply; each caller parses/routes it. Omit `onApply` for copy-only assists (no
+paste-back). The panel toasts on copy; callers toast on apply.
+
+**Prompt + parse helpers (`src/lib/ai/prompts.ts`).** A shared `PERSONA`
+(Rachel's voice; "use only the provided context, don't invent"); per-field
+clipping to 2000 chars; `humanizeIntake(serviceKey, responses)` renders intake
+JSONB as `Question: answer` lines via the same `getSchemaForService` the intake
+UI uses (files shown as filename, never `[object Object]`); `splitInOrder(text,
+labels)` parses ChatGPT's labelled reply (`### SUMMARY`, `**SUMMARY**`,
+`SUMMARY:` headers, case-insensitive) into an ordered array aligned to `labels`
+— with a graceful fallback that dumps the whole reply into the first label when
+no header is found.
+
+**The 8 assists** — each lives on an existing admin surface; output pastes back
+into existing fields/actions or is copy-only:
+
+| Assist | Builder | Surface | Paste-back target |
+|---|---|---|---|
+| Pre-session prep brief | `buildPrepBriefPrompt` | `SessionRecordEditor` (client detail) | copy-only (FOR Rachel) |
+| Session summary & next steps | `buildSessionSummaryPrompt` | `SessionRecordEditor` | `splitInOrder([SUMMARY, NEXT STEPS])` → summary + next-steps fields → `updateSession` |
+| Resume review | `buildResumeReviewPrompt` | `ResumeReviewAssist` on `/admin/clients/[id]` | `addClientNote` ("Save as note") |
+| Job-match why/action | `buildJobMatchPrompt` | `WatchlistManager` | `splitInOrder([MATCH REASON, RECOMMENDED ACTION])` → curation fields (consumed by `assignJobToClient`) |
+| Cover letter | `buildCoverLetterPrompt` | `WatchlistManager` | copy-only |
+| Proposal scope & terms | `buildProposalScopePrompt` | `ProposalForm` (`/admin/proposals/new`) | copy-only (Rachel pastes into the Tiptap editor) |
+| Message reply | `buildMessageReplyPrompt` | `MessageThread` | "Use as reply" → fills the reply box (sent via `sendMessage`) |
+| Lead follow-up email | `buildLeadFollowupPrompt` | `LeadFollowupAssist` on `/admin/leads/[id]` | copy-only (Rachel sends from her own inbox) |
+
+```
+Rachel opens an admin surface (client detail / watchlist / proposal / message / lead)
+        │
+        ▼
+AiAssistPanel renders build<Assist>Prompt(context)  ← context = data already on the page
+  Rachel clicks "Copy prompt" → pastes into her ChatGPT → copies the reply
+        │
+        ├─ copy-only assist (no onApply) ── Rachel pastes the reply manually where she wants it
+        │
+        └─ paste-back assist ── Rachel pastes reply into the panel → onApply(raw)
+              - splitInOrder(raw, labels) where the prompt used labelled headers
+              - routes parsed sections into existing fields, OR calls an existing
+                action (updateSession / addClientNote / assignJobToClient / sendMessage)
+              - Rachel still reviews/edits before the field is saved or the message sent
+```
+
+There is no `ai`/`openai`/LLM dependency in the repo and no new env var — the
+"model" is whatever ChatGPT account Rachel is already logged into.
+
+---
+
+## 17. Deeper Analytics — Range, Metrics & CSV (Phase 5)
+
+**Five new range-driven metrics on `/admin/analytics`, charted with `recharts`
+(the only new dependency; no migration, no API, no env).** The five existing
+cards (all-time / this-month / this-week / last-6-months revenue, bookings by
+status, subscribers, top services) **keep their fixed windows** and are NOT
+affected by the range selector.
+
+Key files: `src/lib/reporting/range.ts` (presets),
+`src/lib/reporting/{revenue-by-service,no-show,funnel,client-ltv,package-utilization}.ts`
+(compute fns), `src/lib/reporting/csv.ts` (`toCsv`/`csvCell`),
+`src/components/admin/RangePicker.tsx`,
+`src/components/admin/charts/{RevenueBarChart,NoShowChart,FunnelChart,UtilizationDonut}.tsx`,
+`src/app/(admin)/admin/analytics/page.tsx`,
+`src/app/api/admin/analytics/{revenue,ltv,packages}/export/route.ts`.
+
+```
+Rachel: /admin/analytics?range=this_month|last_90|this_year|all  (default this_year)
+        │
+        ▼
+resolveRange(searchParams.range) (src/lib/reporting/range.ts)
+  - presets are a LOWER BOUND only → { startIso, endIso: null }; reports apply .gte(col, startIso)
+  - boundaries computed in CENTRAL time via localCentralToUtcIso (NOT native-Date
+    UTC math, which is off by ~6h at month edges on Vercel's UTC process tz)
+  - "all" → startIso null (no filter)
+        │
+        ▼
+Promise.all of the 5 compute fns (each takes the resolved range):
+  - computeRevenueByServiceReport   → paid payments grouped by service_type (.gte created_at)
+  - computeNoShowReport             → no_show ÷ (no_show + completed) over bookings.workflow_status,
+                                       overall + by service (session_at-bounded)
+  - computeFunnelReport             → leads cohort (by leads.created_at) tracked through
+                                       proposals (sent/accepted/paid) + converted_profile_id;
+                                       DISTINCT leads per stage via Sets; conversion = converted ÷ leads
+  - computeClientLtvReport          → paid payments summed per client + completed bookings,
+                                       joined to profiles, sorted desc (page slices top 20)
+  - computePackageUtilizationReport → sessions_used ÷ sessions_total over session_packages,
+                                       overall + by service, plus "lost credits" (expired w/ unused)
+        │
+        ▼
+Page renders each metric with a recharts chart (RevenueBarChart / FunnelChart /
+NoShowChart / UtilizationDonut) under an "Insights — {range label}" header +
+<RangePicker> (links that just swap ?range=).
+        │
+        ▼
+Per-table CSV: each table's "Export CSV" link → GET /api/admin/analytics/{revenue,ltv,packages}/export?range=<preset>
+  - admin-gated (auth.getUser + profiles.role='admin' → 401/403)
+  - re-resolves the SAME range so the export matches what's on screen
+  - toCsv(headers, rows) → text/csv attachment "(metric)-(preset)-(YYYY-MM-DD).csv", Cache-Control no-store
+```
+
+The pre-existing job-alerts report (`computeJobAlertsReport`, Section 2d) and its
+`GET /api/admin/job-alerts/export` are unchanged and still render on the same
+page below the new sections.

@@ -96,7 +96,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 
 | Variable | Required | Source | Purpose |
 |---|---|---|---|
-| `CRON_SECRET` | Yes (prod) | Any random secret string | Protects all `/api/cron/*` endpoints (`job-alerts`, `newsletter-send`, `newsletter-reengage`, `newsletter-milestones`, `intake-reminders`, `intake-overdue-alert`, `session-reminders`, `auto-complete-sessions`, `post-service-followup`) from unauthorized calls. Configure this same secret as a custom `Authorization: Bearer <value>` header on each cron-job.org job — see `docs/integrations.md`. |
+| `CRON_SECRET` | Yes (prod) | Any random secret string | Protects all `/api/cron/*` endpoints (`job-alerts`, `job-feed`, `newsletter-send`, `newsletter-reengage`, `newsletter-milestones`, `intake-reminders`, `intake-overdue-alert`, `session-reminders`, `auto-complete-sessions`, `post-service-followup`, `application-reminders`, `extend-availability`) from unauthorized calls. Configure this same secret as a custom `Authorization: Bearer <value>` header on each cron-job.org job — see `docs/integrations.md`. |
 | `NEXT_PUBLIC_APP_URL` | Yes | Your deployed domain | Used in email links, Stripe redirect URLs |
 | `ADMIN_EMAIL` | No | Rachel's preferred admin alert inbox | Recipient for ALL admin alerts — bookings, intake, client messages, and (via `notifyAdmin`/`sendAdminAlert`) every inbound lead/subscriber/client interaction. Defaults to `hello@thryvegrowth.co` if absent. |
 
@@ -134,6 +134,15 @@ Required only if you want bookings to auto-generate calendar events with Google 
 > **`NEXT_PUBLIC_APP_URL` examples:**
 > - Local: `http://localhost:3000`
 > - Production: `https://thryvegrowth.co`
+
+### Features that intentionally need no env vars
+
+These shipped features were built so they require **zero** new configuration — there is nothing to add here for them:
+
+- **"Draft with ChatGPT" AI assist suite** (`src/lib/ai/prompts.ts` + `src/components/admin/AiAssistPanel.tsx`): bring-your-own-ChatGPT. The app only builds prompt text for the admin to copy into their own ChatGPT session and paste the result back — **no LLM API key, endpoint, or AI env var of any kind.** Do not add an `OPENAI_API_KEY` (or similar); the suite does not call any model server-side.
+- **Analytics dashboard charts** (`/admin/analytics`, `recharts` + `src/lib/reporting/*`): charts render from data already in Supabase. `recharts` is a client-side charting library with no configuration; CSV exports (`/api/admin/analytics/{revenue,ltv,packages}/export`) and the date-range presets (`src/lib/reporting/range.ts`) read no env vars.
+
+> The full `process.env` reference above is complete for all five shipped product phases — session packages, proposals, testimonials/goals, the AI assist suite, and analytics added no new environment variables.
 
 ---
 

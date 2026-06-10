@@ -113,11 +113,26 @@ Update the relevant doc file as part of every code change — not as an aftertho
 | Changes to a third-party integration or its config | `docs/integrations.md` |
 | Env var added, removed, or renamed | `docs/environment-variables.md` |
 | Key data flow change (booking, watchlist, blog, documents, auth, cron) | `docs/workflows.md` |
+| New transactional email template | `docs/admin-email-reference.md` |
+| New admin-facing feature a non-technical admin would have questions about | `docs/admin-faq.md` |
+
+> **Help-center / wiki docs** (surfaced in-app at `/admin/help`): `rachel-admin-guide.md`, `admin-faq.md`, `admin-email-reference.md`, `booking-invitation-flow.md`. The list lives in `scripts/generate-help-content.mjs`; the help center regenerates from `/docs` on `predev`/`prebuild`. These are the ones most often forgotten — they are **not** developer docs and update on a different cadence than the schema/architecture docs.
 
 ### Rules
 
 1. Do not add fictional information — only document what the code actually does.
-2. `docs/rachel-admin-guide.md` is for a non-technical admin — no code blocks, no TypeScript, plain language only.
+2. `docs/rachel-admin-guide.md`, `docs/admin-faq.md`, and `docs/admin-email-reference.md` are for a non-technical admin — no code blocks, no TypeScript, no file paths, plain language only.
 3. All other docs are for developers — include file paths and function names.
 4. If you add a Stripe price ID: update `docs/environment-variables.md` AND `src/lib/stripe/products.ts` — they must stay in sync.
 5. If you rename or move a file referenced in docs, update the reference.
+
+### Phase / feature completion — ALWAYS update docs (mandatory)
+
+**Documentation is part of "done." A phase or sizable feature is NOT complete until its docs are updated and the help center regenerated** — do this in the same changeset, before deploying, every time.
+
+At the end of every phase/feature, sweep **all** relevant docs across BOTH tiers (don't stop at the developer docs):
+
+- **Developer docs:** `database-schema.md` (new tables/columns/RLS), `developer-architecture.md` (routes/actions/libs/components/deps), `workflows.md` (new data flows), `integrations.md` (3rd-party changes), `environment-variables.md` (new env).
+- **Help-center / wiki docs:** `rachel-admin-guide.md` (the admin walkthrough), **`admin-faq.md`** (Q&A for the new feature), **`admin-email-reference.md`** (any new email). These are the easiest to forget — explicitly check them.
+
+Then run a build (or `npm run generate:help`) so `src/lib/help/content.generated.ts` picks up the changes, and confirm the new content appears. Use the Change → File Mapping above to decide which files a given change touches.

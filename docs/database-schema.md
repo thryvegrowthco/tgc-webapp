@@ -219,7 +219,7 @@ Credit ledger for multi-session packages (`coaching_package` = 4, `interview_pac
 | Column | Type | Default | Notes |
 |---|---|---|---|
 | `id` | `UUID` | `gen_random_uuid()` | — |
-| `client_id` | `UUID` | — | FK to `profiles.id` |
+| `client_id` | `UUID` | `NULL` | FK to `profiles.id` (`ON DELETE CASCADE`); nullable in schema, always set in practice by the purchase webhook |
 | `service_key` / `service_type` | `TEXT` | — | The package service |
 | `sessions_total` | `INT` | — | CHECK > 0 |
 | `sessions_used` | `INT` | `0` | CHECK 0 ≤ used ≤ total |

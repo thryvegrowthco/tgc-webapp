@@ -55,7 +55,11 @@ All integrations are configured via environment variables. See `docs/environment
 **Webhook endpoint to register in Stripe:** `https://thryvegrowth.co/api/webhooks/stripe`
 **Events to enable:** `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
 
+**Checkout flow routing:** The webhook dispatches `checkout.session.completed` by inspecting `session.metadata.flow` (and `session.mode`) in this order: `flow='invitation'` → `handleInvitationCheckoutCompleted`; `flow='proposal'` → `handleProposalCheckoutCompleted`; `mode='subscription'` → `handleSubscriptionCheckoutCompleted`; otherwise the default `handleCheckoutCompleted` (one-time service bookings). All four ride on the single registered `checkout.session.completed` event — **no new webhook events to register** for invitations or proposals.
+
 **Invitation checkout (`metadata.flow = 'invitation'`):** Payment-ON booking invitations open a Checkout session carrying `metadata.flow='invitation'`, `invitationId`, and `optionId`, with `expires_at = now + 2h` so the payable window matches the reservation hold. The webhook checks this flag first and routes to `handleInvitationCheckoutCompleted` → `finalizeSession`. These sessions use ad-hoc `price_data` built from the invitation's `amount_cents` (or a `stripe_price_id` if set), so **no new env var or catalog price is required**. If `finalizeSession` rejects after payment (slot taken), the handler **refunds the PaymentIntent and alerts Rachel** via `notifyAdmin` — a paid booking is never silently dropped.
+
+**Proposal checkout (`metadata.flow = 'proposal'`, Phase 2):** Accepting a consulting proposal at `/proposal/[token]` opens a Checkout session created in `acceptProposal` (`src/app/actions/proposals.ts`) with `mode='payment'` and `metadata.flow='proposal'`, `proposalId`, `clientName`, `clientEmail`. Like invitations, the line item is ad-hoc `price_data` built from the proposal's `amount_cents` (currency `usd`, product name = proposal title), so **no catalog price or new env var is required**. The webhook routes to `handleProposalCheckoutCompleted`, which marks the proposal `paid`, stamps `stripe_session_id` + `stripe_payment_intent_id`, inserts a row into `payments` carrying `proposal_id` (the FK column added in migration 0028, indexed by `payments_proposal_id_idx`), emails the client a `receipt`, and fires a `proposal_paid` admin notification. Idempotent: it no-ops if the proposal is already `paid`, backed by the partial unique index on `proposals.stripe_session_id`. Zero-amount proposals (`amount_cents <= 0`) skip Checkout entirely and accept directly. Admin builds proposals at `/admin/proposals/new`; emails go out via the `proposal_sent` template (see Resend section).
 
 **PaymentIntent expand:** Both checkout handlers call `stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] })` so the receipt email can render `payment_method_details.card.brand`, `last4`, and the Stripe-hosted `receipt_url`. The receipt template uses `{{#if card_last4}}` and `{{#if stripe_receipt_url}}` blocks so missing values render as empty — important for test mode + non-card payments (ACH, etc.).
 
@@ -157,6 +161,8 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 | Booking confirmation (to client) | Stripe webhook on `checkout.session.completed` | `src/lib/email/resend.ts → sendBookingConfirmation` |
 | New booking alert (to Rachel) | Same webhook | `src/lib/email/resend.ts → sendAdminBookingAlert` |
 | Booking invitation (to client) | `sendBookingInvitation` (admin sends invite) | DB template `booking_invitation` via `sendTemplated` (default in `defaults.ts`) |
+| Proposal sent (to client) | `sendProposal` in `src/app/actions/proposals.ts` (admin sends proposal) | DB template `proposal_sent` via `sendTemplated` (default in `defaults.ts`) — links to `/proposal/[token]` |
+| Proposal payment receipt (to client) | Stripe webhook `handleProposalCheckoutCompleted` (`flow='proposal'`) | DB template `receipt` (shared with booking receipts) |
 | Session confirmed (to client) | `finalizeSession` (invitation accepted/paid) + `rescheduleSession` (re-send) | DB template `session_confirmed` |
 | New session booked (to Rachel) | `finalizeSession` | DB template `new_session_booked` (sent to `ADMIN_EMAIL`) |
 | Session reminder T-1h (to client) | `/api/cron/session-reminders` hourly + `sendSessionReminderNow` (manual) | DB template `session_reminder_1h` (critical — never seeded into `notification_settings`) |
@@ -354,3 +360,15 @@ For each endpoint above:
 **Env vars:** none. Pixel IDs live in Postgres, not env vars.
 
 **Graceful degradation:** if Supabase is unreachable or the `tracking_pixels` table doesn't exist yet (pre-migration), `TrackingPixels` renders nothing — the site stays up, just without tracking.
+
+---
+
+## AI drafting ("Draft with ChatGPT") — NOT an integration
+
+**There is no AI service integration, no AI API call, and no AI API key in this app.** The Phase 4 "Draft with ChatGPT" feature is **bring-your-own-ChatGPT**: it builds a prompt locally and hands it to the admin to paste into their own ChatGPT (or any LLM) of choice.
+
+- Prompt builders are pure functions in `src/lib/ai/prompts.ts` (no network calls).
+- The admin-facing UI is `src/components/admin/AiAssistPanel.tsx`, surfaced inline on existing admin screens (8 assists: session summary, pre-session prep brief, resume review, job-match draft, cover letter, proposal scope, message reply, lead follow-up).
+- The generated prompt is copied out; the admin pastes ChatGPT's reply back into existing fields/actions (`updateSession`, `addClientNote`, `assignJobToClient`, `sendMessage`) or uses it copy-only. Rachel reviews every draft.
+
+**Do not add an `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or any AI env var** — nothing in the codebase reads one. No new dependency, migration, env var, or third-party account is involved.
