@@ -125,8 +125,9 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **Where to get credentials:** Resend dashboard → API Keys
 
-**From address:** `Thryve Growth Co. <hello@go.thryvegrowth.co>` — must be a verified sending domain in Resend  
-**Admin alert address:** `hello@thryvegrowth.co`
+**From address:** `Thryve Growth Co. <hello@go.thryvegrowth.co>` (the `FROM_EMAIL` constant in `src/lib/email/resend.ts`) — must be a verified sending domain in Resend. This is a send-only identity; it is never monitored.  
+**Reply-To address:** `hello@thryvegrowth.co` (the `REPLY_TO_EMAIL` constant in `src/lib/email/resend.ts`) — Rachel's real Google Workspace inbox. **Every customer-facing send sets `replyTo: REPLY_TO_EMAIL`** so the `from` stays on the verified `go.` subdomain (for DKIM/SPF) while replies land in the monitored inbox. Reply-To is a header only — it does not affect SPF/DKIM/DMARC. This covers the newsletter batch (`newsletter-send.ts`), all `sendTemplated` template emails (`render.ts`), auth emails (`auth-emails.ts`), booking confirmation, consultation auto-reply, the admin→client message notification, the job-watchlist thank-you, the weekly job digest, and the newsletter lifecycle emails (welcome / re-engagement / milestone).  
+**Admin alert address:** `hello@thryvegrowth.co` (`ADMIN_EMAIL`). Admin-notification emails (sent **to** Rachel — contact form, consultation request, new lead/booking, Stripe events, `notifyAdmin`/`sendAdminAlert`) deliberately set `replyTo` to the **customer's** address instead, so Rachel can reply straight to the person. They are the only sends that do not use `REPLY_TO_EMAIL`.
 
 **Send Email hook setup (one-time):**
 1. Deploy the app to production

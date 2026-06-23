@@ -1,7 +1,7 @@
 // Welcome email sent immediately after newsletter signup. Voice modeled on
 // sendConsultationRequestAutoReply — warm, second-person, no hype.
 
-import { resend, FROM_EMAIL } from "./resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "./resend";
 import {
   buildManageUrl,
   buildUnsubscribeApiUrl,
@@ -26,7 +26,7 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput) {
   return resend.emails.send({
     from: FROM_EMAIL,
     to: input.email,
-    replyTo: "hello@thryvegrowth.co",
+    replyTo: REPLY_TO_EMAIL,
     subject: "Welcome to the Thryve newsletter",
     headers: {
       "List-Unsubscribe": `<mailto:hello@thryvegrowth.co?subject=unsubscribe>, <${unsubscribeApiUrl}>`,

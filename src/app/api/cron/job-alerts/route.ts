@@ -128,10 +128,11 @@ export async function GET(request: NextRequest) {
     ].join("\n");
 
     try {
-      const { resend } = await import("@/lib/email/resend");
+      const { resend, REPLY_TO_EMAIL } = await import("@/lib/email/resend");
       await resend.emails.send({
         from: "Rachel at Thryve <noreply@go.thryvegrowth.co>",
         to: profile.email,
+        replyTo: REPLY_TO_EMAIL,
         subject: `Your ${matches.length} new job match${matches.length !== 1 ? "es" : ""} this week`,
         text: emailBody,
       });

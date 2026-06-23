@@ -8,6 +8,8 @@ Most emails are **templates you can edit yourself** in **Templates** (`/admin/te
 
 When an email is editable, you'll see its **template name** (for example, `session_confirmed`). Open Templates, find that name, and edit the wording. The rest of this page uses those names so you can match them up.
 
+**Where replies go:** Your emails are sent from a no-reply sending address (`hello@go.thryvegrowth.co`), but whenever a client, lead, or subscriber **replies** to any of them — newsletters included — their reply lands in your real inbox, **hello@thryvegrowth.co**. You don't need to do anything; just watch that inbox. (The only exception is the internal alerts that come **to** you about a new lead, booking, or message — replying to one of those goes straight back to that person, so you can answer them directly.)
+
 ## How to Edit an Email
 
 1. Go to **Templates** in the sidebar.

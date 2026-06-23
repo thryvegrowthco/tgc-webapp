@@ -20,6 +20,14 @@ export const resend = new Proxy({} as Resend, {
 
 export const FROM_EMAIL = "Thryve Growth Co. <hello@go.thryvegrowth.co>";
 
+/**
+ * Reply-To for all customer-facing email — Rachel's real Google Workspace inbox.
+ * `FROM_EMAIL` stays on the verified `go.` sending subdomain (for DKIM/SPF), while
+ * replies route here. Single source of truth: every customer-facing send imports this.
+ * Admin-notification emails intentionally do NOT use it — they reply to the customer.
+ */
+export const REPLY_TO_EMAIL = "hello@thryvegrowth.co";
+
 export interface BookingConfirmationData {
   clientName: string;
   clientEmail: string;
@@ -33,6 +41,7 @@ export async function sendBookingConfirmation(data: BookingConfirmationData) {
   return resend.emails.send({
     from: FROM_EMAIL,
     to: data.clientEmail,
+    replyTo: REPLY_TO_EMAIL,
     subject: `Booking Confirmed: ${data.serviceType}`,
     html: `
       <!DOCTYPE html>
@@ -75,7 +84,7 @@ export async function sendBookingConfirmation(data: BookingConfirmationData) {
 
         <p style="font-size: 14px; color: #475569; line-height: 1.6;">
           You'll receive a video call link before our session. If you need to reschedule or have any questions, reply to this email or reach out at
-          <a href="mailto:hello@go.thryvegrowth.co" style="color: #203e35;">hello@go.thryvegrowth.co</a>.
+          <a href="mailto:hello@thryvegrowth.co" style="color: #203e35;">hello@thryvegrowth.co</a>.
         </p>
 
         <p style="font-size: 14px; color: #475569; margin-top: 24px;">
@@ -222,6 +231,7 @@ export async function sendConsultationRequestAutoReply(data: ConsultationRequest
   return resend.emails.send({
     from: FROM_EMAIL,
     to: data.email,
+    replyTo: REPLY_TO_EMAIL,
     subject: "I got your consultation request — talk soon",
     html: `
       <!DOCTYPE html>

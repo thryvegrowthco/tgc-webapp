@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -128,6 +128,7 @@ async function thankLead(data: { fullName: string; email: string }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: data.email,
+      replyTo: REPLY_TO_EMAIL,
       subject: "Thanks for reaching out about Job Watchlist",
       html: `
         <div style="font-family: system-ui, sans-serif; color: #0f172a; max-width: 600px; margin: 0 auto; padding: 40px 20px;">

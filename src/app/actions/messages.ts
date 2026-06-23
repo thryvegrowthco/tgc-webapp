@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
 import { renderShell } from "@/lib/email/shell";
 import { createClientNotification } from "@/lib/notifications/client";
 import { createAdminNotification } from "@/lib/notifications/admin";
@@ -99,6 +99,7 @@ export async function sendMessage(args: SendArgs): Promise<{ error?: string; suc
         await resend.emails.send({
           from: FROM_EMAIL,
           to: target.email,
+          replyTo: REPLY_TO_EMAIL,
           subject: "New message from Rachel",
           html: renderShell(buildNotifyHtml({
             headline: `New message from Rachel`,

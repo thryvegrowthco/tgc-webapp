@@ -5,7 +5,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
 import { renderIssueHTML, renderIssueText } from "@/lib/email/newsletter-render";
 import type { JSONContent } from "@tiptap/react";
 
@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
+      replyTo: REPLY_TO_EMAIL,
       subject: `[Test] ${issue.subject || "Newsletter preview"}`,
       html,
       text,

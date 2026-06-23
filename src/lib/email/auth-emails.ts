@@ -1,4 +1,4 @@
-import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
 
 // Branded auth email templates. Styling matches the booking confirmation email:
 // header color #203e35, accent background #f5ece3, footer with copyright.
@@ -11,6 +11,7 @@ export async function sendSignupConfirmation(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
+    replyTo: REPLY_TO_EMAIL,
     subject: "Confirm your Thryve Growth Co. account",
     html: `
       <!DOCTYPE html>
@@ -72,6 +73,7 @@ export async function sendPasswordReset(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
+    replyTo: REPLY_TO_EMAIL,
     subject: "Reset your password, Thryve Growth Co.",
     html: `
       <!DOCTYPE html>
@@ -133,6 +135,7 @@ export async function sendEmailChange(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
+    replyTo: REPLY_TO_EMAIL,
     subject: "Confirm your new email address, Thryve Growth Co.",
     html: `
       <!DOCTYPE html>
@@ -172,7 +175,7 @@ export async function sendEmailChange(
 
         <p style="font-size: 14px; color: #475569; margin-top: 24px;">
           If you didn't request this change, please contact us at
-          <a href="mailto:hello@go.thryvegrowth.co" style="color: #203e35;">hello@go.thryvegrowth.co</a>.
+          <a href="mailto:hello@thryvegrowth.co" style="color: #203e35;">hello@thryvegrowth.co</a>.
         </p>
 
         <div style="border-top: 1px solid #e2e8f0; margin-top: 40px; padding-top: 20px;">
@@ -195,6 +198,7 @@ export async function sendMagicLink(
   return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
+    replyTo: REPLY_TO_EMAIL,
     subject: "Your sign-in link, Thryve Growth Co.",
     html: `
       <!DOCTYPE html>

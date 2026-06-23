@@ -11,7 +11,7 @@
 // Failures are caught and logged; we never throw from the send path —
 // reminders should be best-effort, and the webhook already uses Promise.allSettled.
 
-import { resend, FROM_EMAIL } from "./resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "./resend";
 import { renderShell } from "./shell";
 import { DEFAULT_TEMPLATES, type DefaultTemplate } from "./defaults";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -163,6 +163,7 @@ export async function sendTemplated(
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: options.to,
+      replyTo: REPLY_TO_EMAIL,
       subject,
       html,
     });

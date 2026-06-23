@@ -11,7 +11,7 @@
 //   5. Insert newsletter_sends rows correlating Resend message IDs
 //   6. Set issue status to 'sent' (or 'failed' if every batch failed)
 
-import { resend, FROM_EMAIL } from "./resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "./resend";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   buildManageUrl,
@@ -139,6 +139,7 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
       return {
         from: FROM_EMAIL,
         to: sub.email,
+        replyTo: REPLY_TO_EMAIL,
         subject: issue.subject,
         html: personalized,
         text: personalizedText,

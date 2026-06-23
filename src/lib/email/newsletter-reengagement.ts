@@ -1,7 +1,7 @@
 // Canned "we missed you" email for subscribers who haven't opened anything
 // in 60+ days. Sent by /api/cron/newsletter-reengage, capped per run.
 
-import { resend, FROM_EMAIL } from "./resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "./resend";
 import {
   buildManageUrl,
   buildUnsubscribeApiUrl,
@@ -26,7 +26,7 @@ export async function sendReengagementEmail(input: ReengagementInput) {
   return resend.emails.send({
     from: FROM_EMAIL,
     to: input.email,
-    replyTo: "hello@thryvegrowth.co",
+    replyTo: REPLY_TO_EMAIL,
     subject: "Still want these emails?",
     headers: {
       "List-Unsubscribe": `<mailto:hello@thryvegrowth.co?subject=unsubscribe>, <${unsubscribeApiUrl}>`,
@@ -127,7 +127,7 @@ export async function sendMilestoneEmail(input: MilestoneInput) {
   return resend.emails.send({
     from: FROM_EMAIL,
     to: input.email,
-    replyTo: "hello@thryvegrowth.co",
+    replyTo: REPLY_TO_EMAIL,
     subject: `${input.milestone === "1_year" ? "A year" : "Six months"} of these emails — thank you`,
     headers: {
       "List-Unsubscribe": `<mailto:hello@thryvegrowth.co?subject=unsubscribe>, <${unsubscribeApiUrl}>`,
