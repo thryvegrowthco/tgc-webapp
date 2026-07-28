@@ -659,11 +659,19 @@ Every template or worksheet in the catalog has a row here. On the right side of 
 
 When **nothing** is switched on, the public `/resources` page replaces the templates section with a "More resources coming soon" panel. That's the state you're in today — none of the templates are built yet, so everything is hidden.
 
-**Editing a resource:**
-Click "Edit" on any row to change the title, description, category, price (use "Free" or "$19" style), CTA type (Buy Now vs Download), or the sort order. Save and the public page updates instantly.
+Each row also shows a **Views** and **Downloads** count so you can see, at a glance, how many people looked at each resource and how many actually downloaded it.
 
-**A note on the Buy / Download button:**
-Right now, when you flip a resource ON, the public card shows a muted "Coming soon" badge where the Buy or Download button used to be. That's intentional — none of the resources have a real download URL or purchase link wired up yet. When you actually finish building one (a real PDF, a Stripe price for a paid template, a Gumroad link, etc.), ping your developer to swap the badge for a working button. The Edit form already remembers whether the resource is supposed to be a "Buy Now" or a "Download" so the developer knows what to wire up.
+**Editing a resource:**
+Click "Edit" on any row to change the title, description, category, price (use "Free" or "$19" style), CTA type (Buy Now vs Download), or the sort order. The top of the edit page shows this resource's **view and download totals**. Save and the public page updates instantly.
+
+**Making a free resource downloadable:**
+In the editor, under **Downloadable file**, either:
+- **Upload file** — choose the PDF, Word/Excel/PowerPoint doc, CSV, ZIP, or image people should download (up to 25 MB), or
+- paste an **External link** (e.g., a Google Doc or Dropbox link) and click Save.
+
+Once a **Download** resource has a file or link *and* is switched ON, its public card shows a real **Download** button (instead of "Coming soon"). Every download is counted. To swap the file, click **Remove** and upload a new one.
+
+**About paid "Buy Now" resources:** these still show a "Coming soon" badge for now — wiring them to a checkout is a separate step. Free downloads and the view/download counts are live.
 
 ---
 

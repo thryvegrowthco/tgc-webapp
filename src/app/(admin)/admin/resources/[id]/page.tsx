@@ -33,7 +33,7 @@ export default async function AdminResourceEditPage({
 
   const { data: resourceRaw } = await supabase
     .from("resources")
-    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, updated_at, updated_by, created_at")
+    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, file_path, external_url, file_name, file_size_bytes, view_count, download_count, updated_at, updated_by, created_at")
     .eq("id", id)
     .maybeSingle();
   const resource = resourceRaw as Resource | null;
@@ -53,6 +53,17 @@ export default async function AdminResourceEditPage({
         <p className="text-neutral-500 text-sm mt-1">
           Edit anything below and click Save. Changes appear on /resources immediately.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4">
+          <p className="text-2xl font-bold text-neutral-900">{resource.view_count}</p>
+          <p className="text-xs text-neutral-500 mt-0.5">People who viewed this resource</p>
+        </div>
+        <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4">
+          <p className="text-2xl font-bold text-neutral-900">{resource.download_count}</p>
+          <p className="text-xs text-neutral-500 mt-0.5">Downloads</p>
+        </div>
       </div>
 
       <ResourceEditForm resource={resource} />

@@ -27,7 +27,7 @@ export default async function AdminResourcesPage() {
 
   const { data: resourcesRaw } = await supabase
     .from("resources")
-    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, updated_at, updated_by, created_at")
+    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, file_path, external_url, file_name, file_size_bytes, view_count, download_count, updated_at, updated_by, created_at")
     .order("sort_order", { ascending: true })
     .order("title", { ascending: true });
 
@@ -45,7 +45,7 @@ export default async function AdminResourcesPage() {
             : `${enabledCount} ${enabledCount === 1 ? "resource is" : "resources are"} live on /resources.`}
         </p>
         <p className="text-xs text-neutral-400 mt-2">
-          The Buy / Download button is replaced with a “Coming soon” badge on the public page until a real download or purchase URL is wired in.
+          Free <strong>Download</strong> resources go live once you add a file (or link) in the editor. Paid <strong>Buy&nbsp;Now</strong> resources still show a “Coming soon” badge. <strong>Views</strong> counts how many people saw the resource; <strong>Downloads</strong> how many grabbed the file.
         </p>
       </div>
 
@@ -69,7 +69,27 @@ export default async function AdminResourcesPage() {
                   {r.price}
                   <span className="mx-1.5 text-neutral-300">·</span>
                   {r.cta_type}
+                  {r.cta_type === "Download" && (
+                    <>
+                      <span className="mx-1.5 text-neutral-300">·</span>
+                      {r.file_path || r.external_url ? (
+                        <span className="text-green-600">file ready</span>
+                      ) : (
+                        <span className="text-amber-600">no file yet</span>
+                      )}
+                    </>
+                  )}
                 </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-4 text-center">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">{r.view_count}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Views</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">{r.download_count}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Downloads</p>
+                </div>
               </div>
               <Link
                 href={`/admin/resources/${r.id}`}

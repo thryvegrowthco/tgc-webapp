@@ -730,16 +730,39 @@ Catalog backing the public `/resources` page. Each row is a downloadable or purc
 | `title` | `TEXT` | — | Display title |
 | `description` | `TEXT` | — | Card body |
 | `price` | `TEXT` | — | Free-form display string (`"Free"`, `"$19"`, etc.) |
-| `cta_type` | `TEXT` | — | CHECK: `Buy Now`, `Download` — preserves the button-style hint for when URLs are wired in later |
+| `cta_type` | `TEXT` | — | CHECK: `Buy Now`, `Download` |
 | `enabled` | `BOOLEAN` | `FALSE` | Controls public visibility |
 | `sort_order` | `INT` | `0` | Lower numbers render first; seed steps by 10 |
+| `file_path` | `TEXT` | `NULL` | Key in the private `resource-files` bucket (added `0030`). Hosted file for downloads. |
+| `external_url` | `TEXT` | `NULL` | Alternative to a hosted file — an external link (added `0030`). |
+| `file_name` | `TEXT` | `NULL` | Original filename, used for the download disposition (`0030`). |
+| `file_size_bytes` | `BIGINT` | `NULL` | Displayed in the admin editor (`0030`). |
+| `view_count` | `INT` | `0` | Denormalized cache of `view` events; incremented via `increment_resource_view` (`0030`). |
+| `download_count` | `INT` | `0` | Denormalized cache of `download` events; incremented via `increment_resource_download` (`0030`). |
 | `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
 | `updated_by` | `UUID` | `NULL` | FK to `profiles.id` ON DELETE SET NULL |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
 **RLS:** anonymous + clients can `SELECT` rows where `enabled = TRUE` (the public marketing page is unauthenticated); admins have full access.
 
-**Current state:** all 8 seed rows are `enabled = false`. Until Rachel flips the first toggle, `/resources` shows a "More resources coming soon" panel. When enabled, the public card displays a muted "Coming soon" badge in place of the Buy/Download button — URL wiring is a separate follow-up.
+**Downloads + tracking (`0030_resource_files_and_tracking.sql`):** a free `Download` resource goes live when it has a `file_path` or `external_url`. The public card links to `GET /api/resources/download/[slug]`, which (via the service client) mints a 10-min signed URL for the hosted file — or redirects to `external_url` — and logs a `download`. Views are recorded by a `sendBeacon` from `ResourceViewTracker` → `POST /api/resources/view` (de-duped per browser session).
+
+---
+
+### `resource_events`
+
+Append-only log of resource **views** and **downloads** — the source of truth behind the denormalized `resources.view_count`/`download_count`. Added in `0030`.
+
+| Column | Type | Default | Notes |
+|---|---|---|---|
+| `id` | `UUID` | `gen_random_uuid()` | — |
+| `resource_id` | `UUID` | — | FK → `resources.id` ON DELETE CASCADE |
+| `event_type` | `TEXT` | — | CHECK: `view`, `download` |
+| `session_hash` | `TEXT` | `NULL` | Best-effort per-visitor de-dup (not PII) |
+| `user_agent` | `TEXT` | `NULL` | — |
+| `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
+
+Index: `(resource_id, event_type, created_at DESC)`. **RLS:** admin `SELECT` only; inserts happen through the service client in the route handlers (bypasses RLS). Counter helpers `increment_resource_view(p_resource_id)` / `increment_resource_download(p_resource_id)` do atomic `+1` updates. Storage: private **`resource-files`** bucket (25 MB limit; PDF/Office/CSV/ZIP/PNG/JPG).
 
 ---
 
@@ -806,6 +829,7 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 | `admin_notifications` | None | None | ALL | Full |
 | `admin_tasks` | None | None | ALL | Full |
 | `resources` | SELECT enabled | SELECT enabled | ALL | Full |
+| `resource_events` | None | None | SELECT | Full (writes via service client in route handlers) |
 | `tracking_pixels` | SELECT live | SELECT live | ALL | Full |
 
 Note: "Service role" (`createServiceClient()`) bypasses all RLS policies. Only used in the Stripe webhook and admin server actions where the caller is already verified.

@@ -1815,6 +1815,12 @@ export type Database = {
           cta_type: "Buy Now" | "Download";
           enabled: boolean;
           sort_order: number;
+          file_path: string | null;
+          external_url: string | null;
+          file_name: string | null;
+          file_size_bytes: number | null;
+          view_count: number;
+          download_count: number;
           updated_at: string;
           updated_by: string | null;
           created_at: string;
@@ -1829,6 +1835,12 @@ export type Database = {
           cta_type: "Buy Now" | "Download";
           enabled?: boolean;
           sort_order?: number;
+          file_path?: string | null;
+          external_url?: string | null;
+          file_name?: string | null;
+          file_size_bytes?: number | null;
+          view_count?: number;
+          download_count?: number;
           updated_at?: string;
           updated_by?: string | null;
           created_at?: string;
@@ -1843,8 +1855,41 @@ export type Database = {
           cta_type?: "Buy Now" | "Download";
           enabled?: boolean;
           sort_order?: number;
+          file_path?: string | null;
+          external_url?: string | null;
+          file_name?: string | null;
+          file_size_bytes?: number | null;
+          view_count?: number;
+          download_count?: number;
           updated_at?: string;
           updated_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      resource_events: {
+        Row: {
+          id: string;
+          resource_id: string;
+          event_type: "view" | "download";
+          session_hash: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          resource_id: string;
+          event_type: "view" | "download";
+          session_hash?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          resource_id?: string;
+          event_type?: "view" | "download";
+          session_hash?: string | null;
+          user_agent?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1887,7 +1932,16 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      increment_resource_view: {
+        Args: { p_resource_id: string };
+        Returns: undefined;
+      };
+      increment_resource_download: {
+        Args: { p_resource_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
   };
 };
@@ -1931,6 +1985,7 @@ export type LocationType = Booking["location_type"];
 export type PaymentStatus = Booking["payment_status"];
 export type Resource = Database["public"]["Tables"]["resources"]["Row"];
 export type ResourceCtaType = Resource["cta_type"];
+export type ResourceEvent = Database["public"]["Tables"]["resource_events"]["Row"];
 export type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 export type TestimonialStatus = Testimonial["status"];
 export type ClientGoal = Database["public"]["Tables"]["client_goals"]["Row"];

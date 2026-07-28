@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileText, Briefcase, Users, Sparkles } from "lucide-react";
+import { ArrowRight, FileText, Briefcase, Users, Sparkles, Download } from "lucide-react";
 import { SectionCTA } from "@/components/shared/SectionCTA";
+import { ResourceViewTracker } from "@/components/marketing/ResourceViewTracker";
 import { createClient } from "@/lib/supabase/server";
 import type { Resource } from "@/types/database";
 
@@ -36,7 +37,7 @@ export default async function ResourcesPage() {
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("resources")
-    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, updated_at, updated_by, created_at")
+    .select("id, slug, category, title, description, price, cta_type, enabled, sort_order, file_path, external_url, file_name, file_size_bytes, view_count, download_count, updated_at, updated_by, created_at")
     .eq("enabled", true)
     .order("sort_order", { ascending: true })
     .order("title", { ascending: true });
@@ -137,9 +138,18 @@ export default async function ResourcesPage() {
                     <span className="font-display text-xl font-bold text-brand-700">
                       {res.price}
                     </span>
-                    <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-100 px-3 py-1.5 rounded-full">
-                      Coming soon
-                    </span>
+                    {res.cta_type === "Download" && (res.file_path || res.external_url) ? (
+                      <a
+                        href={`/api/resources/download/${res.slug}`}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white hover:bg-brand-700 transition-colors"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Download
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-100 px-3 py-1.5 rounded-full">
+                        Coming soon
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -147,6 +157,7 @@ export default async function ResourcesPage() {
           ) : (
             <ComingSoonPanel />
           )}
+          {resources.length > 0 && <ResourceViewTracker ids={resources.map((r) => r.id)} />}
         </div>
       </section>
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { updateResource } from "@/app/actions/resources";
+import { updateResource, uploadResourceFile, removeResourceFile } from "@/app/actions/resources";
 import type { Resource, ResourceCtaType } from "@/types/database";
 
 const CATEGORIES = [
@@ -17,6 +17,14 @@ const CATEGORIES = [
 ];
 
 const CTA_TYPES: ResourceCtaType[] = ["Buy Now", "Download"];
+
+const FILE_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.zip,.png,.jpg,.jpeg";
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface ResourceEditFormProps {
   resource: Resource;
@@ -33,6 +41,15 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
   const [price, setPrice] = React.useState(resource.price);
   const [ctaType, setCtaType] = React.useState<ResourceCtaType>(resource.cta_type);
   const [sortOrder, setSortOrder] = React.useState(String(resource.sort_order));
+  const [externalUrl, setExternalUrl] = React.useState(resource.external_url ?? "");
+
+  // File state is managed locally so upload/remove reflect immediately without
+  // relying on the parent server component re-seeding this client form's state.
+  const [fileName, setFileName] = React.useState<string | null>(resource.file_name);
+  const [filePath, setFilePath] = React.useState<string | null>(resource.file_path);
+  const [fileSize, setFileSize] = React.useState<number | null>(resource.file_size_bytes);
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,6 +63,7 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
         ctaType,
         sortOrder: Number.parseInt(sortOrder, 10) || 0,
         enabled,
+        externalUrl,
       });
       if (result.error) {
         toast.error(result.error);
@@ -54,6 +72,41 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
       toast.success("Resource saved.");
       router.refresh();
     });
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const result = await uploadResourceFile(resource.id, fd);
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setFileName(file.name);
+    setFilePath("uploaded");
+    setFileSize(file.size);
+    toast.success("File uploaded.");
+    router.refresh();
+  }
+
+  async function handleRemoveFile() {
+    setUploading(true);
+    const result = await removeResourceFile(resource.id);
+    setUploading(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setFileName(null);
+    setFilePath(null);
+    setFileSize(null);
+    toast.success("File removed.");
+    router.refresh();
   }
 
   return (
@@ -147,6 +200,59 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
             onChange={(e) => setSortOrder(e.target.value)}
           />
           <p className="text-xs text-neutral-400">Lower numbers show first.</p>
+        </div>
+      </div>
+
+      {/* Downloadable file / link — makes free "Download" resources actually work */}
+      <div className="space-y-3 rounded-lg border border-neutral-200 p-4">
+        <div>
+          <p className="text-sm font-medium text-neutral-900">Downloadable file</p>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            Upload the file people download (PDF, Office doc, CSV, ZIP, PNG/JPG — up to 25&nbsp;MB), or set an
+            external link below. A hosted file takes priority. Free “Download” resources go live once one is set.
+          </p>
+        </div>
+
+        {filePath ? (
+          <div className="flex items-center justify-between rounded-lg bg-neutral-50 border border-neutral-200 px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-neutral-800 truncate">{fileName ?? "Uploaded file"}</p>
+              {fileSize != null && <p className="text-xs text-neutral-400">{formatBytes(fileSize)}</p>}
+            </div>
+            <Button type="button" variant="ghost" size="sm" onClick={handleRemoveFile} disabled={uploading || pending}>
+              Remove
+            </Button>
+          </div>
+        ) : (
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={FILE_ACCEPT}
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading…" : "Upload file"}
+            </Button>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="external_url">External link (optional)</Label>
+          <Input
+            id="external_url"
+            value={externalUrl}
+            onChange={(e) => setExternalUrl(e.target.value)}
+            placeholder="https://… (Google Doc, Dropbox, etc.)"
+          />
+          <p className="text-xs text-neutral-400">Used only when no file is uploaded. Saved with the button below.</p>
         </div>
       </div>
 

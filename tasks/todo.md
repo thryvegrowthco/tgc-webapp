@@ -8,7 +8,7 @@ Full plan: `~/.claude/plans/i-have-a-list-gentle-coral.md`. Phases are independe
 | 3 | Newsletter analytics all 0 | 1 | ✅ diagnosed + banner shipped (config next) |
 | 4 | Free gif/image for newsletters & blogs | 2 | ✅ done |
 | 5 | Blogs won't add/download images | 2 | ✅ done |
-| 6 | Resources: downloadable + view/download counts | 3 | ⬜ |
+| 6 | Resources: downloadable + view/download counts | 3 | ✅ built (needs migration 0030 applied) |
 | 2 | Watchlist: expire closed jobs → inactive tabs | 4 | ⬜ |
 | 7/7a | Bookings workflow (already exists) → make findable | 5 | ⬜ |
 
@@ -63,3 +63,22 @@ Full plan: `~/.claude/plans/i-have-a-list-gentle-coral.md`. Phases are independe
 ### Files added/touched
 - Added: `src/app/actions/media.ts`, `src/app/api/media/gif/route.ts`, `src/app/api/media/image/route.ts`, `src/components/admin/MediaPicker.tsx`
 - Edited: `src/components/admin/{RichTextEditor,NewsletterEditor}.tsx`, `.env.local.example`, `docs/{environment-variables,integrations,developer-architecture,rachel-admin-guide}.md` + generated help
+
+---
+
+## Phase 3 — Resources: free downloads + view/download tracking ✅ BUILT (migration pending)
+
+- [x] Migration `0030_resource_files_and_tracking.sql`: resources gains `file_path/external_url/file_name/file_size_bytes/view_count/download_count`; new `resource_events` table (admin-read RLS); atomic `increment_resource_view/download` funcs; **private `resource-files` bucket**.
+- [x] Actions: `uploadResourceFile` / `removeResourceFile` + `external_url` in `updateResource`.
+- [x] `GET /api/resources/download/[slug]` — signed URL (or external redirect) + counts the download. `POST /api/resources/view` — validated view events. `ResourceViewTracker` sendBeacon on `/resources` (session-deduped).
+- [x] Public page: real **Download** button for enabled Download resources with a file/link (else "Coming soon"). Admin index + editor show Views/Downloads + file upload/remove + external link field.
+
+### Verification
+- [x] `tsc` clean, lint clean, **full `next build` passed** (both `/api/resources/*` routes compiled; `/resources` prerendered).
+- [x] Docs (database-schema, developer-architecture, rachel-admin-guide) + help regenerated.
+- [ ] **BLOCKED on owner:** apply `supabase/migrations/0030_resource_files_and_tracking.sql` in the Supabase SQL editor. Until then the new columns/table/bucket don't exist and the feature errors.
+- [ ] After migration: end-to-end smoke (upload a PDF to a free resource → Download button appears → download increments the count → view beacon increments views).
+
+### Files added/touched
+- Added: `supabase/migrations/0030_resource_files_and_tracking.sql`, `src/app/api/resources/download/[slug]/route.ts`, `src/app/api/resources/view/route.ts`, `src/components/marketing/ResourceViewTracker.tsx`
+- Edited: `src/types/database.ts`, `src/app/actions/resources.ts`, `src/app/(marketing)/resources/page.tsx`, `src/app/(admin)/admin/resources/page.tsx` + `[id]/page.tsx`, `src/components/admin/ResourceEditForm.tsx`, `docs/{database-schema,developer-architecture,rachel-admin-guide}.md` + generated help
