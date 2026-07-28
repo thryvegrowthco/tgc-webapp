@@ -8,6 +8,7 @@ import { Image } from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { cn } from "@/lib/utils";
+import { MediaPicker } from "@/components/admin/MediaPicker";
 import type { JSONContent } from "@tiptap/react";
 
 // ── Toolbar button ────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ export function RichTextEditor({
   placeholder = "Write your post…",
   className,
 }: RichTextEditorProps) {
+  const [mediaOpen, setMediaOpen] = React.useState(false);
   const editor = useEditor({
     // IMPORTANT: These extensions must stay in sync with renderExtensions in
     // src/app/blog/[slug]/page.tsx. Adding or removing an extension here
@@ -101,12 +103,6 @@ export function RichTextEditor({
       return;
     }
     editor?.chain().focus().setLink({ href: url }).run();
-  }
-
-  function insertImage() {
-    const url = window.prompt("Image URL");
-    if (!url) return;
-    editor?.chain().focus().setImage({ src: url }).run();
   }
 
   return (
@@ -174,7 +170,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           active={editor.isActive("blockquote")}
         >
-          "
+          &quot;
         </ToolbarButton>
         <ToolbarButton
           title="Horizontal rule"
@@ -188,7 +184,7 @@ export function RichTextEditor({
         <ToolbarButton title="Link" onClick={setLink} active={editor.isActive("link")}>
           🔗
         </ToolbarButton>
-        <ToolbarButton title="Image (by URL)" onClick={insertImage}>
+        <ToolbarButton title="Insert image or GIF" onClick={() => setMediaOpen(true)}>
           🖼
         </ToolbarButton>
 
@@ -216,6 +212,12 @@ export function RichTextEditor({
 
       {/* Editor content */}
       <EditorContent editor={editor} />
+
+      <MediaPicker
+        open={mediaOpen}
+        onOpenChange={setMediaOpen}
+        onSelect={({ src, alt }) => editor.chain().focus().setImage({ src, alt }).run()}
+      />
     </div>
   );
 }

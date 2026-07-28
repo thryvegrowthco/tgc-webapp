@@ -92,3 +92,34 @@ export function formatCentralDateTime(
 ): string {
   return toDate(input).toLocaleString("en-US", { ...extra, timeZone: CENTRAL_TIMEZONE });
 }
+
+/**
+ * Convert a `<input type="datetime-local">` value (`YYYY-MM-DDTHH:mm`, always
+ * read as Central wall-clock) into a true UTC ISO string. Use on save so the
+ * stored moment does NOT depend on the admin's browser timezone.
+ */
+export function centralDatetimeLocalToUtcIso(value: string): string {
+  const [dateStr, timeStr] = value.split("T");
+  return localCentralToUtcIso(dateStr, timeStr);
+}
+
+/**
+ * Format a UTC moment as a `<input type="datetime-local">` value
+ * (`YYYY-MM-DDTHH:mm`) in Central wall-clock. Browser-timezone independent —
+ * unlike `Date.getHours()`, which reads the admin's local zone.
+ */
+export function utcIsoToCentralDatetimeLocal(input: Date | string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: CENTRAL_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(toDate(input));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  // Some ICU builds emit "24" for midnight under hour12:false — normalize.
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
+}

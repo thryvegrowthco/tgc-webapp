@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, FileEdit, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createServiceClient } from "@/lib/supabase/service";
+import { formatCentralDate } from "@/lib/time/central";
 
 export const metadata: Metadata = {
   title: "Templates — Newsletter",
@@ -74,7 +75,7 @@ export default async function TemplatesPage() {
                   )}
                 </div>
                 <p className="text-xs text-neutral-400 flex-shrink-0">
-                  {new Date(tpl.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {formatCentralDate(tpl.created_at, { month: "short", day: "numeric" })}
                 </p>
               </Link>
             ))}

@@ -4,6 +4,7 @@ import { Plus, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createServiceClient } from "@/lib/supabase/service";
+import { formatCentralDateTime, CENTRAL_TIMEZONE_LABEL } from "@/lib/time/central";
 
 export const metadata: Metadata = {
   title: "Newsletter issues — Admin",
@@ -121,10 +122,10 @@ export default async function IssuesListPage() {
                           )}
                           <p className="text-xs text-neutral-400 mt-1">
                             {issue.sent_at
-                              ? `Sent ${new Date(issue.sent_at).toLocaleString()} · ${issue.sent_count} subscribers`
+                              ? `Sent ${formatCentralDateTime(issue.sent_at)} ${CENTRAL_TIMEZONE_LABEL} · ${issue.sent_count} subscribers`
                               : issue.scheduled_for
-                              ? `Scheduled for ${new Date(issue.scheduled_for).toLocaleString()}`
-                              : `Updated ${new Date(issue.updated_at).toLocaleString()}`}
+                              ? `Scheduled for ${formatCentralDateTime(issue.scheduled_for)} ${CENTRAL_TIMEZONE_LABEL}`
+                              : `Updated ${formatCentralDateTime(issue.updated_at)}`}
                           </p>
                         </div>
                       </Link>

@@ -62,6 +62,15 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 | `NEWSLETTER_BUSINESS_ADDRESS` | Yes (prod) | Rachel's business address | Rendered in every newsletter footer to satisfy CAN-SPAM. Example: `Thryve Growth Co. LLC · 123 Main St, Suite 200, Anywhere, ST 12345`. Defaults to `Thryve Growth Co. LLC · United States` if unset. |
 | `NEWSLETTER_PUBLIC_URL` | No | Your deployed domain | Optional override for unsubscribe/manage link prefixes. Falls back to `NEXT_PUBLIC_APP_URL` then `https://thryvegrowth.co`. |
 
+### Media (blog + newsletter image/GIF picker)
+
+| Variable | Required | Source | Purpose |
+|---|---|---|---|
+| `GIPHY_API_KEY` | No* | developers.giphy.com → Create an App (free) → API Key | Powers the **GIFs** tab in the editor MediaPicker (`GET /api/media/gif`). |
+| `UNSPLASH_ACCESS_KEY` | No* | unsplash.com/developers → New Application (free) → Access Key | Powers the **Photos** tab (`GET /api/media/image`) + the download-trigger ping. |
+
+*Both are optional. If absent, the corresponding search tab shows a "not set up yet" notice; **Upload** (to the public `blog-images` bucket) and **URL** tabs always work without any key. Keys are used server-side only (never exposed to the browser).
+
 ### GoHighLevel (CRM)
 
 | Variable | Required | Source | Purpose |

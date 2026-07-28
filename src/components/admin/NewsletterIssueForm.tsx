@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { NewsletterEditor } from "@/components/admin/NewsletterEditor";
 import { NEWSLETTER_INTERESTS } from "@/lib/newsletter/interests";
 import {
+  formatCentralDateTime,
+  centralDatetimeLocalToUtcIso,
+  utcIsoToCentralDatetimeLocal,
+  CENTRAL_TIMEZONE_LABEL,
+} from "@/lib/time/central";
+import {
   createIssue,
   updateIssue,
   submitForApproval,
@@ -79,7 +85,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   );
   const [scheduledFor, setScheduledFor] = React.useState<string>(
     initialData.scheduledFor
-      ? toDatetimeLocal(new Date(initialData.scheduledFor))
+      ? utcIsoToCentralDatetimeLocal(initialData.scheduledFor)
       : nextTuesdayNineAmLocal()
   );
 
@@ -153,13 +159,15 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   async function handleApproveAndSchedule() {
     const id = await persist();
     if (!id) return;
-    const whenIso = new Date(scheduledFor).toISOString();
+    // The datetime-local value is always Central wall-clock; convert to a true
+    // UTC instant here so storage never depends on the admin's browser zone.
+    const whenIso = centralDatetimeLocalToUtcIso(scheduledFor);
     const result = await approveAndSchedule(id, whenIso);
     if (result.error) {
       toast.error(result.error);
       return;
     }
-    toast.success(`Scheduled for ${new Date(whenIso).toLocaleString()}`);
+    toast.success(`Scheduled for ${formatCentralDateTime(whenIso)} ${CENTRAL_TIMEZONE_LABEL}`);
     router.refresh();
   }
 
@@ -281,12 +289,12 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
           <StatusBadge status={status} />
           {initialData.sentAt && (
             <p className="text-xs text-neutral-500">
-              Sent {new Date(initialData.sentAt).toLocaleString()} to {initialData.sentCount} subscribers.
+              Sent {formatCentralDateTime(initialData.sentAt)} {CENTRAL_TIMEZONE_LABEL} to {initialData.sentCount} subscribers.
             </p>
           )}
           {isScheduled && initialData.scheduledFor && (
             <p className="text-xs text-neutral-500">
-              Scheduled for {new Date(initialData.scheduledFor).toLocaleString()}.
+              Scheduled for {formatCentralDateTime(initialData.scheduledFor)} {CENTRAL_TIMEZONE_LABEL}.
             </p>
           )}
         </div>

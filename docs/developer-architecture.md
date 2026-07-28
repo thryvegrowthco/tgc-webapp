@@ -153,6 +153,7 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 | `resources.ts` | `toggleResource`, `updateResource` | Admin-only via shared `requireAdmin()`. Powers `/admin/resources` toggles + edit form; both calls revalidate `/resources` so the public page reflects changes immediately. |
 | `tracking-pixels.ts` | `toggleTrackingPixel`, `updateTrackingPixel` | Admin-only via shared `requireAdmin()`. Powers the Visitor Tracking cards on `/admin/integrations`. Calls `revalidatePath("/", "layout")` so every public page re-fetches the live pixel set on the next request, and bumps `/privacy` so its dynamic Cookies section stays in sync. |
 | `blog.ts` | `createBlogPost`, `updateBlogPost`, `deleteBlogPost`, `uploadFeaturedImage` | `requireAdmin()` guard; slug uniqueness enforced in both create + update |
+| `media.ts` | `uploadEditorImage`, `trackUnsplashDownload` | `requireAdmin()` guard. Shared by the blog + newsletter `MediaPicker`. `uploadEditorImage` validates type/size (JPG/PNG/WebP/GIF, ≤10 MB) → public `blog-images` bucket (`inline/`) → returns public URL. `trackUnsplashDownload` pings a picked photo's Unsplash `download_location` (best-effort, no-store). |
 | `watchlist.ts` | Client: `saveWatchlistProfile`, `updateMatchStatus`, `toggleFavorite`, `updateMatchNotes`, `updateApplicationDetails`. Admin: `addManualJob`, `assignJobToClient(clientId, jobId, curation?)`, `toggleRachelRecommended`, `removeJobMatch`, `fetchJSearchJobsForClient`, `runAutoMatchForClient`, `updateWatchlistProfileAsAdmin`, `setWatchlistReviewStatus`, `pauseWatchlist`, `reactivateWatchlist`, `cancelWatchlist`, `toggleJobSource` | Client + admin actions in one file; each has its own auth check. Save/assign/fetch emit `client_notifications` + emails (`new_job_match`/`curated_job_match`/`watchlist_updated`). `pause/reactivate/cancel` act on the Stripe subscription + local status. `toggleJobSource` flips `job_sources.enabled`. Auto-match uses `src/lib/matching/score.ts`, inserting only matches with score ≥ 60 (excluded-employer / unmet must-have force exclusion). |
 | `messages.ts` | `sendMessage`, `markThreadRead`, `uploadMessageAttachment` | Two-way client↔admin thread (`client_messages`). `sendMessage` emails the other party + writes a `message_received` client notification (admin→client). `uploadMessageAttachment` stores files in the private `documents` bucket at `messages/{clientId}/...` via the service client; download is gated by `/api/messages/attachment`. |
 | `billing.ts` | `createPortalSession` | Looks up client's `stripe_subscription_id`, retrieves Stripe customer ID from the subscription, creates a Stripe Customer Portal session, and redirects. Used by `/dashboard/billing`. |
@@ -203,11 +204,12 @@ Stripe client is wrapped in a `Proxy` to defer initialization until first access
 
 - Content stored as JSONB in `blog_posts.content` (Tiptap ProseMirror JSON format)
 - **Editor:** `src/components/admin/RichTextEditor.tsx` — Tiptap with StarterKit (headings 2/3/4, no codeBlock), Link, Image, Placeholder, CharacterCount extensions
+- **Inline images/GIFs:** the toolbar image button opens the shared **`src/components/admin/MediaPicker.tsx`** (Upload / GIF search / Photo search / URL), which the newsletter editor reuses. Upload → `uploadEditorImage` (`src/app/actions/media.ts`) → public `blog-images` bucket under `inline/`. Search proxies (admin-gated, keys server-side, graceful when unset): `GET /api/media/gif` (Giphy, `GIPHY_API_KEY`) and `GET /api/media/image` (Unsplash, `UNSPLASH_ACCESS_KEY` + `trackUnsplashDownload` ping). Giphy/Unsplash URLs are hotlinked (their CDN); only uploaded files land in our bucket.
 - **Renderer:** `src/app/blog/[slug]/page.tsx` uses `generateHTML` from `@tiptap/html` with matching extension set
 - Extension sets must match between editor and renderer — mismatches cause empty output or errors
 - `published_at` is set once (first publish) and preserved on all subsequent updates — see `updateBlogPost`
 - Slug uniqueness enforced with a separate query before insert/update (not a DB constraint, to allow friendly error messages)
-- **Featured images:** uploaded to private `documents` bucket under `blog/{timestamp}-{filename}`, served via `getPublicUrl()`. This works despite the bucket being private because Supabase's `getPublicUrl` generates a public-facing URL. Intentional for blog images; client documents use signed URLs instead.
+- **Featured images:** uploaded via `uploadFeaturedImage` to the **public `blog-images`** bucket, served via `getPublicUrl()` (a permanent public URL — required so images also render in newsletter inboxes). Client documents use the private `documents` bucket with signed URLs instead.
 
 ---
 
@@ -292,8 +294,10 @@ All cron endpoints share the same auth pattern (`Authorization: Bearer {CRON_SEC
 - `src/components/admin/DeleteIssueButton.tsx`, `ManualUnsubscribeButton.tsx` — small client-action buttons.
 - `src/components/marketing/UnsubscribeForm.tsx`, `ManagePreferencesForm.tsx` — public token-authenticated forms.
 
+> **Timezone display:** all newsletter admin pages format `scheduled_for`/`sent_at`/date columns with `formatCentralDateTime` / `formatCentralDate` (`src/lib/time/central.ts`) — never bare `new Date(x).toLocaleString()`, which renders in Vercel's UTC process tz and shows a 9 AM CT schedule as "2:00 PM". Storage is browser-tz-independent too: the composer's `datetime-local` value is always Central wall-clock and is converted on save via `centralDatetimeLocalToUtcIso` (and back for the input via `utcIsoToCentralDatetimeLocal`).
+
 **Admin pages** (`src/app/(admin)/admin/newsletter/`):
-- `page.tsx` — dashboard with subscriber stats, scheduled list, recently sent open/click rates, idea inbox.
+- `page.tsx` — dashboard with subscriber stats, scheduled list, recently sent open/click rates, idea inbox. Shows an amber "tracking isn't recording" banner when sent issues exist but `newsletter_events` is empty (Resend webhook/tracking not wired).
 - `subscribers/page.tsx` — filterable table by interest + status with manual unsubscribe.
 - `issues/page.tsx` — list grouped by status (Drafts / Scheduled / Sent).
 - `issues/new/page.tsx` — composer pre-filled from the default template.

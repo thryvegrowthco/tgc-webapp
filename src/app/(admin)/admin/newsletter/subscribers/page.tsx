@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ManualUnsubscribeButton } from "@/components/admin/ManualUnsubscribeButton";
 import { NEWSLETTER_INTERESTS, labelForInterest } from "@/lib/newsletter/interests";
+import { formatCentralDate } from "@/lib/time/central";
 
 export const metadata: Metadata = {
   title: "Subscribers — Newsletter",
@@ -162,11 +163,11 @@ export default async function SubscribersPage({ searchParams }: PageProps) {
                   </td>
                   <td className="px-4 py-3 text-xs text-neutral-500">{sub.source ?? "—"}</td>
                   <td className="px-4 py-3 text-xs text-neutral-500">
-                    {new Date(sub.subscribed_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    {formatCentralDate(sub.subscribed_at, { month: "short", day: "numeric", year: "numeric" })}
                   </td>
                   <td className="px-4 py-3 text-xs text-neutral-500">
                     {sub.last_engaged_at
-                      ? new Date(sub.last_engaged_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      ? formatCentralDate(sub.last_engaged_at, { month: "short", day: "numeric" })
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">

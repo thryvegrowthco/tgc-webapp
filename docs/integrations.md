@@ -184,6 +184,13 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **Handler:** `src/app/api/webhooks/resend/route.ts` — verifies Svix signature using `RESEND_WEBHOOK_SECRET` (HMAC-SHA256 over `${svix-id}.${svix-timestamp}.${body}`), upserts into `newsletter_events` keyed by `resend_event_id` (idempotent under retries), and updates the subscriber's `last_engaged_at` on `opened`/`clicked` or `unsubscribed_at` on `bounced`/`complained`.
 
+**⚠ Open & click tracking must also be enabled on the sending domain in Resend** (Domains → the sending domain → toggle **Open tracking** and **Click tracking**). This is OFF by default and is separate from registering the webhook — with it off, `email.opened`/`email.clicked` never fire, so opens/clicks read 0 even when the webhook is correctly wired (`email.delivered` still fires). The SDK has no per-send tracking flag; it is purely a domain/account setting.
+
+**Zero-analytics diagnosis** (the pipeline itself is correct end-to-end — code is rarely the cause):
+1. Inspect `newsletter_events` — completely empty despite sent issues ⇒ the webhook isn't delivering. Either the endpoint isn't registered, or `RESEND_WEBHOOK_SECRET` doesn't match the signing secret Resend shows for that endpoint (mismatch ⇒ the handler returns 401 and records nothing).
+2. Rows exist for `delivered`/`bounced` but none for `opened`/`clicked` ⇒ open/click tracking is toggled off on the domain (step above).
+3. The Newsletter dashboard (`src/app/(admin)/admin/newsletter/page.tsx`) shows a self-diagnosing amber banner when sent issues exist but `newsletter_events` is still empty — the fast at-a-glance signal for case 1.
+
 **Newsletter sending pipeline:** Issues are rendered once per send via Tiptap → HTML (`@tiptap/html` with `newsletterRenderExtensions`), wrapped in the brand HTML shell (`src/lib/email/newsletter-template.ts`), then sent in batches of 100 via `resend.batch.send(...)` with a 1.1s pause between batches to stay under Resend's 10 req/s default rate limit. Each recipient gets a tokenized unsubscribe URL substituted into placeholders, plus `List-Unsubscribe` + `List-Unsubscribe-Post` headers (RFC 8058) so Gmail's native one-click unsubscribe works.
 
 **Lazy Proxy singleton:** Same pattern as Stripe — defers `new Resend(...)` until first access to avoid build failures.
@@ -262,6 +269,23 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 |---|---|---|---|
 | `jsearch` | `src/lib/job-api/jsearch.ts` (`jsearchSource`) | `RAPIDAPI_KEY` | Aggregates LinkedIn/Indeed/ZipRecruiter/Google data. Enabled by default. |
 | `usajobs` | `src/lib/job-api/usajobs.ts` (`usajobsSource`) | `USAJOBS_API_KEY`, `USAJOBS_USER_AGENT` | Official federal board. Off until keys are set. Register at developer.usajobs.gov; `USAJOBS_USER_AGENT` is the email you registered with (sent as the `User-Agent` header). Graceful-degrades to `[]` without keys. |
+
+---
+
+## Media search (Giphy & Unsplash)
+
+**What it does:** Powers the **GIFs** and **Photos** tabs of the shared editor image picker (`src/components/admin/MediaPicker.tsx`, used by both the blog and newsletter Tiptap editors).
+
+**Proxy routes (admin-only, keys never reach the browser):**
+
+| Route | Provider | Env var | Notes |
+|---|---|---|---|
+| `GET /api/media/gif?q=` | Giphy | `GIPHY_API_KEY` | Search (or trending when `q` is empty), `rating=pg-13`. Normalizes to `{ id, src, thumb, alt }`. "Powered by GIPHY" shown in the picker per their attribution requirement. |
+| `GET /api/media/image?q=` | Unsplash | `UNSPLASH_ACCESS_KEY` | Search (defaults to an evergreen query when empty), `content_filter=high`. Returns photographer credit; the picked photo's `download_location` is pinged via `trackUnsplashDownload` (`src/app/actions/media.ts`) per Unsplash's API guideline. |
+
+**Graceful degradation:** with a key unset, its route returns `{ configured: false, items: [] }` and the picker shows a "not set up yet" notice — **Upload** (→ public `blog-images` bucket via `uploadEditorImage`) and **URL** tabs always work. Both keys are free (developers.giphy.com, unsplash.com/developers).
+
+**Why hotlink:** Giphy/Unsplash image URLs are inserted directly (their CDNs), which is both provider-compliant and required for the images to render in newsletter inboxes. Only files from the Upload tab are stored in our bucket.
 
 ---
 

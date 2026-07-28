@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Users, Mail, Send, TrendingUp, CalendarClock, Lightbulb, FileEdit, MousePointerClick } from "lucide-react";
+import { Plus, Users, Mail, Send, TrendingUp, CalendarClock, Lightbulb, FileEdit, MousePointerClick, AlertTriangle } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Button } from "@/components/ui/button";
 import { IdeaInbox } from "@/components/admin/IdeaInbox";
+import { formatCentralDateTime, CENTRAL_TIMEZONE_LABEL } from "@/lib/time/central";
 
 export const metadata: Metadata = {
   title: "Newsletter — Admin",
@@ -99,6 +100,16 @@ export default async function NewsletterDashboardPage() {
     .limit(20);
   const ideas = (ideasRaw ?? []) as IdeaRow[];
 
+  // Self-diagnosing tracking health: if issues have been sent but not a single
+  // engagement event has ever been recorded, the Resend webhook is almost
+  // certainly not wired — otherwise opens/clicks silently read 0 forever.
+  // (`delivered` events arrive within seconds of a send, so a persistent 0 is
+  // a real signal, not just a freshly-sent issue that hasn't landed yet.)
+  const { count: eventCount } = await supabase
+    .from("newsletter_events")
+    .select("*", { count: "exact", head: true });
+  const trackingLikelyBroken = recent.length > 0 && (eventCount ?? 0) === 0;
+
   const stats = [
     {
       label: "Active subscribers",
@@ -147,6 +158,23 @@ export default async function NewsletterDashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {trackingLikelyBroken && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-amber-900">Open &amp; click tracking isn&apos;t recording.</p>
+            <p className="mt-1 text-amber-800">
+              Newsletters are sending, but no engagement events have been received — so opens and clicks will
+              keep showing 0. In your Resend dashboard, add a webhook pointing to{" "}
+              <code className="text-xs bg-amber-100 px-1 py-0.5 rounded">/api/webhooks/resend</code> for the
+              delivered / opened / clicked / bounced / complained events, make sure{" "}
+              <code className="text-xs bg-amber-100 px-1 py-0.5 rounded">RESEND_WEBHOOK_SECRET</code> matches, and
+              enable open &amp; click tracking on your sending domain.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
@@ -201,7 +229,7 @@ export default async function NewsletterDashboardPage() {
                     </p>
                   </div>
                   <p className="text-xs text-neutral-500 mt-0.5">
-                    Updated {new Date(issue.updated_at).toLocaleString()}
+                    Updated {formatCentralDateTime(issue.updated_at)}
                   </p>
                 </Link>
               ))}
@@ -232,7 +260,7 @@ export default async function NewsletterDashboardPage() {
                   <p className="text-sm font-medium text-neutral-900 truncate">{issue.title || issue.subject}</p>
                   <p className="text-xs text-neutral-500 mt-0.5">
                     {issue.scheduled_for
-                      ? new Date(issue.scheduled_for).toLocaleString()
+                      ? `${formatCentralDateTime(issue.scheduled_for)} ${CENTRAL_TIMEZONE_LABEL}`
                       : "—"}
                   </p>
                 </Link>

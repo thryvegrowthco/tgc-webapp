@@ -304,8 +304,19 @@ The toolbar above the text area has these tools:
 | Blockquote | Indented quote or callout |
 | --- | Horizontal dividing line |
 | Link | Add a hyperlink — you'll be prompted to enter a URL |
-| Image | Insert an image by URL |
+| 🖼 Image | Opens the image picker (see below) |
 | Undo / Redo | Undo or redo your last action |
+
+### Adding images and GIFs
+
+Click the **🖼 image button** in the toolbar to open the picker. It has four tabs:
+
+- **Upload** — drag in a file or click to choose one from your computer (JPG, PNG, WebP, or GIF, up to 10 MB). It's stored for you and dropped into the post.
+- **GIFs** — search a huge free GIF library and click one to insert it.
+- **Photos** — search free, high-quality stock photos and click one to insert it.
+- **URL** — paste a link to an image that already lives somewhere online.
+
+This is the same picker in both the blog editor and the newsletter editor, so images and GIFs work the same way in your weekly emails. (If the GIFs or Photos search says it isn't set up yet, that just means the free search keys haven't been added — Upload and URL still work.)
 
 ### Saving and Publishing
 
@@ -530,7 +541,7 @@ Fill in:
 - **Internal title** — just for you (e.g., "Week of June 2"). Subscribers never see it.
 - **Email subject** — what shows up in inboxes. Aim for under 60 characters.
 - **Inbox preview** — the line readers see in their inbox before they open. Treat it as a second chance at a headline.
-- **Body** — your content. The toolbar has H2 (section heading), H3 (subheading), bold, italic, bullet list, numbered list, quote, divider, link, and image.
+- **Body** — your content. The toolbar has H2 (section heading), H3 (subheading), bold, italic, bullet list, numbered list, quote, divider, link, and the **🖼 image button** — which opens the same Upload / GIFs / Photos / URL picker described under the blog editor's "Adding images and GIFs." GIFs and photos render right in the email.
 
 ### The sidebar (right column)
 
@@ -559,7 +570,9 @@ When you find a structure that works, hit **Duplicate** in the sidebar of any pa
 
 ### Tracking and re-engagement
 
-Once an email goes out, the system tracks opens, clicks, bounces, and complaints automatically. You see these on the issue's detail page and as percentages in the dashboard.
+Once an email goes out, the system tracks opens, clicks, bounces, and complaints automatically. You see these on the issue's detail page and as percentages in the dashboard. All scheduled and sent times on these pages are shown in **Central time (CT)**, so a 9 AM CT schedule reads as 9:00 AM.
+
+**If your opens and clicks are stuck at 0:** a yellow banner will appear at the top of the Newsletter dashboard letting you know engagement tracking isn't recording. This almost always means the email service's tracking connection needs to be turned on (a one-time setup). Opens and clicks will keep showing 0 until that's connected — your newsletters still send normally in the meantime. If you see this banner, it's a setup item to hand to whoever manages your email settings (the banner spells out exactly what's needed).
 
 Two automatic emails go out on a regular basis without you doing anything:
 

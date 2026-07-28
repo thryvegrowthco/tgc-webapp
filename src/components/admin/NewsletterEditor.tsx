@@ -13,6 +13,7 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { newsletterEditorExtensions } from "@/lib/newsletter/extensions";
 import { cn } from "@/lib/utils";
+import { MediaPicker } from "@/components/admin/MediaPicker";
 import type { JSONContent } from "@tiptap/react";
 
 function ToolbarButton({
@@ -64,6 +65,7 @@ export function NewsletterEditor({
   placeholder = "Write your weekly note…",
   className,
 }: NewsletterEditorProps) {
+  const [mediaOpen, setMediaOpen] = React.useState(false);
   const editor = useEditor({
     extensions: [
       ...newsletterEditorExtensions,
@@ -91,12 +93,6 @@ export function NewsletterEditor({
       return;
     }
     editor?.chain().focus().setLink({ href: url }).run();
-  }
-
-  function insertImage() {
-    const url = window.prompt("Image URL (must be publicly accessible)");
-    if (!url) return;
-    editor?.chain().focus().setImage({ src: url }).run();
   }
 
   return (
@@ -169,7 +165,7 @@ export function NewsletterEditor({
         <ToolbarButton title="Link" onClick={setLink} active={editor.isActive("link")}>
           🔗
         </ToolbarButton>
-        <ToolbarButton title="Image (by URL)" onClick={insertImage}>
+        <ToolbarButton title="Insert image or GIF" onClick={() => setMediaOpen(true)}>
           🖼
         </ToolbarButton>
 
@@ -196,6 +192,12 @@ export function NewsletterEditor({
       </div>
 
       <EditorContent editor={editor} />
+
+      <MediaPicker
+        open={mediaOpen}
+        onOpenChange={setMediaOpen}
+        onSelect={({ src, alt }) => editor.chain().focus().setImage({ src, alt }).run()}
+      />
     </div>
   );
 }
