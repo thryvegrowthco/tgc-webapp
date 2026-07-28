@@ -344,7 +344,7 @@ For each endpoint above:
 
 1. cron-job.org → **Create cronjob**
 2. **Title**: copy the endpoint path (e.g., `Thryve – intake-reminders`)
-3. **URL**: `https://thryvegrowth.co/api/cron/<endpoint>` (production only; local dev still works without a `CRON_SECRET`)
+3. **URL**: `https://www.thryvegrowth.co/api/cron/<endpoint>` — **use the `www.` host.** The apex `thryvegrowth.co` 307-redirects to `www`, and cron-job.org does **not** follow redirects (you'll see a "Redirection detected" error on Test execution). Production only; local dev still works without a `CRON_SECRET`.
 4. **Schedule**: paste the cron expression from the inventory table; confirm the timezone selector is **UTC**
 5. **Request method**: `GET`
 6. **Advanced → Headers**: add one header
@@ -356,8 +356,8 @@ For each endpoint above:
 
 ### Verification
 
-- `curl -i https://thryvegrowth.co/api/cron/intake-reminders` (no header) → `401 Unauthorized`
-- `curl -H "Authorization: Bearer $CRON_SECRET" https://thryvegrowth.co/api/cron/intake-reminders` → `200 OK` with JSON body
+- `curl -i https://www.thryvegrowth.co/api/cron/intake-reminders` (no header) → `401 Unauthorized` (use the `www.` host — the apex 307-redirects)
+- `curl -H "Authorization: Bearer $CRON_SECRET" https://www.thryvegrowth.co/api/cron/intake-reminders` → `200 OK` with JSON body
 - Idempotency: invoking any reminder job twice in the same window is a no-op (enforced by `automation_log` UNIQUE constraints and per-row `*_sent_at` columns)
 
 ---

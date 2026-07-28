@@ -157,7 +157,9 @@ Recruitment is your one service that runs on a **custom quote** rather than a fi
 
 Use this when you want to hand-pick a few times for a specific person and let them choose — instead of waiting for them to find an open slot on the Book page. It's perfect for clients you already know, returning clients, or anyone you're scheduling personally.
 
-**Where:** click **Invitations** in the sidebar, then **New invitation**. You can also start one from a client's detail page with the **Create booking invitation** button (it fills in their name and email for you).
+**Where:** the fastest route is the **"Invite a client to book"** button in the "Book a client in" box at the top of your **Overview** page. Or click **Invite to Book** in the sidebar, then **New invitation**. You can also start one from a client's detail page with the **Create booking invitation** button (it fills in their name and email for you).
+
+> **Heads up:** the sidebar item used to be called "Invitations" — it's now **Invite to Book**. If a yellow "Google Calendar isn't connected" banner shows on that page, connect your calendar under **Integrations** first, otherwise booked sessions won't be added to your calendar (the session and emails still happen).
 
 **What you fill in:**
 - **Client email and name** — who it's for. They do not need an account.

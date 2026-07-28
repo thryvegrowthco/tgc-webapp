@@ -5,10 +5,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, Mail } from "lucide-react";
+import { Plus, Mail, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { meetingTypeLabel } from "@/lib/booking/display";
+import { getIntegrationStatus } from "@/lib/google/calendar";
 import { InvitationRowActions } from "@/components/admin/InvitationRowActions";
 
 export const metadata: Metadata = {
@@ -59,8 +60,26 @@ export default async function AdminInvitationsPage() {
     .limit(100);
   const invitations = (rows ?? []) as InvitationRow[];
 
+  // Surface the most common "it didn't add to my calendar" cause up front.
+  const calendar = await getIntegrationStatus();
+
   return (
     <div>
+      {!calendar.connected && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-amber-900">Google Calendar isn&apos;t connected.</p>
+            <p className="text-amber-800 mt-1">
+              Invitations still work — when a client picks a time, the session is created and confirmation emails
+              go out — but it <strong>won&apos;t be added to your Google Calendar</strong> until you connect it.{" "}
+              <Link href="/admin/integrations" className="underline font-medium">
+                Connect Google Calendar in Integrations →
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-2xl font-bold text-neutral-900">Booking invitations</h1>

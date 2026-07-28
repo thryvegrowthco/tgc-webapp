@@ -10,7 +10,7 @@ Full plan: `~/.claude/plans/i-have-a-list-gentle-coral.md`. Phases are independe
 | 5 | Blogs won't add/download images | 2 | ✅ done |
 | 6 | Resources: downloadable + view/download counts | 3 | ✅ built (needs migration 0030 applied) |
 | 2 | Watchlist: expire closed jobs → inactive tabs | 4 | ✅ built (needs migration 0031 + cron registered) |
-| 7/7a | Bookings workflow (already exists) → make findable | 5 | ⬜ |
+| 7/7a | Bookings workflow (already exists) → make findable | 5 | ✅ done + verified (calendar connected; flow works in prod) |
 
 ---
 
@@ -103,3 +103,22 @@ Full plan: `~/.claude/plans/i-have-a-list-gentle-coral.md`. Phases are independe
 ### Files added/touched
 - Added: `supabase/migrations/0031_job_expiry.sql`, `src/app/api/cron/expire-matches/route.ts`
 - Edited: `src/types/database.ts`, `src/lib/job-api/{types,jsearch,usajobs}.ts`, `src/lib/matching/status.ts`, `src/app/(dashboard)/dashboard/watchlist/page.tsx`, `src/app/(admin)/admin/watchlists/[clientId]/page.tsx`, `docs/{database-schema,developer-architecture,integrations,environment-variables,rachel-admin-guide}.md` + generated help
+- **Deployed** (`e812551`); migration 0031 applied; `expire-matches` cron live on cron-job.org (use the **`www.`** host — apex 307-redirects).
+
+---
+
+## Phase 5 — Bookings workflow: discoverability + config verification ✅ COMPLETE
+
+The invitation → session flow already existed and works; #7 was purely discoverability.
+
+- [x] Renamed the sidebar item **Invitations → "Invite to Book"** (`AdminNav.tsx`).
+- [x] Prominent **"Invite a client to book"** callout at the top of the admin Overview (`/admin`).
+- [x] **"Google Calendar isn't connected" health banner** on the Invite to Book page (via `getIntegrationStatus`) — the most common "it didn't add to my calendar" cause, surfaced where invites are created.
+- [x] **Verified prod config** (service-role read): Google Calendar **CONNECTED**; 1 invitation → 1 session created end-to-end; migrations 0030 (`resource_events`) + 0031 (`job_listings.closes_at`) both present.
+
+### Verification
+- [x] `tsc` clean, lint clean, **full `next build` passed**.
+- [x] Docs (admin-faq, rachel-admin-guide) + help regenerated. Also carried the earlier cron-URL `www` fix in integrations.md.
+
+### Files touched
+- `src/components/admin/AdminNav.tsx`, `src/app/(admin)/admin/page.tsx`, `src/app/(admin)/admin/invitations/page.tsx`, `docs/{admin-faq,rachel-admin-guide,integrations}.md` + generated help

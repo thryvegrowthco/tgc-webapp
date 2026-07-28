@@ -42,7 +42,7 @@ When you send booking options, the invitation itself has a status:
 ## Frequently Asked Questions
 
 ### How do I send someone a few times to choose from?
-Go to **Invitations → New invitation** (or click **Create booking invitation** on a client's page). Pick the dates and times, choose the meeting type, and send. The client gets an email, picks one, and the session is created automatically. See **Booking Flow Diagrams** for the full picture.
+The quickest way: on your **Overview** (admin home) page, click the **"Invite a client to book"** button in the "Book a client in" box at the top. You can also get there from **Invite to Book → New invitation** in the sidebar, or the **Create booking invitation** button on a client's page. Pick the dates and times, choose the meeting type, and send. The client gets an email, picks one, and the session is created automatically — added to your Google Calendar and confirmed by email. See **Booking Flow Diagrams** for the full picture. (If a yellow "Google Calendar isn't connected" note appears on the Invite to Book page, connect it under Integrations so sessions land on your calendar.)
 
 ### How do I reschedule or cancel a session?
 Open the client's record, find the booking, and click **Manage**. From there you can **Reschedule** (this moves the calendar event and re-sends the client a confirmation) or **Cancel session** (this removes the calendar event).

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Calendar, Users, CheckCircle2, Clock } from "lucide-react";
+import { Calendar, Users, CheckCircle2, Clock, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
 import { AddTaskForm } from "@/components/admin/AddTaskForm";
@@ -190,6 +190,23 @@ export default async function AdminOverviewPage() {
       <div>
         <h1 className="font-display text-2xl font-bold text-neutral-900">Overview</h1>
         <p className="text-sm text-neutral-500 mt-1">Welcome back, Rachel.</p>
+      </div>
+
+      {/* Quick action: the booking-invitation flow (offer times → client picks → session) */}
+      <div className="rounded-xl border border-brand-200 bg-brand-50 p-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <h2 className="font-semibold text-neutral-900">Book a client in</h2>
+          <p className="text-sm text-neutral-600 mt-0.5 max-w-xl">
+            Hand-pick a few date &amp; time options and email them. When the client picks one, the session is
+            created, added to your calendar, and confirmation emails go out — automatically.
+          </p>
+        </div>
+        <Link
+          href="/admin/invitations/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors whitespace-nowrap"
+        >
+          <Send className="h-4 w-4" /> Invite a client to book
+        </Link>
       </div>
 
       {/* Stats */}

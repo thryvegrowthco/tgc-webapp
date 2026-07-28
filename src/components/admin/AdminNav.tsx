@@ -36,7 +36,7 @@ const navItems = [
   { label: "Notifications", href: "/admin/notifications", icon: Bell, exact: false },
   { label: "Leads", href: "/admin/leads", icon: Inbox, exact: false },
   { label: "Sessions", href: "/admin/sessions", icon: Workflow, exact: false },
-  { label: "Invitations", href: "/admin/invitations", icon: Send, exact: false },
+  { label: "Invite to Book", href: "/admin/invitations", icon: Send, exact: false },
   { label: "Proposals", href: "/admin/proposals", icon: FileSignature, exact: false },
   { label: "Bookings", href: "/admin/bookings", icon: Calendar, exact: false },
   { label: "Clients", href: "/admin/clients", icon: Users, exact: false },
