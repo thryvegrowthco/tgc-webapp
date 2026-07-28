@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star, ExternalLink, MapPin } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -45,10 +46,14 @@ type WatchlistRow = Database["public"]["Tables"]["watchlist_profiles"]["Row"];
 
 export default async function AdminWatchlistClientPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { clientId } = await params;
+  const { tab } = await searchParams;
+  const inactiveTab = tab === "inactive";
   const supabase = await createClient();
 
   const [profileResult, watchlistResult, matchesResult] = await Promise.all([
@@ -68,6 +73,11 @@ export default async function AdminWatchlistClientPage({
 
   const watchlist = watchlistResult.data as WatchlistRow | null;
   const matches = (matchesResult.data ?? []) as MatchRow[];
+  // Split expired (system-closed postings) into an Inactive tab so they leave
+  // the active list; everything else (incl. archived/not_a_fit) stays on Active.
+  const expiredMatches = matches.filter((m) => m.status === "expired");
+  const activeMatches = matches.filter((m) => m.status !== "expired");
+  const shownMatches = inactiveTab ? expiredMatches : activeMatches;
 
   const jobIds = [...new Set(matches.map((m) => m.job_id).filter(Boolean))] as string[];
   let jobs: JobRow[] = [];
@@ -212,17 +222,34 @@ export default async function AdminWatchlistClientPage({
 
       {/* Job matches */}
       <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
-          <h2 className="font-semibold text-neutral-900 text-sm">Job Matches ({matches.length})</h2>
+        <div className="px-5 pt-4 border-b border-neutral-100">
+          <div className="flex items-center gap-1">
+            <MatchTab
+              clientId={clientId}
+              tab="active"
+              active={!inactiveTab}
+              label={`Job Matches (${activeMatches.length})`}
+            />
+            <MatchTab
+              clientId={clientId}
+              tab="inactive"
+              active={inactiveTab}
+              label={`Inactive (${expiredMatches.length})`}
+            />
+          </div>
         </div>
 
-        {matches.length === 0 ? (
+        {shownMatches.length === 0 ? (
           <div className="px-6 py-10 text-center">
-            <p className="text-sm text-neutral-400">No matches yet. Add jobs using the tools above.</p>
+            <p className="text-sm text-neutral-400">
+              {inactiveTab
+                ? "No expired matches. When a posting closes or passes its deadline, its match moves here."
+                : "No matches yet. Add jobs using the tools above."}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-neutral-100">
-            {matches.map((match) => {
+            {shownMatches.map((match) => {
               const job = match.job_id ? jobMap[match.job_id] ?? null : null;
               if (!job) return null;
               const statusColor = STATUS_COLORS[match.status] ?? STATUS_COLORS.new;
@@ -299,6 +326,33 @@ export default async function AdminWatchlistClientPage({
   );
 }
 
+function MatchTab({
+  clientId,
+  tab,
+  active,
+  label,
+}: {
+  clientId: string;
+  tab: "active" | "inactive";
+  active: boolean;
+  label: string;
+}) {
+  const href = tab === "active" ? `/admin/watchlists/${clientId}` : `/admin/watchlists/${clientId}?tab=inactive`;
+  return (
+    <Link
+      href={href}
+      className={
+        "px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors " +
+        (active
+          ? "border-brand-600 text-brand-700"
+          : "border-transparent text-neutral-500 hover:text-neutral-800")
+      }
+    >
+      {label}
+    </Link>
+  );
+}
+
 function Pref({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -333,6 +387,7 @@ const STATUS_COLORS: Record<string, string> = {
   withdrawn: "bg-neutral-100 text-neutral-500",
   not_a_fit: "bg-neutral-100 text-neutral-500",
   archived: "bg-neutral-100 text-neutral-400",
+  expired: "bg-neutral-200 text-neutral-500",
 };
 
 function priorityColor(p: string): string {

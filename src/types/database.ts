@@ -29,7 +29,8 @@ export type MatchStatus =
   | "saved"
   | "not_a_fit"
   | "archived"
-  | "offer";
+  | "offer"
+  | "expired";
 
 export type Database = {
   public: {
@@ -791,6 +792,7 @@ export type Database = {
           source: string | null;
           external_id: string | null;
           date_posted: string | null;
+          closes_at: string | null;
           is_active: boolean;
           created_at: string;
         };
@@ -806,6 +808,7 @@ export type Database = {
           source?: string | null;
           external_id?: string | null;
           date_posted?: string | null;
+          closes_at?: string | null;
           is_active?: boolean;
           created_at?: string;
         };
@@ -821,6 +824,7 @@ export type Database = {
           source?: string | null;
           external_id?: string | null;
           date_posted?: string | null;
+          closes_at?: string | null;
           is_active?: boolean;
           created_at?: string;
         };

@@ -17,6 +17,7 @@ export interface JSearchJob {
   job_max_salary: number | null;
   job_salary_currency: string | null;
   job_posted_at_datetime_utc: string | null;
+  job_offer_expiration_datetime_utc?: string | null;
 }
 
 export interface JSearchResponse {
@@ -98,6 +99,7 @@ export function normalizeJob(job: JSearchJob) {
     date_posted: job.job_posted_at_datetime_utc
       ? job.job_posted_at_datetime_utc.slice(0, 10)
       : null,
+    closes_at: job.job_offer_expiration_datetime_utc ?? null,
     is_active: true,
   };
 }

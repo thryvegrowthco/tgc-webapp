@@ -9,7 +9,7 @@ Full plan: `~/.claude/plans/i-have-a-list-gentle-coral.md`. Phases are independe
 | 4 | Free gif/image for newsletters & blogs | 2 | ✅ done |
 | 5 | Blogs won't add/download images | 2 | ✅ done |
 | 6 | Resources: downloadable + view/download counts | 3 | ✅ built (needs migration 0030 applied) |
-| 2 | Watchlist: expire closed jobs → inactive tabs | 4 | ⬜ |
+| 2 | Watchlist: expire closed jobs → inactive tabs | 4 | ✅ built (needs migration 0031 + cron registered) |
 | 7/7a | Bookings workflow (already exists) → make findable | 5 | ⬜ |
 
 ---
@@ -82,3 +82,24 @@ Full plan: `~/.claude/plans/i-have-a-list-gentle-coral.md`. Phases are independe
 ### Files added/touched
 - Added: `supabase/migrations/0030_resource_files_and_tracking.sql`, `src/app/api/resources/download/[slug]/route.ts`, `src/app/api/resources/view/route.ts`, `src/components/marketing/ResourceViewTracker.tsx`
 - Edited: `src/types/database.ts`, `src/app/actions/resources.ts`, `src/app/(marketing)/resources/page.tsx`, `src/app/(admin)/admin/resources/page.tsx` + `[id]/page.tsx`, `src/components/admin/ResourceEditForm.tsx`, `docs/{database-schema,developer-architecture,rachel-admin-guide}.md` + generated help
+
+---
+
+## Phase 4 — Watchlist: expiring/closing job matches + Inactive tabs ✅ BUILT (migration + cron pending)
+
+- [x] Migration `0031_job_expiry.sql`: `job_listings.closes_at`; `expired` added to `client_job_matches.status` CHECK; indexes.
+- [x] Adapters capture deadlines: JSearch `job_offer_expiration_datetime_utc` + USAJOBS `ApplicationCloseDate` → `closes_at` (ingest persists it automatically).
+- [x] `expired` in the `MatchStatus` type + `status.ts` label (system-set; NOT in the client dropdown/tracker).
+- [x] `GET /api/cron/expire-matches`: for active clients, flips new/saved/interested → `expired` when `closes_at` passed OR (no deadline) `date_posted` older than `EXPIRE_AFTER_DAYS` (default 45). Status filtered in TS; chunked updates; `expire_matches_run` log; idempotent.
+- [x] Inactive tabs: admin `?tab=inactive` + client `?view=inactive` (both split active vs expired in TS).
+
+### Verification
+- [x] `tsc` clean, lint clean, **full `next build` passed** (`/api/cron/expire-matches` + both watchlist pages compiled).
+- [x] Expire logic unit-verified (deadline precedence, 45-day age fallback, garbage-date handling).
+- [x] Docs (database-schema, developer-architecture, integrations, environment-variables, rachel-admin-guide) + help regenerated.
+- [ ] **BLOCKED on owner:** apply `supabase/migrations/0031_job_expiry.sql`; register the `expire-matches` cron (daily) on cron-job.org with the `Authorization: Bearer $CRON_SECRET` header. Optional: set `EXPIRE_AFTER_DAYS`.
+- [ ] After migration: smoke via `/api/cron/expire-matches?now=<ISO>` (dev) — seed a past `closes_at` and confirm the match flips to `expired` + shows under Inactive.
+
+### Files added/touched
+- Added: `supabase/migrations/0031_job_expiry.sql`, `src/app/api/cron/expire-matches/route.ts`
+- Edited: `src/types/database.ts`, `src/lib/job-api/{types,jsearch,usajobs}.ts`, `src/lib/matching/status.ts`, `src/app/(dashboard)/dashboard/watchlist/page.tsx`, `src/app/(admin)/admin/watchlists/[clientId]/page.tsx`, `docs/{database-schema,developer-architecture,integrations,environment-variables,rachel-admin-guide}.md` + generated help

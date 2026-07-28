@@ -24,6 +24,7 @@ interface UsaJobsDescriptor {
   DepartmentName?: string;
   PositionRemuneration?: UsaJobsRemuneration[];
   PublicationStartDate?: string;
+  ApplicationCloseDate?: string;
   UserArea?: { Details?: { JobSummary?: string; TeleworkEligible?: string | boolean } };
 }
 
@@ -93,6 +94,7 @@ export const usajobsSource: JobSource = {
             telework === true ||
             telework === "true" ||
             (locationStr ?? "").toLowerCase().includes("remote");
+          const closeDate = d.ApplicationCloseDate ? new Date(d.ApplicationCloseDate) : null;
           return {
             title: d.PositionTitle,
             company: d.OrganizationName ?? d.DepartmentName ?? "U.S. Government",
@@ -104,6 +106,7 @@ export const usajobsSource: JobSource = {
             source: "usajobs",
             external_id: externalId,
             date_posted: d.PublicationStartDate ? d.PublicationStartDate.slice(0, 10) : null,
+            closes_at: closeDate && !Number.isNaN(closeDate.getTime()) ? closeDate.toISOString() : null,
             is_active: true,
           };
         })

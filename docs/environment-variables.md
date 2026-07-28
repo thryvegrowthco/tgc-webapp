@@ -92,6 +92,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 **If absent, the `usajobs` source graceful-degrades to 0 results. Enable the source in `/admin/integrations` only after both are set. The automated feed runs via `/api/cron/job-feed`.
 
 | `JOB_FEED_BATCH` | No | — | Clients processed per `/api/cron/job-feed` run (default `5`). Keeps each run under Vercel Hobby's 10s cap. Set `3` if both JSearch + USAJOBS are enabled. |
+| `EXPIRE_AFTER_DAYS` | No | — | Age fallback for `/api/cron/expire-matches` (default `45`). When a posting has no `closes_at` deadline, a `new`/`saved`/`interested` match expires once its `date_posted` is older than this many days. |
 
 ### Auth Hooks
 
@@ -105,7 +106,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 
 | Variable | Required | Source | Purpose |
 |---|---|---|---|
-| `CRON_SECRET` | Yes (prod) | Any random secret string | Protects all `/api/cron/*` endpoints (`job-alerts`, `job-feed`, `newsletter-send`, `newsletter-reengage`, `newsletter-milestones`, `intake-reminders`, `intake-overdue-alert`, `session-reminders`, `auto-complete-sessions`, `post-service-followup`, `application-reminders`, `extend-availability`) from unauthorized calls. Configure this same secret as a custom `Authorization: Bearer <value>` header on each cron-job.org job — see `docs/integrations.md`. |
+| `CRON_SECRET` | Yes (prod) | Any random secret string | Protects all `/api/cron/*` endpoints (`job-alerts`, `job-feed`, `expire-matches`, `newsletter-send`, `newsletter-reengage`, `newsletter-milestones`, `intake-reminders`, `intake-overdue-alert`, `session-reminders`, `auto-complete-sessions`, `post-service-followup`, `application-reminders`, `extend-availability`) from unauthorized calls. Configure this same secret as a custom `Authorization: Bearer <value>` header on each cron-job.org job — see `docs/integrations.md`. |
 | `NEXT_PUBLIC_APP_URL` | Yes | Your deployed domain | Used in email links, Stripe redirect URLs |
 | `ADMIN_EMAIL` | No | Rachel's preferred admin alert inbox | Recipient for ALL admin alerts — bookings, intake, client messages, and (via `notifyAdmin`/`sendAdminAlert`) every inbound lead/subscriber/client interaction. Defaults to `hello@thryvegrowth.co` if absent. |
 

@@ -19,6 +19,8 @@ export const MATCH_STATUS_LABELS: Record<string, { label: string; color: string 
   withdrawn: { label: "Withdrawn", color: "bg-neutral-100 text-neutral-500" },
   not_a_fit: { label: "Not a Fit", color: "bg-neutral-100 text-neutral-500" },
   archived: { label: "Archived", color: "bg-neutral-100 text-neutral-400" },
+  // System-set when a posting closes / passes its deadline (see expire-matches cron).
+  expired: { label: "Expired", color: "bg-neutral-200 text-neutral-500" },
 };
 
 // Options shown in the client status dropdown (legacy 'offer' hidden; new rows

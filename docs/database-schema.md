@@ -396,7 +396,8 @@ Shared pool of all job listings — both Rachel's manually added jobs and JSearc
 | `salary_range` | `TEXT` | `NULL` | Human-readable, e.g. `$80k–$100k` |
 | `source` | `TEXT` | `NULL` | `'manual'` or `'jsearch'` |
 | `external_id` | `TEXT` | `NULL` | JSearch job ID; used for deduplication |
-| `date_posted` | `DATE` | `NULL` | — |
+| `date_posted` | `DATE` | `NULL` | Used by the age-based expiry fallback |
+| `closes_at` | `TIMESTAMPTZ` | `NULL` | Application deadline (added `0031`); captured from USAJOBS `ApplicationCloseDate` + JSearch `job_offer_expiration_datetime_utc`. Drives the expire-matches sweep. |
 | `is_active` | `BOOLEAN` | `TRUE` | Not currently used to filter queries |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
@@ -411,7 +412,7 @@ Join table connecting a client to job listings assigned to them.
 | `id` | `UUID` | `gen_random_uuid()` | — |
 | `client_id` | `UUID` | `NULL` | FK to `profiles.id` |
 | `job_id` | `UUID` | `NULL` | FK to `job_listings.id` |
-| `status` | `TEXT` | `'new'` | CHECK (widened in 0017): `interested`, `applied`, `interviewing`, `final_interview`, `offer_received`, `accepted`, `declined`, `rejected`, `withdrawn`, plus `new`, `saved`, `not_a_fit`, `archived`, and legacy `offer` (UI maps → `offer_received`) |
+| `status` | `TEXT` | `'new'` | CHECK (widened in 0017, `expired` added in 0031): `interested`, `applied`, `interviewing`, `final_interview`, `offer_received`, `accepted`, `declined`, `rejected`, `withdrawn`, plus `new`, `saved`, `not_a_fit`, `archived`, legacy `offer` (UI maps → `offer_received`), and **`expired`** (system-set by the expire-matches cron when a `new`/`saved`/`interested` posting closes or ages out → Inactive tab) |
 | `rachel_recommended` | `BOOLEAN` | `FALSE` | Rachel's highlight flag → "Curated by Rachel" badge |
 | `client_notes` | `TEXT` | `NULL` | Client's private note (editable on the job card / tracker) |
 | `application_date` | `DATE` | `NULL` | Auto-stamped when status → `applied`; editable in tracker |

@@ -415,6 +415,13 @@ Each job shows a status badge. **Clients update their own statuses** from their 
 | Withdrawn | Client withdrew |
 | Not a Fit | Client decided to pass |
 | Archived | Client dismissed it |
+| Expired | The job posting closed or passed its deadline — set automatically (see below) |
+
+### Expired Jobs and the Inactive Tab
+
+Job postings don't stay open forever. Once a day, the system checks the matches a client hasn't applied to yet (New, Saved, or Interested) and marks a job **Expired** when its application deadline has passed — or, if the posting didn't come with a deadline, when it's more than about 45 days old. Jobs the client has already applied to (or moved further along) are left alone, since those live in their Application Tracker.
+
+Expired jobs don't disappear — they move to a separate **Inactive** tab so the client's (and your) active list stays clean and current. On a client's watchlist page here in the admin, click the **Inactive** tab to see everything that's expired for them; clients see the same **Inactive** tab on their own dashboard. Manually added jobs without a deadline or posted date are never auto-expired.
 
 ### Automated Job Sources
 

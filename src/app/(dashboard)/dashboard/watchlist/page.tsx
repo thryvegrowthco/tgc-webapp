@@ -22,6 +22,7 @@ export default async function WatchlistPage({
 
   const { view } = await searchParams;
   const savedView = view === "saved";
+  const inactiveView = view === "inactive";
 
   const { data: watchlistProfile } = await supabase
     .from("watchlist_profiles")
@@ -70,10 +71,16 @@ export default async function WatchlistPage({
     .not("status", "in", '("archived","not_a_fit")')
     .order("created_at", { ascending: false });
 
-  const allMatches = (matchesRaw ?? []) as MatchRow[];
-  const matches = savedView
-    ? allMatches.filter((m) => m.is_favorite || m.status === "saved")
-    : allMatches;
+  // The query already excludes archived/not_a_fit; split the rest into active vs
+  // expired (system-closed postings) so expired ones move to the Inactive tab.
+  const fetchedMatches = (matchesRaw ?? []) as MatchRow[];
+  const expiredMatches = fetchedMatches.filter((m) => m.status === "expired");
+  const activeMatches = fetchedMatches.filter((m) => m.status !== "expired");
+  const matches = inactiveView
+    ? expiredMatches
+    : savedView
+    ? activeMatches.filter((m) => m.is_favorite || m.status === "saved")
+    : activeMatches;
 
   const jobIds = [...new Set(matches.map((m) => m.job_id).filter(Boolean))] as string[];
   let jobs: JobCardJob[] = [];
@@ -86,7 +93,7 @@ export default async function WatchlistPage({
   }
   const jobMap = Object.fromEntries(jobs.map((j) => [j.id, j]));
 
-  const savedCount = allMatches.filter((m) => m.is_favorite || m.status === "saved").length;
+  const savedCount = activeMatches.filter((m) => m.is_favorite || m.status === "saved").length;
 
   return (
     <div>
@@ -105,8 +112,9 @@ export default async function WatchlistPage({
 
       {/* Tabs */}
       <div className="flex items-center gap-1 mb-6 border-b border-neutral-200">
-        <Tab href="/dashboard/watchlist" active={!savedView} label={`All Matches (${allMatches.length})`} />
+        <Tab href="/dashboard/watchlist" active={!savedView && !inactiveView} label={`All Matches (${activeMatches.length})`} />
         <Tab href="/dashboard/watchlist?view=saved" active={savedView} label={`Saved & Favorites (${savedCount})`} />
+        <Tab href="/dashboard/watchlist?view=inactive" active={inactiveView} label={`Inactive (${expiredMatches.length})`} />
       </div>
 
       {matches.length > 0 ? (
@@ -120,7 +128,9 @@ export default async function WatchlistPage({
       ) : (
         <div className="bg-white border border-neutral-200 rounded-xl p-10 text-center">
           <p className="text-sm text-neutral-500">
-            {savedView
+            {inactiveView
+              ? "Nothing here yet. When a job posting closes or passes its deadline, that match moves here so your active list stays current."
+              : savedView
               ? "No saved or favorited jobs yet. Tap the star on any match to save it here."
               : "No active matches yet. Rachel will add jobs as she finds good fits for your profile."}
           </p>

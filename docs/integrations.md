@@ -267,8 +267,8 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 | Key | File | Env vars | Notes |
 |---|---|---|---|
-| `jsearch` | `src/lib/job-api/jsearch.ts` (`jsearchSource`) | `RAPIDAPI_KEY` | Aggregates LinkedIn/Indeed/ZipRecruiter/Google data. Enabled by default. |
-| `usajobs` | `src/lib/job-api/usajobs.ts` (`usajobsSource`) | `USAJOBS_API_KEY`, `USAJOBS_USER_AGENT` | Official federal board. Off until keys are set. Register at developer.usajobs.gov; `USAJOBS_USER_AGENT` is the email you registered with (sent as the `User-Agent` header). Graceful-degrades to `[]` without keys. |
+| `jsearch` | `src/lib/job-api/jsearch.ts` (`jsearchSource`) | `RAPIDAPI_KEY` | Aggregates LinkedIn/Indeed/ZipRecruiter/Google data. Enabled by default. Captures `job_offer_expiration_datetime_utc` → `job_listings.closes_at`. |
+| `usajobs` | `src/lib/job-api/usajobs.ts` (`usajobsSource`) | `USAJOBS_API_KEY`, `USAJOBS_USER_AGENT` | Official federal board. Off until keys are set. Register at developer.usajobs.gov; `USAJOBS_USER_AGENT` is the email you registered with (sent as the `User-Agent` header). Graceful-degrades to `[]` without keys. Captures `ApplicationCloseDate` → `job_listings.closes_at`. |
 
 ---
 
@@ -310,7 +310,7 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **What it does:** Free external scheduler. Pokes our `/api/cron/*` endpoints on a schedule by sending HTTPS GET requests with a Bearer token header. Replaces Vercel Cron so the project stays on the Vercel Hobby tier.
 
-**Why external:** Vercel Hobby caps cron jobs aggressively; cron-job.org's free tier allows up to 50 jobs with minute-level granularity — comfortably covers our 9.
+**Why external:** Vercel Hobby caps cron jobs aggressively; cron-job.org's free tier allows up to 50 jobs with minute-level granularity — comfortably covers ours (see the inventory below).
 
 **Auth model:** Every cron route handler still calls `isAuthorized(request)` from `src/lib/cron/auth.ts`. That helper compares the `Authorization` header to `Bearer ${CRON_SECRET}`. cron-job.org sends the same header on every job invocation. Locally, with no `CRON_SECRET` set, the endpoint allows all requests (dev-safe).
 
@@ -334,6 +334,7 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | `GET /api/cron/extend-availability` | `0 11 * * *` | Daily 6am CDT / 5am CST |
 | `GET /api/cron/job-feed` | `0 8 * * *` | Daily 3am CDT / 2am CST — automated multi-source ingest + score + assign, `JOB_FEED_BATCH` clients/run (least-recently-fed first) |
 | `GET /api/cron/application-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST — T+7/14/30 nudges after a job is marked applied |
+| `GET /api/cron/expire-matches` | `0 12 * * *` | Daily 7am CDT / 6am CST — flips `new`/`saved`/`interested` matches to `expired` when the posting closes (`closes_at`) or ages past `EXPIRE_AFTER_DAYS` (default 45); expired matches move to the Inactive tab |
 
 > **`job-feed` runs free on Vercel Hobby.** Each invocation processes only `JOB_FEED_BATCH` clients (default 5, env-tunable), ordered by `watchlist_profiles.last_feed_at` (oldest/never-fed first), and stamps `last_feed_at` after each. So a daily run rotates through everyone over `ceil(active_clients / BATCH)` days, then keeps refreshing — staying well under Hobby's 10s function cap and keeping external API usage low. With both JSearch **and** USAJOBS enabled, set `JOB_FEED_BATCH=3`. Fully idempotent (dedup + `ON CONFLICT DO NOTHING`); the cursor advances even on a per-client error so nothing blocks the queue.
 

@@ -14,6 +14,7 @@ export interface NormalizedJob {
   source: string; // matches job_sources.provider + job_listings.source
   external_id: string; // stable per-source id, used for dedup
   date_posted: string | null; // yyyy-mm-dd
+  closes_at: string | null; // application deadline (ISO), when the source provides one
   is_active: boolean;
 }
 
