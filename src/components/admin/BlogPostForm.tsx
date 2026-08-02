@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ImagePlus } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
-import { createBlogPost, updateBlogPost, uploadFeaturedImage } from "@/app/actions/blog";
+import { MediaPicker } from "@/components/admin/MediaPicker";
+import { createBlogPost, updateBlogPost } from "@/app/actions/blog";
 import type { JSONContent } from "@tiptap/react";
 
 interface BlogPostFormProps {
@@ -19,6 +21,7 @@ interface BlogPostFormProps {
     content: JSONContent | null;
     published: boolean;
     featuredImagePath: string | null;
+    featuredImageAlt: string | null;
   };
 }
 
@@ -42,7 +45,10 @@ export function BlogPostForm({ mode, postId, initialData }: BlogPostFormProps) {
   const [featuredImageUrl, setFeaturedImageUrl] = React.useState<string | null>(
     initialData?.featuredImagePath ?? null
   );
-  const [imageUploading, setImageUploading] = React.useState(false);
+  const [featuredImageAlt, setFeaturedImageAlt] = React.useState(
+    initialData?.featuredImageAlt ?? ""
+  );
+  const [mediaOpen, setMediaOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
@@ -58,21 +64,6 @@ export function BlogPostForm({ mode, postId, initialData }: BlogPostFormProps) {
     setSlug(val);
   }
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const result = await uploadFeaturedImage(fd);
-    setImageUploading(false);
-    if (result.error) {
-      setError(result.error);
-    } else if (result.path) {
-      setFeaturedImageUrl(result.path);
-    }
-  }
-
   async function handleSave(publishState: boolean) {
     if (!title.trim()) { setError("Title is required."); return; }
     if (!slug.trim()) { setError("Slug is required."); return; }
@@ -82,7 +73,16 @@ export function BlogPostForm({ mode, postId, initialData }: BlogPostFormProps) {
     setSaving(true);
     setPublished(publishState);
 
-    const payload = { title, slug, excerpt, content, published: publishState };
+    const payload = {
+      title,
+      slug,
+      excerpt,
+      content,
+      published: publishState,
+      featuredImagePath: featuredImageUrl,
+      // Don't leave an orphaned alt string behind if the image was removed.
+      featuredImageAlt: featuredImageUrl ? featuredImageAlt.trim() || null : null,
+    };
 
     let result: { error?: string } = {};
     if (mode === "new") {
@@ -159,32 +159,70 @@ export function BlogPostForm({ mode, postId, initialData }: BlogPostFormProps) {
       {/* Featured image */}
       <div className="space-y-1.5">
         <Label>Featured Image <span className="text-xs text-neutral-400 font-normal">(optional)</span></Label>
-        <div className="flex items-center gap-4">
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleImageUpload}
-            className="block text-sm text-neutral-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
-          />
-          {imageUploading && <span className="text-xs text-neutral-400">Uploading…</span>}
-        </div>
-        {featuredImageUrl && (
-          <div className="mt-2 relative inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={featuredImageUrl}
-              alt="Featured"
-              className="h-24 rounded-lg object-cover border border-neutral-200"
-            />
-            <button
-              type="button"
-              onClick={() => setFeaturedImageUrl(null)}
-              className="absolute -top-2 -right-2 bg-white border border-neutral-200 rounded-full w-5 h-5 text-xs text-neutral-500 hover:text-red-500 flex items-center justify-center"
-            >
-              ✕
-            </button>
+
+        {featuredImageUrl ? (
+          <div className="flex items-start gap-4">
+            <div className="relative shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={featuredImageUrl}
+                alt={featuredImageAlt || "Featured image preview"}
+                className="h-24 w-40 rounded-lg object-cover border border-neutral-200"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFeaturedImageUrl(null);
+                  setFeaturedImageAlt("");
+                }}
+                aria-label="Remove featured image"
+                className="absolute -top-2 -right-2 bg-white border border-neutral-200 rounded-full w-5 h-5 text-xs text-neutral-500 hover:text-red-500 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setMediaOpen(true)}>
+                <ImagePlus className="h-4 w-4" /> Replace image
+              </Button>
+              <div className="space-y-1.5">
+                <Label htmlFor="featured-alt" className="text-xs font-normal text-neutral-500">
+                  Alt text{" "}
+                  <span className="text-neutral-400">(describes the image; keep the photo credit)</span>
+                </Label>
+                <Input
+                  id="featured-alt"
+                  value={featuredImageAlt}
+                  onChange={(e) => setFeaturedImageAlt(e.target.value)}
+                  placeholder="Short description of the image"
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setMediaOpen(true)}>
+              <ImagePlus className="h-4 w-4" /> Choose image
+            </Button>
+            <p className="text-xs text-neutral-400 mt-1.5">
+              Upload your own or search free stock photos on Unsplash. Shown at the top of the post
+              and as the preview picture when the post is shared.
+            </p>
           </div>
         )}
+
+        <MediaPicker
+          open={mediaOpen}
+          onOpenChange={setMediaOpen}
+          title="Choose a featured image"
+          defaultTab="image"
+          hideGifTab
+          onSelect={({ src, alt }) => {
+            setFeaturedImageUrl(src);
+            setFeaturedImageAlt(alt);
+          }}
+        />
       </div>
 
       {/* Editor */}

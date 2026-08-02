@@ -488,7 +488,8 @@ Blog post content and metadata. Content is stored as Tiptap ProseMirror JSON.
 | `title` | `TEXT` | — | — |
 | `excerpt` | `TEXT` | `NULL` | Shown on blog index page |
 | `content` | `JSONB` | `NULL` | Tiptap ProseMirror JSON |
-| `featured_image_path` | `TEXT` | `NULL` | Public URL (served via `getPublicUrl`) |
+| `featured_image_path` | `TEXT` | `NULL` | Public URL. Either our `blog-images` bucket (via `getPublicUrl`) or a hotlinked Unsplash CDN URL, depending on which `MediaPicker` tab was used |
+| `featured_image_alt` | `TEXT` | `NULL` | Alt text for the featured image; carries the `— Photo by X on Unsplash` credit for Unsplash picks. Falls back to the post title at render time. Added in `0032_blog_featured_image_alt.sql` |
 | `published` | `BOOLEAN` | `FALSE` | Controls public visibility |
 | `published_at` | `TIMESTAMPTZ` | `NULL` | Set once on first publish; preserved on updates |
 | `author_id` | `UUID` | `NULL` | FK to `profiles.id` |

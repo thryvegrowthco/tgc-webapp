@@ -15,7 +15,7 @@ export default async function BlogPage() {
   const supabase = await createClient();
   const { data: posts } = await supabase
     .from("blog_posts")
-    .select("id, title, slug, excerpt, published_at, featured_image_path")
+    .select("id, title, slug, excerpt, published_at, featured_image_path, featured_image_alt")
     .eq("published", true)
     .order("published_at", { ascending: false });
 
@@ -67,7 +67,7 @@ export default async function BlogPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={post.featured_image_path}
-                        alt={post.title}
+                        alt={post.featured_image_alt ?? post.title}
                         className="h-48 w-full object-cover"
                       />
                     ) : (

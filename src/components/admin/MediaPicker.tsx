@@ -1,10 +1,14 @@
 "use client";
 
-// Shared media picker for the blog + newsletter Tiptap editors. Four ways to add
-// an image: upload a file (→ public blog-images bucket), search free GIFs (Giphy),
-// search free stock photos (Unsplash), or paste a URL. Returns { src, alt } which
-// the caller drops into the editor via setImage(). Search tabs degrade gracefully
-// when the provider API key isn't configured.
+// Shared media picker for the blog + newsletter Tiptap editors and the blog
+// post's featured image. Four ways to add an image: upload a file (→ public
+// blog-images bucket), search free GIFs (Giphy), search free stock photos
+// (Unsplash), or paste a URL. Returns { src, alt } which the caller drops into
+// the editor via setImage() or stores as the post's cover. Search tabs degrade
+// gracefully when the provider API key isn't configured.
+//
+// The title/defaultTab/hideGifTab props are optional and default to the original
+// editor behavior, so existing call sites need no changes.
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -24,6 +28,12 @@ interface MediaPickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (media: PickedMedia) => void;
+  /** Dialog heading. Defaults to "Insert image or GIF". */
+  title?: string;
+  /** Which tab opens first. Defaults to "upload". */
+  defaultTab?: Tab;
+  /** Hide the GIF tab — e.g. featured images, where a GIF is a poor OG image. */
+  hideGifTab?: boolean;
 }
 
 type Tab = "upload" | "gif" | "image" | "url";
@@ -48,8 +58,15 @@ function useDebounced<T>(value: T, ms: number): T {
   return debounced;
 }
 
-export function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) {
-  const [tab, setTab] = React.useState<Tab>("upload");
+export function MediaPicker({
+  open,
+  onOpenChange,
+  onSelect,
+  title = "Insert image or GIF",
+  defaultTab = "upload",
+  hideGifTab = false,
+}: MediaPickerProps) {
+  const [tab, setTab] = React.useState<Tab>(defaultTab);
 
   function choose(media: PickedMedia) {
     if (!media.src) return;
@@ -70,27 +87,31 @@ export function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) 
         >
           <div className="flex items-center justify-between px-5 pt-5">
             <Dialog.Title className="font-display font-bold text-neutral-900 text-lg">
-              Insert image or GIF
+              {title}
             </Dialog.Title>
             <Dialog.Close className="text-neutral-400 hover:text-neutral-700 rounded p-1" aria-label="Close">
               <X className="h-5 w-5" />
             </Dialog.Close>
           </div>
           <Dialog.Description className="sr-only">
-            Upload a file, search free GIFs or stock photos, or paste an image URL.
+            {hideGifTab
+              ? "Upload a file, search free stock photos, or paste an image URL."
+              : "Upload a file, search free GIFs or stock photos, or paste an image URL."}
           </Dialog.Description>
 
           {/* Tabs */}
           <div className="flex gap-1 px-5 pt-4 border-b border-neutral-100">
             <TabButton active={tab === "upload"} onClick={() => setTab("upload")} icon={Upload} label="Upload" />
-            <TabButton active={tab === "gif"} onClick={() => setTab("gif")} icon={Film} label="GIFs" />
+            {!hideGifTab && (
+              <TabButton active={tab === "gif"} onClick={() => setTab("gif")} icon={Film} label="GIFs" />
+            )}
             <TabButton active={tab === "image"} onClick={() => setTab("image")} icon={ImageIcon} label="Photos" />
             <TabButton active={tab === "url"} onClick={() => setTab("url")} icon={Link2} label="URL" />
           </div>
 
           <div className="flex-1 overflow-y-auto p-5">
             {tab === "upload" && <UploadTab onPick={choose} />}
-            {tab === "gif" && <GifTab active={open && tab === "gif"} onPick={choose} />}
+            {tab === "gif" && !hideGifTab && <GifTab active={open && tab === "gif"} onPick={choose} />}
             {tab === "image" && <ImageTab active={open && tab === "image"} onPick={choose} />}
             {tab === "url" && <UrlTab onPick={choose} />}
           </div>

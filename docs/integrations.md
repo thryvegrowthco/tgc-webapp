@@ -274,7 +274,7 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 ## Media search (Giphy & Unsplash)
 
-**What it does:** Powers the **GIFs** and **Photos** tabs of the shared editor image picker (`src/components/admin/MediaPicker.tsx`, used by both the blog and newsletter Tiptap editors).
+**What it does:** Powers the **GIFs** and **Photos** tabs of the shared image picker (`src/components/admin/MediaPicker.tsx`), used by three surfaces: the blog Tiptap editor, the newsletter Tiptap editor, and the blog post's **Featured Image** field. The featured-image call site opens on the Photos tab and hides the GIFs tab (a GIF makes a poor OpenGraph image).
 
 **Proxy routes (admin-only, keys never reach the browser):**
 
@@ -285,7 +285,9 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **Graceful degradation:** with a key unset, its route returns `{ configured: false, items: [] }` and the picker shows a "not set up yet" notice — **Upload** (→ public `blog-images` bucket via `uploadEditorImage`) and **URL** tabs always work. Both keys are free (developers.giphy.com, unsplash.com/developers).
 
-**Why hotlink:** Giphy/Unsplash image URLs are inserted directly (their CDNs), which is both provider-compliant and required for the images to render in newsletter inboxes. Only files from the Upload tab are stored in our bucket.
+**Why hotlink:** Giphy/Unsplash image URLs are inserted directly (their CDNs), which is both provider-compliant and required for the images to render in newsletter inboxes. Only files from the Upload tab are stored in our bucket. A hotlinked Unsplash URL can now also be a post's featured/OpenGraph image — no `next.config.ts` `remotePatterns` entry is needed, because every blog image renders through a plain `<img>` rather than `next/image`.
+
+**Attribution:** the Unsplash route bakes the photographer credit into the alt text it returns (`"{description} — Photo by {name} on Unsplash"`). For inline images that lands in the Tiptap image node's `alt`; for featured images it is stored in `blog_posts.featured_image_alt` and rendered as the alt on the index card, the post hero, and the OG image. The route also computes a `creditLink` (with `?utm_source=thryve_growth_co&utm_medium=referral`), but nothing renders it as a visible link today — `PickedMedia` carries only `{ src, alt }`.
 
 ---
 

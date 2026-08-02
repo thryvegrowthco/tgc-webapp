@@ -23,7 +23,9 @@ export default async function EditBlogPostPage({
 
   const { data: post } = await supabase
     .from("blog_posts")
-    .select("id, title, slug, excerpt, content, published, published_at, featured_image_path")
+    .select(
+      "id, title, slug, excerpt, content, published, published_at, featured_image_path, featured_image_alt"
+    )
     .eq("id", id)
     .single();
 
@@ -71,6 +73,7 @@ export default async function EditBlogPostPage({
             content: post.content as JSONContent | null,
             published: post.published,
             featuredImagePath: post.featured_image_path,
+            featuredImageAlt: post.featured_image_alt,
           }}
         />
       </div>

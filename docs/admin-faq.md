@@ -95,6 +95,15 @@ It's a little helper box (with a sparkle icon) that appears in several places ar
 ### How do I read the new analytics, and can I download the numbers?
 The top of the **Analytics** page has an **Insights** area with five richer views — **Revenue by service**, **Lead → client funnel**, **No-show rate**, **Package utilization**, and **Top clients by value** — shown as charts. Use the **date-range buttons** in the corner (This month, Last 90 days, This year, All-time) to change the window for the whole Insights area at once. Three of those views have a **CSV** button (revenue, top clients, and package utilization) that downloads the figures for whichever date range is currently selected, so the spreadsheet matches what's on screen. The older cards further down the page keep their own fixed time windows and don't change with the selector.
 
+### Where do the free blog photos come from, and am I allowed to use them?
+They come from Unsplash, a large library of free professional photography. The photos are free to use commercially, including on your website and in your newsletter — no purchase and no separate licence needed. In return the photographers ask to be credited, and that happens automatically: when you pick a photo, its name is added to the **Alt text** box for you, so as long as you leave that part in place you're covered.
+
+### Why doesn't the Featured Image picker have a GIFs tab?
+Because a featured image is also the preview picture that Facebook, LinkedIn, and other sites show when someone shares your post — and animated GIFs either don't show up properly there or show a single frozen frame. The GIFs tab is still available inside the post itself, using the image button in the editor toolbar.
+
+### I added a featured image before and it kept disappearing. Is that fixed?
+Yes. Featured images previously looked like they'd been added but weren't actually being saved with the post, so they'd vanish when the page reloaded. They now save properly. If you have older posts where you tried to add a header image, open each one and pick the image again — it'll stick this time.
+
 ## Where to Find Things
 
 | I want to… | Go to |

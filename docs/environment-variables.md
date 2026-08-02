@@ -67,7 +67,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 | Variable | Required | Source | Purpose |
 |---|---|---|---|
 | `GIPHY_API_KEY` | No* | developers.giphy.com → Create an App (free) → API Key | Powers the **GIFs** tab in the editor MediaPicker (`GET /api/media/gif`). |
-| `UNSPLASH_ACCESS_KEY` | No* | unsplash.com/developers → New Application (free) → Access Key | Powers the **Photos** tab (`GET /api/media/image`) + the download-trigger ping. |
+| `UNSPLASH_ACCESS_KEY` | No* | unsplash.com/developers → New Application (free) → Access Key | Powers the **Photos** tab (`GET /api/media/image`) + the download-trigger ping — used for both in-body images and blog **featured images**. |
 
 *Both are optional. If absent, the corresponding search tab shows a "not set up yet" notice; **Upload** (to the public `blog-images` bucket) and **URL** tabs always work without any key. Keys are used server-side only (never exposed to the browser).
 

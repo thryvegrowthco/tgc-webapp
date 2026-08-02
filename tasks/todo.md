@@ -122,3 +122,23 @@ The invitation → session flow already existed and works; #7 was purely discove
 
 ### Files touched
 - `src/components/admin/AdminNav.tsx`, `src/app/(admin)/admin/page.tsx`, `src/app/(admin)/admin/invitations/page.tsx`, `docs/{admin-faq,rachel-admin-guide,integrations}.md` + generated help
+
+---
+
+## Phase 6 — Blog featured images from Unsplash ✅ BUILT (migration pending)
+
+- [x] **Bug fix (the real blocker):** featured images were never persisted. `BlogPostForm`'s payload omitted the URL and neither `createBlogPost` nor `updateBlogPost` wrote `featured_image_path` — the only code that had ever populated that column was `scripts/seed-images.ts`. Upload → preview → Publish → refresh → image gone. Both actions now always write the column (an explicit `NULL` is what makes the ✕ remove button work).
+- [x] Featured Image field: bare `<input type="file">` replaced with the shared `MediaPicker`, opening on the **Photos** (Unsplash) tab with the GIFs tab hidden. `uploadFeaturedImage` deleted — dead once the picker's `uploadEditorImage` (which, unlike the old one, validates type + size) took over.
+- [x] `MediaPicker` gains three optional, backwards-compatible props — `title`, `defaultTab`, `hideGifTab`. Both existing call sites (`RichTextEditor`, `NewsletterEditor`) are unchanged.
+- [x] Migration `0032_blog_featured_image_alt.sql`: `blog_posts.featured_image_alt`. Unsplash's alt already carries the "— Photo by X on Unsplash" credit; it's now stored, editable in the form, and rendered on the index card, the post hero, and `openGraph.images[].alt` (falls back to the post title).
+- [x] `sanitizeImageUrl()` rejects non-`http(s)` values; all three blog actions now `revalidatePath('/blog')` + `('/blog/[slug]', 'page')`.
+
+### Verification
+- [x] `tsc` clean, lint clean, **full `next build` passed**.
+- [x] Docs (database-schema, developer-architecture, workflows, integrations, environment-variables, rachel-admin-guide, admin-faq) + help regenerated.
+- [ ] **BLOCKED on owner:** apply `apply-0032.sql` (= `supabase/migrations/0032_blog_featured_image_alt.sql`) in the Supabase SQL editor. **Apply this BEFORE pushing to main** — the public `/blog` and `/blog/[slug]` pages select `featured_image_alt`, so deploying first would 500 the marketing blog.
+- [ ] After migration: pick an Unsplash photo → Publish → reload the edit page (image must persist) → check `/blog` card, post hero, and the `og:image` / `og:image:alt` tags.
+
+### Files added/touched
+- Added: `supabase/migrations/0032_blog_featured_image_alt.sql`, `apply-0032.sql`
+- Edited: `src/components/admin/{BlogPostForm,MediaPicker}.tsx`, `src/app/actions/blog.ts`, `src/types/database.ts`, `src/app/(admin)/admin/content/[id]/page.tsx`, `src/app/(marketing)/blog/page.tsx` + `[slug]/page.tsx`, `docs/{database-schema,developer-architecture,workflows,integrations,environment-variables,rachel-admin-guide,admin-faq}.md` + generated help

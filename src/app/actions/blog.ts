@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -14,12 +15,31 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
+// Featured image URLs come from the MediaPicker — our public blog-images bucket,
+// the Unsplash CDN, or a pasted URL — and get rendered straight into an <img src>
+// on the public blog. Only ever accept an absolute http(s) URL.
+function sanitizeImageUrl(url: string | null | undefined): string | null {
+  const trimmed = (url ?? "").trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : null;
+}
+
+// Bust the public blog pages after any post write. Both pages read cookies (so
+// they render dynamically today), but this keeps them correct if that changes.
+function revalidateBlog() {
+  revalidatePath("/blog");
+  // Route-pattern form, not a literal slug: also covers renames and deletes.
+  revalidatePath("/blog/[slug]", "page");
+}
+
 export interface BlogPostFormData {
   title: string;
   slug: string;
   excerpt: string;
   content: JSONContent;
   published: boolean;
+  featuredImagePath: string | null;
+  featuredImageAlt: string | null;
 }
 
 export async function createBlogPost(
@@ -50,6 +70,8 @@ export async function createBlogPost(
       slug: data.slug,
       excerpt: data.excerpt || null,
       content: data.content,
+      featured_image_path: sanitizeImageUrl(data.featuredImagePath),
+      featured_image_alt: data.featuredImageAlt?.trim() || null,
       published: data.published,
       published_at: data.published ? new Date().toISOString() : null,
       author_id: user.id,
@@ -58,6 +80,9 @@ export async function createBlogPost(
     .single();
 
   if (error) return { error: error.message };
+
+  // Must run before redirect() — it throws.
+  revalidateBlog();
 
   redirect(`/admin/content/${post.id}`);
 }
@@ -98,6 +123,10 @@ export async function updateBlogPost(
       slug: data.slug,
       excerpt: data.excerpt || null,
       content: data.content,
+      // Always written, never omitted — an explicit NULL is how the ✕ remove
+      // button in the editor actually clears the image.
+      featured_image_path: sanitizeImageUrl(data.featuredImagePath),
+      featured_image_alt: data.featuredImageAlt?.trim() || null,
       published: data.published,
       published_at:
         data.published && !current?.published_at
@@ -108,6 +137,8 @@ export async function updateBlogPost(
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  revalidateBlog();
   return {};
 }
 
@@ -122,37 +153,7 @@ export async function deleteBlogPost(id: string): Promise<{ error?: string }> {
   const { error } = await supabase.from("blog_posts").delete().eq("id", id);
   if (error) return { error: error.message };
 
+  revalidateBlog();
+
   redirect("/admin/content");
-}
-
-// Upload a featured image to storage and return the path
-export async function uploadFeaturedImage(
-  formData: FormData
-): Promise<{ error?: string; path?: string }> {
-  try {
-    await requireAdmin();
-  } catch {
-    return { error: "Unauthorized" };
-  }
-
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { error: "No file provided" };
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `${Date.now()}-${safeName}`;
-
-  const supabase = createServiceClient();
-  const arrayBuffer = await file.arrayBuffer();
-
-  const { error } = await supabase.storage
-    .from("blog-images")
-    .upload(storagePath, arrayBuffer, { contentType: file.type, upsert: false });
-
-  if (error) return { error: error.message };
-
-  const { data: publicUrlData } = supabase.storage
-    .from("blog-images")
-    .getPublicUrl(storagePath);
-
-  return { path: publicUrlData.publicUrl };
 }

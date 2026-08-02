@@ -411,14 +411,23 @@ Rachel visits /admin/content/new
 BlogPostForm component (src/components/admin/BlogPostForm.tsx)
   - Title → auto-generates slug (stops auto-generating if manually edited)
   - Excerpt
-  - Optional: featured image upload
-        │ (on image upload)
+  - Optional: featured image → "Choose image" opens the shared MediaPicker
+        │ (on "Choose image")
         ▼
-  uploadFeaturedImage server action (src/app/actions/blog.ts)
-    → uses service client
-    → uploads to Supabase Storage: blog/{timestamp}-{filename}
-    → calls getPublicUrl() → returns public URL
-    → stored in form state (not saved to DB until post is saved)
+  MediaPicker (src/components/admin/MediaPicker.tsx)
+    opens on the Photos tab; GIF tab hidden (poor OpenGraph image)
+      ├─ Upload tab → uploadEditorImage (src/app/actions/media.ts)
+      │    → validates type + size (JPG/PNG/WebP/GIF, ≤10 MB)
+      │    → service client → public blog-images bucket: inline/{timestamp}-{filename}
+      │    → getPublicUrl() → public URL
+      ├─ Photos tab → GET /api/media/image (Unsplash) → hotlinked CDN URL,
+      │    alt pre-filled as "{description} — Photo by {name} on Unsplash",
+      │    trackUnsplashDownload() pinged on pick (Unsplash API guideline)
+      └─ URL tab → pasted absolute http(s) URL
+        │
+        ▼
+    returns { src, alt } → held in form state, then saved with the post as
+    featured_image_path + featured_image_alt (alt is editable before saving)
         │
         ▼
   RichTextEditor (src/components/admin/RichTextEditor.tsx)
@@ -433,8 +442,10 @@ createBlogPost server action (new post) or updateBlogPost (edit)
   createBlogPost:
     1. requireAdmin() check
     2. Unique slug check (SELECT from blog_posts WHERE slug = ...)
-    3. INSERT blog_posts with published = true, published_at = NOW()
-    4. redirect('/admin/content/{newId}')
+    3. INSERT blog_posts with published = true, published_at = NOW(),
+       featured_image_path (sanitized to absolute http(s) or NULL) + featured_image_alt
+    4. revalidatePath('/blog') + revalidatePath('/blog/[slug]', 'page')
+    5. redirect('/admin/content/{newId}')  ← revalidation must precede this; redirect() throws
 
   updateBlogPost:
     1. requireAdmin() check

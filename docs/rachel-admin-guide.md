@@ -288,7 +288,7 @@ Click "New Post."
 - **Title** — The post's headline. Required.
 - **Slug** — The URL for this post, e.g. `how-to-prepare-for-interviews` becomes `https://thryvegrowth.co/blog/how-to-prepare-for-interviews`. The slug is auto-generated from the title, but you can edit it. Once a post is published and shared, avoid changing the slug — it will break any existing links.
 - **Excerpt** — A 1–2 sentence summary shown on the blog index page. Not required, but recommended.
-- **Featured Image** — An optional header image for the post. Upload a JPG or PNG. It appears at the top of the post and as the preview image when shared on social media.
+- **Featured Image** — An optional header image for the post. Click **Choose image** to open the picker: you can search thousands of free professional photos and click one to use it, upload your own file, or paste a link. It appears at the top of the post, as the thumbnail on the blog list page, and as the preview picture when the post is shared on social media. Once you've picked one you'll see a small preview, a **Replace image** button, and an **Alt text** box — see below.
 - **Content** — The main body of the post, written in the editor.
 
 ### Using the Editor
@@ -318,7 +318,15 @@ Click the **🖼 image button** in the toolbar to open the picker. It has four t
 - **Photos** — search free, high-quality stock photos and click one to insert it.
 - **URL** — paste a link to an image that already lives somewhere online.
 
-This is the same picker in both the blog editor and the newsletter editor, so images and GIFs work the same way in your weekly emails. (If the GIFs or Photos search says it isn't set up yet, that just means the free search keys haven't been added — Upload and URL still work.)
+This is the same picker in the blog editor, the newsletter editor, and the Featured Image field, so images work the same way everywhere — including in your weekly emails. (If the GIFs or Photos search says it isn't set up yet, that just means the free search keys haven't been added — Upload and URL still work.)
+
+Two small differences when you're picking a **Featured Image**: it opens straight to the **Photos** tab, since that's usually what you want for a header image, and there's no GIFs tab — an animated GIF doesn't work well as the preview picture social media sites show.
+
+### Alt text on the featured image
+
+When you pick a photo, the **Alt text** box fills in automatically with a short description plus the photographer's name, like *"two people talking at a desk — Photo by Jane Doe on Unsplash."* This does two useful things: it describes the picture for anyone using a screen reader, and it credits the photographer, which is what the free photo library asks for in return.
+
+You can edit it — just try to keep the "Photo by…" part on the end when the picture came from the Photos tab. If you leave it blank, the post's title is used instead.
 
 ### Saving and Publishing
 

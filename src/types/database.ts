@@ -907,6 +907,7 @@ export type Database = {
           excerpt: string | null;
           content: Json | null;
           featured_image_path: string | null;
+          featured_image_alt: string | null;
           published: boolean;
           published_at: string | null;
           author_id: string | null;
@@ -920,6 +921,7 @@ export type Database = {
           excerpt?: string | null;
           content?: Json | null;
           featured_image_path?: string | null;
+          featured_image_alt?: string | null;
           published?: boolean;
           published_at?: string | null;
           author_id?: string | null;
@@ -933,6 +935,7 @@ export type Database = {
           excerpt?: string | null;
           content?: Json | null;
           featured_image_path?: string | null;
+          featured_image_alt?: string | null;
           published?: boolean;
           published_at?: string | null;
           author_id?: string | null;

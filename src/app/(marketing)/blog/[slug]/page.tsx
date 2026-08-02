@@ -33,7 +33,9 @@ async function getPost(slug: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("blog_posts")
-    .select("id, title, slug, excerpt, content, published_at, featured_image_path")
+    .select(
+      "id, title, slug, excerpt, content, published_at, featured_image_path, featured_image_alt"
+    )
     .eq("slug", slug)
     .eq("published", true)
     .single();
@@ -54,7 +56,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       type: "article",
       publishedTime: post.published_at ?? undefined,
       images: post.featured_image_path
-        ? [{ url: post.featured_image_path }]
+        ? [{ url: post.featured_image_path, alt: post.featured_image_alt ?? post.title }]
         : undefined,
     },
   };
@@ -126,7 +128,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={post.featured_image_path}
-            alt={post.title}
+            alt={post.featured_image_alt ?? post.title}
             className="w-full rounded-2xl shadow-md object-cover max-h-80"
           />
         </div>
