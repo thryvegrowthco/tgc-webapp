@@ -719,6 +719,21 @@ The preview iframe at /admin/newsletter/issues/[id]/preview reads from
 `GET /api/admin/newsletter/preview/[id]` which renders the issue HTML using
 `renderIssueHTML` from src/lib/email/newsletter-render.ts.
 
+**Links.** Content is Tiptap JSON, so a hyperlink is a `link` **mark** carrying an `href`
+attribute — not an `<a>` tag. A mark saved without an `href` (pasted from a doc that had
+link styling, or a `setLink` call that silently failed) is dropped by `stripEmptyLinks` at
+render time and reaches the inbox as ordinary text. Two guards exist so this can't happen
+unnoticed:
+
+1. `setLink()` in the editor validates the href, checks the command's return value, and
+   re-reads the mark to confirm the href attached — erroring via toast otherwise.
+2. `NewsletterIssueForm` runs `auditLinks(content)` continuously and both shows an amber
+   sidebar card and gates every send path behind a confirm when any link lacks an address.
+
+To backfill an address onto broken links in an already-saved issue:
+`npx tsx --env-file=.env.local scripts/repair-newsletter-links.mts <issueId> <url> [--apply]`
+(dry-runs without `--apply`).
+
 ### 7c. Scheduled send (cron)
 
 ```
@@ -735,6 +750,9 @@ SELECT FROM newsletter_issues
 For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
   1. Lock: UPDATE status='sending' (atomic; safe under cron retries)
   2. Render baseHtml + baseText once via renderIssueHTML / renderIssueText
+     (the text part keeps link destinations as "anchor text (https://url)" and
+      carries its own footer + {{unsubscribe_url}} — the HTML shell's footer
+      never reaches it)
   3. Load matching recipients (interest-filtered, exclude unsubscribed)
   4. Chunk to 100/batch. For each batch:
        - Build per-recipient payload with first_name + tokenized

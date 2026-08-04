@@ -104,6 +104,16 @@ Because a featured image is also the preview picture that Facebook, LinkedIn, an
 ### I added a featured image before and it kept disappearing. Is that fixed?
 Yes. Featured images previously looked like they'd been added but weren't actually being saved with the post, so they'd vanish when the page reloaded. They now save properly. If you have older posts where you tried to add a header image, open each one and pick the image again — it'll stick this time.
 
+### I added a link to my newsletter but the email arrived without it. Why?
+The text was carrying link *styling* but no actual web address, so it went out as plain, unclickable words. This usually happens when content is pasted in from a Google Doc or another email, which brings the underline along without the address behind it.
+
+You'll now be warned before it can happen again: an **amber box appears in the sidebar** of the issue, listing exactly which words have no address, and you'll get a confirmation prompt if you try to send a test, schedule, or send while it's showing. Fix each one by selecting the words, clicking the **🔗 button**, and entering the address — you'll see a green "Link added" when it works.
+
+If you had the newsletter page open in your browser for a long time before this change, refresh the page first (hold Shift and click reload) so you're using the current version.
+
+### Do links work in every kind of email?
+Yes. Every email goes out in two versions — a designed one and a plain-text one for readers whose email program can't show formatting. The plain-text version used to drop web addresses entirely; it now writes them out in full after the link text, like *Download the workbook (https://www.thryvegrowth.co/career-reset-workbook)*, and includes the unsubscribe link.
+
 ## Where to Find Things
 
 | I want to… | Go to |

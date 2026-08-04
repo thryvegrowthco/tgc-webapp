@@ -7,6 +7,8 @@ import { Link } from "@tiptap/extension-link";
 import { Image } from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import { toast } from "sonner";
+import { normalizeLinkHref } from "@/lib/editor/links";
 import { cn } from "@/lib/utils";
 import { MediaPicker } from "@/components/admin/MediaPicker";
 import type { JSONContent } from "@tiptap/react";
@@ -103,23 +105,43 @@ export function RichTextEditor({
     const prev = (editor.getAttributes("link").href as string) ?? "";
     const input = window.prompt("Link URL", prev);
     if (input === null) return; // cancelled
-    const trimmed = input.trim();
-    if (trimmed === "") {
+    if (input.trim() === "") {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    // Add https:// when no scheme is given so the link always works.
-    const href = /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    if (editor.state.selection.empty) {
-      // Nothing selected — insert the URL itself as a clickable link.
-      editor
-        .chain()
-        .focus()
-        .insertContent({ type: "text", text: href, marks: [{ type: "link", attrs: { href } }] })
-        .run();
-    } else {
-      editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+
+    // Blog posts are read on the site, so "#section" jump links are fine here.
+    const { href, error } = normalizeLinkHref(input, {
+      baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://www.thryvegrowth.co",
+      allowFragment: true,
+    });
+    if (error || !href) {
+      toast.error(error ?? "That doesn't look like a valid web address.");
+      return;
     }
+
+    const applied = editor.state.selection.empty
+      ? // Nothing selected — insert the URL itself as a clickable link.
+        editor
+          .chain()
+          .focus()
+          .insertContent({ type: "text", text: href, marks: [{ type: "link", attrs: { href } }] })
+          .run()
+      : editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+
+    if (!applied) {
+      toast.error("Couldn't apply that link. Select the text you want to link, then try again.");
+      return;
+    }
+
+    // A link mark without an href renders as ordinary text — never let that
+    // happen silently.
+    if (editor.getAttributes("link").href !== href) {
+      toast.error("The link didn't attach to that text. Re-select the text and try again.");
+      return;
+    }
+
+    toast.success("Link added");
   }
 
   return (

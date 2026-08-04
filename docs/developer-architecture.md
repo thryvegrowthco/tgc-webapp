@@ -210,6 +210,7 @@ Stripe client is wrapped in a `Proxy` to defer initialization until first access
   - `MediaPicker` takes three optional props that all default to the original editor behavior, so existing call sites need no changes: `title` (dialog heading), `defaultTab` (`"upload"` by default), and `hideGifTab`. The featured-image call site passes `title="Choose a featured image"`, `defaultTab="image"`, and `hideGifTab` — a GIF makes a poor OpenGraph image.
 - **Renderer:** `src/app/blog/[slug]/page.tsx` uses `generateHTML` from `@tiptap/html` with matching extension set
 - Extension sets must match between editor and renderer — mismatches cause empty output or errors
+- **Link button (both editors):** `setLink()` in `RichTextEditor.tsx` / `NewsletterEditor.tsx` runs the prompt value through `normalizeLinkHref()` (`src/lib/editor/links.ts`), then **checks the boolean returned by `.run()` and re-reads `editor.getAttributes("link").href` to confirm the href actually landed on the mark**, toasting an error on any failure. This is deliberate: Tiptap's `setLink` returns `false` without applying anything when its `isAllowedUri` check rejects the href, and a link mark saved without an `href` renders as ordinary text in a sent email — a failure that is invisible in the editor. Never drop these guards back to a bare `.run()`.
 - `published_at` is set once (first publish) and preserved on all subsequent updates — see `updateBlogPost`
 - Slug uniqueness enforced with a separate query before insert/update (not a DB constraint, to allow friendly error messages)
 - **Featured images:** chosen through the same `MediaPicker` (`BlogPostForm.tsx`), so a cover image is either an upload to the **public `blog-images`** bucket under `inline/` — served via `getPublicUrl()`, a permanent public URL required so images also render in newsletter inboxes — or a hotlinked Unsplash CDN URL. The picked alt text is stored in `blog_posts.featured_image_alt` and rendered on the blog index card, the post hero, and `openGraph.images[].alt`, falling back to the post title when `NULL`. Client documents use the private `documents` bucket with signed URLs instead.
@@ -285,19 +286,25 @@ All cron endpoints share the same auth pattern (`Authorization: Bearer {CRON_SEC
 **Server libraries:**
 - `src/lib/newsletter/interests.ts` — 7-slug enum, `sanitizeInterests()` validator, `labelForInterest()` lookup.
 - `src/lib/newsletter/extensions.ts` — shared Tiptap extension arrays (`newsletterEditorExtensions` for the editor, `newsletterRenderExtensions` for the server-side renderer). Must stay in sync — the renderer is a subset of the editor.
+- `src/lib/newsletter/links.ts` — `stripEmptyLinks()` (drops link marks with no `href` so they render as text, not a dead `<a>`) and `auditLinks()` (reports the anchor text of every href-less link). One definition of "usable href", shared by the renderer and the admin UI. Deliberately free of `@tiptap/html` so client components can import `auditLinks`.
+- `src/lib/editor/links.ts` — `normalizeLinkHref()` + `emailSafeBaseUrl()`, shared by both Tiptap toolbars. Absolutizes root-relative hrefs, prefixes bare hosts with `https://`, rejects fragments for email (allowed for the blog via `allowFragment`) and any protocol outside http/https/mailto/tel. `emailSafeBaseUrl()` refuses to absolutize into a non-`https` origin so a dev `NEXT_PUBLIC_APP_URL` can never ship `http://localhost:3000/…` links to subscribers.
 - `src/lib/email/newsletter-template.ts` — `renderNewsletterShell()` brand HTML wrapper (inline styles, system-font stack, one mobile media query).
-- `src/lib/email/newsletter-render.ts` — `renderIssueHTML()`, `renderIssueText()`, `buildUnsubscribeUrl()`, `buildUnsubscribeApiUrl()`, `buildManageUrl()`.
+- `src/lib/email/newsletter-render.ts` — `renderIssueHTML()`, `renderIssueText()`, `buildUnsubscribeUrl()`, `buildUnsubscribeApiUrl()`, `buildManageUrl()`. Imports `@tiptap/html/server` explicitly — the bare `@tiptap/html` specifier resolves to the browser build under any tool that sets the `browser` export condition, which throws at runtime.
 - `src/lib/email/newsletter-welcome.ts` — `sendWelcomeEmail()` warm intro email.
 - `src/lib/email/newsletter-reengagement.ts` — `sendReengagementEmail()`, `sendMilestoneEmail()`.
 - `src/lib/email/newsletter-send.ts` — `sendIssue(issueId)` send pipeline: locks issue, renders once, batches recipients to 100/req, calls `resend.batch.send`, writes `newsletter_sends`, throttles 1.1s between batches, updates `last_sent_at` on each delivered subscriber.
 
 **Components:**
 - `src/components/admin/NewsletterEditor.tsx` — Tiptap editor (shared extensions).
-- `src/components/admin/NewsletterIssueForm.tsx` — full composer (title/subject/preheader/body/audience/featured blog/schedule/actions).
+- `src/components/admin/NewsletterIssueForm.tsx` — full composer (title/subject/preheader/body/audience/featured blog/schedule/actions). Runs `auditLinks(content)` on every keystroke; renders an amber sidebar card naming any link with no address and gates test-send / submit / schedule / send-now behind a `window.confirm`.
 - `src/components/admin/NewsletterTemplateForm.tsx` — template CRUD form.
 - `src/components/admin/IdeaInbox.tsx` — quick-capture idea inbox on the dashboard.
 - `src/components/admin/DeleteIssueButton.tsx`, `ManualUnsubscribeButton.tsx` — small client-action buttons.
 - `src/components/marketing/UnsubscribeForm.tsx`, `ManagePreferencesForm.tsx` — public token-authenticated forms.
+
+**Unit test — `scripts/test-newsletter-links.mts`:** Pure tests with **no DB, env, or network**. Asserts that a link survives into both email parts (`href="…"` in the HTML, the full URL in the text), that an href-less mark is flagged by `auditLinks` and never emits a dead `<a>`, and every `normalizeLinkHref` / `emailSafeBaseUrl` branch including the `javascript:` rejection and the localhost fallback. Run with `npx tsx scripts/test-newsletter-links.mts`.
+
+**Repair script — `scripts/repair-newsletter-links.mts`:** Backfills an `href` onto every link mark in one issue that lacks one. Dry-runs by default; `--apply` writes. `npx tsx --env-file=.env.local scripts/repair-newsletter-links.mts <issueId> <url> [--apply]`.
 
 > **Timezone display:** all newsletter admin pages format `scheduled_for`/`sent_at`/date columns with `formatCentralDateTime` / `formatCentralDate` (`src/lib/time/central.ts`) — never bare `new Date(x).toLocaleString()`, which renders in Vercel's UTC process tz and shows a 9 AM CT schedule as "2:00 PM". Storage is browser-tz-independent too: the composer's `datetime-local` value is always Central wall-clock and is converted on save via `centralDatetimeLocalToUtcIso` (and back for the input via `utcIsoToCentralDatetimeLocal`).
 

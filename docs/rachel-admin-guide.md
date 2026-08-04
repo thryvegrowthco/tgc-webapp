@@ -560,6 +560,30 @@ Fill in:
 - **Inbox preview** — the line readers see in their inbox before they open. Treat it as a second chance at a headline.
 - **Body** — your content. The toolbar has H2 (section heading), H3 (subheading), bold, italic, bullet list, numbered list, quote, divider, link, and the **🖼 image button** — which opens the same Upload / GIFs / Photos / URL picker described under the blog editor's "Adding images and GIFs." GIFs and photos render right in the email.
 
+### Adding a link
+
+Select the words you want to turn into a link, click the **🔗 button**, and type or paste the
+address. A few things worth knowing:
+
+- You don't need to type `https://` — "thryvegrowth.co/career-reset-workbook" works fine.
+- If you paste just the path (something starting with `/`), it's expanded into the full web
+  address for you. Email has no way to guess your site, so a partial address would be dead.
+- Jump links that start with `#` don't work in email, and you'll be told so.
+- If the link can't be applied for any reason, you'll see a red message. **No message and a
+  green "Link added" means it worked.** If you ever see the red one, re-select the text and
+  try again — don't just save and hope.
+
+### If a link has no address
+
+Sometimes text ends up *looking* like a link without actually carrying an address — usually
+when it's pasted in from a Google Doc or another email. That text would go out as ordinary,
+unclickable words.
+
+You'll see an **amber box in the sidebar** listing exactly which words are affected. Fix each
+one by selecting it in the editor, clicking 🔗, and entering the address. If you try to send
+a test, schedule, or send while the box is showing, you'll get a confirmation prompt first so
+it can't slip past you.
+
 ### The sidebar (right column)
 
 - **Status** — where the draft is in the workflow (Draft → Pending approval → Scheduled → Sent).

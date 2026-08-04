@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { NewsletterEditor } from "@/components/admin/NewsletterEditor";
 import { NEWSLETTER_INTERESTS } from "@/lib/newsletter/interests";
+import { auditLinks } from "@/lib/newsletter/links";
 import {
   formatCentralDateTime,
   centralDatetimeLocalToUtcIso,
@@ -97,6 +98,21 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   const isFinal = status === "sent" || status === "sending";
   const isScheduled = status === "scheduled";
 
+  // Links without an address render as plain text in the email. Catch them here
+  // rather than after a send.
+  const linkAudit = React.useMemo(() => auditLinks(content), [content]);
+  const brokenLinks = linkAudit.missingHref;
+
+  /** Returns false if the admin backs out because of broken links. */
+  function confirmBrokenLinks(action: string): boolean {
+    if (brokenLinks.length === 0) return true;
+    return window.confirm(
+      `${brokenLinks.length} link${brokenLinks.length === 1 ? "" : "s"} in this issue ` +
+        `${brokenLinks.length === 1 ? "has" : "have"} no web address and will be sent as ` +
+        `plain text:\n\n${brokenLinks.map((t) => `• ${t}`).join("\n")}\n\n${action} anyway?`
+    );
+  }
+
   function toggleInterest(slug: string) {
     setTargetInterests((prev) =>
       prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
@@ -145,6 +161,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   }
 
   async function handleSubmitForApproval() {
+    if (!confirmBrokenLinks("Submit for approval")) return;
     const id = await persist();
     if (!id) return;
     const result = await submitForApproval(id);
@@ -157,6 +174,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   }
 
   async function handleApproveAndSchedule() {
+    if (!confirmBrokenLinks("Schedule")) return;
     const id = await persist();
     if (!id) return;
     // The datetime-local value is always Central wall-clock; convert to a true
@@ -172,6 +190,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
   }
 
   async function handleSendNow() {
+    if (!confirmBrokenLinks("Send")) return;
     if (!window.confirm("Send this newsletter to all matching subscribers now?")) return;
     const id = await persist();
     if (!id) return;
@@ -208,6 +227,7 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
 
   async function handleTestSend() {
     if (!testEmail || !initialData.id) return;
+    if (!confirmBrokenLinks("Send the test")) return;
     setTestSending(true);
     try {
       // Save the current draft first — the test-send renders the SAVED content,
@@ -288,6 +308,26 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
 
       {/* Sidebar: status, targeting, schedule, send */}
       <aside className="space-y-5">
+        {!isFinal && brokenLinks.length > 0 && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 space-y-2">
+            <h3 className="font-semibold text-sm text-amber-900">
+              {brokenLinks.length} link{brokenLinks.length === 1 ? "" : "s"}{" "}
+              {brokenLinks.length === 1 ? "has" : "have"} no web address
+            </h3>
+            <p className="text-xs text-amber-800">
+              This text will be sent as plain, unclickable text. Select it in the editor, click
+              the 🔗 button, and enter the address.
+            </p>
+            <ul className="text-xs text-amber-900 list-disc pl-4 space-y-0.5">
+              {brokenLinks.map((text, i) => (
+                <li key={`${text}-${i}`} className="break-words">
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-3">
           <h3 className="font-semibold text-sm text-neutral-900">Status</h3>
           <StatusBadge status={status} />
