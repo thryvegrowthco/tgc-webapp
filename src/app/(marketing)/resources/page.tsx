@@ -30,6 +30,13 @@ const categories = [
   },
 ];
 
+// Resources that have a dedicated landing page — the card links there (the
+// landing page carries the full pitch + the download) instead of downloading
+// straight from the card.
+const LANDING_PAGES: Record<string, string> = {
+  "career-reset-workbook": "/career-reset-workbook",
+};
+
 export default async function ResourcesPage() {
   // RLS on `resources` restricts anonymous reads to enabled rows automatically;
   // the .eq("enabled", true) here is defensive + lets us share a typed array
@@ -138,7 +145,14 @@ export default async function ResourcesPage() {
                     <span className="font-display text-xl font-bold text-brand-700">
                       {res.price}
                     </span>
-                    {res.cta_type === "Download" && (res.file_path || res.external_url) ? (
+                    {LANDING_PAGES[res.slug] ? (
+                      <Link
+                        href={LANDING_PAGES[res.slug]}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white hover:bg-brand-700 transition-colors"
+                      >
+                        View guide <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : res.cta_type === "Download" && (res.file_path || res.external_url) ? (
                       <a
                         href={`/api/resources/download/${res.slug}`}
                         className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white hover:bg-brand-700 transition-colors"
