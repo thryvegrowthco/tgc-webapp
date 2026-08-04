@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
 import { ResourceToggle } from "@/components/admin/ResourceToggle";
 import type { Resource } from "@/types/database";
 
@@ -37,7 +38,14 @@ export default async function AdminResourcesPage() {
   return (
     <div className="max-w-4xl">
       <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-neutral-900">Resources</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="font-display text-2xl font-bold text-neutral-900">Resources</h1>
+          <Button asChild size="sm">
+            <Link href="/admin/resources/new">
+              <Plus className="h-4 w-4" /> New resource
+            </Link>
+          </Button>
+        </div>
         <p className="text-neutral-500 text-sm mt-1">
           Toggle individual templates and tools on or off, or click into one to edit its copy.{" "}
           {enabledCount === 0

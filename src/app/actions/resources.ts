@@ -15,20 +15,6 @@ const CATEGORIES = new Set([
 const CTA_TYPES = new Set<ResourceCtaType>(["Buy Now", "Download"]);
 
 const RESOURCE_BUCKET = "resource-files";
-const MAX_RESOURCE_BYTES = 25 * 1024 * 1024; // 25 MB — matches the bucket limit
-const ALLOWED_RESOURCE_TYPES = new Set([
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/csv",
-  "application/zip",
-  "image/png",
-  "image/jpeg",
-]);
 
 export interface UpdateResourceInput {
   id: string;
@@ -111,38 +97,24 @@ export async function updateResource(
   return { success: true };
 }
 
-// Upload a downloadable file for a resource → private `resource-files` bucket.
-// A hosted file takes precedence over an external link in the download route.
-export async function uploadResourceFile(
+// Record a file that the browser already uploaded directly to the private
+// `resource-files` bucket (via POST /api/admin/uploads/sign → PUT). The file
+// never passes through a Server Action, so there's no 1 MB / 4.5 MB body cap.
+export async function finalizeResourceFile(
   id: string,
-  formData: FormData
+  file: { path: string; fileName: string; sizeBytes: number }
 ): Promise<{ error?: string; success?: boolean }> {
   const auth = await requireAdmin();
   if (!auth.ok) return { error: auth.error };
+  if (!file?.path) return { error: "No uploaded file to record." };
 
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { error: "No file provided" };
-  if (file.size > MAX_RESOURCE_BYTES) return { error: "File is too large (max 25 MB)." };
-  if (!ALLOWED_RESOURCE_TYPES.has(file.type)) {
-    return { error: "Unsupported file type (PDF, Office docs, CSV, ZIP, PNG, or JPG)." };
-  }
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `${id}/${Date.now()}-${safeName}`;
   const svc = createServiceClient();
-  const arrayBuffer = await file.arrayBuffer();
-
-  const { error: upErr } = await svc.storage
-    .from(RESOURCE_BUCKET)
-    .upload(storagePath, arrayBuffer, { contentType: file.type, upsert: false });
-  if (upErr) return { error: upErr.message };
-
   const { error } = await svc
     .from("resources")
     .update({
-      file_path: storagePath,
-      file_name: file.name,
-      file_size_bytes: file.size,
+      file_path: file.path,
+      file_name: file.fileName,
+      file_size_bytes: file.sizeBytes,
       updated_at: new Date().toISOString(),
       updated_by: auth.userId,
     })
@@ -183,6 +155,105 @@ export async function removeResourceFile(
       updated_by: auth.userId,
     })
     .eq("id", id);
+  if (error) return { error: error.message };
+
+  bumpBoth();
+  return { success: true };
+}
+
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "resource"
+  );
+}
+
+export interface CreateResourceInput {
+  title: string;
+  description: string;
+  category: string;
+  price: string;
+  ctaType: ResourceCtaType;
+}
+
+// Create a new catalog resource. Starts hidden (enabled=false) so Rachel can add
+// a file/link and review before it shows on /resources.
+export async function createResource(
+  input: CreateResourceInput
+): Promise<{ error?: string; id?: string }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const category = input.category.trim();
+  const price = input.price.trim();
+  if (!title) return { error: "Title is required." };
+  if (!description) return { error: "Description is required." };
+  if (!price) return { error: "Price is required (use 'Free' for free downloads)." };
+  if (!CATEGORIES.has(category)) return { error: "Pick a valid category." };
+  if (!CTA_TYPES.has(input.ctaType)) return { error: "CTA type must be 'Buy Now' or 'Download'." };
+
+  const supabase = await createClient();
+
+  // Unique slug: base, then base-2, base-3, … (mirrors blog slug handling).
+  const base = slugify(title);
+  let slug = base;
+  for (let n = 2; n < 50; n++) {
+    const { data: existing } = await supabase.from("resources").select("id").eq("slug", slug).maybeSingle();
+    if (!existing) break;
+    slug = `${base}-${n}`;
+  }
+
+  // New resources sort to the end of the list.
+  const { data: maxRow } = await supabase
+    .from("resources")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = ((maxRow as { sort_order: number } | null)?.sort_order ?? 0) + 10;
+
+  const { data: inserted, error } = await supabase
+    .from("resources")
+    .insert({
+      slug,
+      title,
+      description,
+      category,
+      price,
+      cta_type: input.ctaType,
+      enabled: false,
+      sort_order: sortOrder,
+      updated_by: auth.userId,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+
+  bumpBoth();
+  return { id: (inserted as { id: string }).id };
+}
+
+// Permanently delete a resource (and its hosted file, best-effort).
+export async function deleteResource(
+  id: string
+): Promise<{ error?: string; success?: boolean }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+
+  const svc = createServiceClient();
+  const { data: row } = await svc.from("resources").select("file_path").eq("id", id).maybeSingle();
+  const filePath = (row as { file_path: string | null } | null)?.file_path;
+  if (filePath) {
+    await svc.storage.from(RESOURCE_BUCKET).remove([filePath]);
+  }
+
+  const { error } = await svc.from("resources").delete().eq("id", id);
   if (error) return { error: error.message };
 
   bumpBoth();

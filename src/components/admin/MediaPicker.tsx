@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { uploadEditorImage, trackUnsplashDownload } from "@/app/actions/media";
+import { trackUnsplashDownload } from "@/app/actions/media";
+import { uploadViaSignedUrl } from "@/lib/upload/direct";
 
 export interface PickedMedia {
   src: string;
@@ -158,15 +159,15 @@ function UploadTab({ onPick }: { onPick: (m: PickedMedia) => void }) {
   async function handleFile(file: File | undefined) {
     if (!file) return;
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const result = await uploadEditorImage(fd);
-    setUploading(false);
-    if (result.error) {
-      toast.error(result.error);
-    } else if (result.url) {
+    try {
+      const { publicUrl } = await uploadViaSignedUrl("blog-images", file, "inline");
+      if (!publicUrl) throw new Error("Upload succeeded but no URL was returned.");
       const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
-      onPick({ src: result.url, alt });
+      onPick({ src: publicUrl, alt });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
   }
 

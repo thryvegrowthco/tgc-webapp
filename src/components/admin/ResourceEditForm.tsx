@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { updateResource, uploadResourceFile, removeResourceFile } from "@/app/actions/resources";
+import { updateResource, finalizeResourceFile, removeResourceFile, deleteResource } from "@/app/actions/resources";
+import { uploadViaSignedUrl } from "@/lib/upload/direct";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Resource, ResourceCtaType } from "@/types/database";
 
 const CATEGORIES = [
@@ -50,6 +52,8 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
   const [fileSize, setFileSize] = React.useState<number | null>(resource.file_size_bytes);
   const [uploading, setUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -78,35 +82,62 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const result = await uploadResourceFile(resource.id, fd);
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      // Upload straight to Storage (no Server Action body cap), then record it.
+      const { path } = await uploadViaSignedUrl("resource-files", file, resource.id);
+      const result = await finalizeResourceFile(resource.id, {
+        path,
+        fileName: file.name,
+        sizeBytes: file.size,
+      });
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setFileName(file.name);
+      setFilePath(path);
+      setFileSize(file.size);
+      toast.success("File uploaded.");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-    setFileName(file.name);
-    setFilePath("uploaded");
-    setFileSize(file.size);
-    toast.success("File uploaded.");
-    router.refresh();
   }
 
   async function handleRemoveFile() {
     setUploading(true);
-    const result = await removeResourceFile(resource.id);
-    setUploading(false);
+    try {
+      const result = await removeResourceFile(resource.id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setFileName(null);
+      setFilePath(null);
+      setFileSize(null);
+      toast.success("File removed.");
+      router.refresh();
+    } catch {
+      toast.error("Could not remove the file. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    const result = await deleteResource(resource.id);
     if (result.error) {
+      setDeleting(false);
+      setConfirmDelete(false);
       toast.error(result.error);
       return;
     }
-    setFileName(null);
-    setFilePath(null);
-    setFileSize(null);
-    toast.success("File removed.");
-    router.refresh();
+    toast.success("Resource deleted.");
+    router.push("/admin/resources");
   }
 
   return (
@@ -263,7 +294,26 @@ export function ResourceEditForm({ resource }: ResourceEditFormProps) {
         <Button type="button" variant="ghost" onClick={() => router.push("/admin/resources")} disabled={pending}>
           Back to resources
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setConfirmDelete(true)}
+          disabled={pending || deleting}
+          className="ml-auto text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          Delete
+        </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this resource?"
+        description="This permanently removes the resource and its uploaded file. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        loading={deleting}
+      />
     </form>
   );
 }

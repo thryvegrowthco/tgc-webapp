@@ -678,8 +678,11 @@ When **nothing** is switched on, the public `/resources` page replaces the templ
 
 Each row also shows a **Views** and **Downloads** count so you can see, at a glance, how many people looked at each resource and how many actually downloaded it.
 
+**Adding a new resource:**
+Click **New resource** (top-right of the Resources page). Fill in the title, category, a short description, the price ("Free" or a dollar amount), and the type (Download vs Buy Now), then click **Create & add file**. The new resource starts **hidden**, and you'll land on its editor to upload the file — see "Making a free resource downloadable" below. Flip its switch ON when you're ready for it to appear publicly.
+
 **Editing a resource:**
-Click "Edit" on any row to change the title, description, category, price (use "Free" or "$19" style), CTA type (Buy Now vs Download), or the sort order. The top of the edit page shows this resource's **view and download totals**. Save and the public page updates instantly.
+Click "Edit" on any row to change the title, description, category, price (use "Free" or "$19" style), CTA type (Buy Now vs Download), or the sort order. The top of the edit page shows this resource's **view and download totals**. Save and the public page updates instantly. To remove a resource for good, use the **Delete** button on its editor (this also deletes its uploaded file — it can't be undone).
 
 **Making a free resource downloadable:**
 In the editor, under **Downloadable file**, either:
