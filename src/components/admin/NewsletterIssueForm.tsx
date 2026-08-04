@@ -210,10 +210,14 @@ export function NewsletterIssueForm({ mode, initialData, blogOptions }: Newslett
     if (!testEmail || !initialData.id) return;
     setTestSending(true);
     try {
+      // Save the current draft first — the test-send renders the SAVED content,
+      // so unsaved edits (e.g. a link just added) would otherwise be missing.
+      const savedId = await persist();
+      if (!savedId) return; // persist() surfaces its own error toast
       const res = await fetch("/api/admin/newsletter/test-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueId: initialData.id, email: testEmail }),
+        body: JSON.stringify({ issueId: savedId, email: testEmail }),
       });
       const json = await res.json();
       if (!res.ok) {

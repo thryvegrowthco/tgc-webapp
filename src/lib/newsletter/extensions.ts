@@ -14,9 +14,14 @@ export const newsletterEditorExtensions = [
   StarterKit.configure({
     heading: { levels: [2, 3] },
     codeBlock: false,
+    // StarterKit v3 bundles its own Link; disable it so the configured Link
+    // below is the only 'link' extension (no duplicate-extension warning).
+    link: false,
   }),
   Link.configure({
     openOnClick: false,
+    autolink: true,
+    linkOnPaste: true,
     HTMLAttributes: {
       class: "text-brand-700 underline underline-offset-4",
       rel: "noopener noreferrer",
@@ -33,6 +38,7 @@ export const newsletterRenderExtensions = [
   StarterKit.configure({
     heading: { levels: [2, 3] },
     codeBlock: false,
+    link: false, // use the configured Link below, not StarterKit's bundled one
   }),
   Link.configure({
     HTMLAttributes: {

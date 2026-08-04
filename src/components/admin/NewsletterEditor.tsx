@@ -86,13 +86,27 @@ export function NewsletterEditor({
   if (!editor) return null;
 
   function setLink() {
-    const url = window.prompt("URL", editor?.getAttributes("link").href ?? "");
-    if (url === null) return;
-    if (url === "") {
-      editor?.chain().focus().unsetLink().run();
+    if (!editor) return;
+    const prev = (editor.getAttributes("link").href as string) ?? "";
+    const input = window.prompt("Link URL", prev);
+    if (input === null) return; // cancelled
+    const trimmed = input.trim();
+    if (trimmed === "") {
+      editor.chain().focus().unsetLink().run();
       return;
     }
-    editor?.chain().focus().setLink({ href: url }).run();
+    // Add https:// when no scheme is given so the link always works.
+    const href = /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    if (editor.state.selection.empty) {
+      // Nothing selected — insert the URL itself as a clickable link.
+      editor
+        .chain()
+        .focus()
+        .insertContent({ type: "text", text: href, marks: [{ type: "link", attrs: { href } }] })
+        .run();
+    } else {
+      editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+    }
   }
 
   return (

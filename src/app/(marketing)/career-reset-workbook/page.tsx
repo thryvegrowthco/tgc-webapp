@@ -23,20 +23,22 @@ export const metadata: Metadata = {
   },
 };
 
-// ── Draft, editable copy (Rachel: swap for the workbook's real sections) ──────
+// ── The workbook's eight parts (matches the actual PDF) ───────────────────────
 const INSIDE = [
-  "A clear-eyed audit of where your career is right now — what's working and what's quietly draining you",
-  "Prompts to reconnect with what you actually want, not just what looks good on paper",
-  "A simple way to surface the strengths and experience you can carry into anything next",
-  "Space to define your next move — the role, the environment, and your non-negotiables",
-  "A first-30-days action plan so you leave with momentum instead of a pile of ideas",
-  "Reflection questions you can come back to any time you feel stuck again",
+  "Pause + Reflect — take an honest “career temperature” and name what's draining you versus what's working",
+  "Rediscover your strengths — build an evidence bank of real wins and name your five strongest strengths",
+  "Create your career vision — picture an ordinary good day two years out and turn it into a clear direction",
+  "Define your non-negotiables — choose the five things that matter most, with your real deal-breakers",
+  "Set goals that create movement — a 90-day goal broken into realistic 30 / 60 / 90-day milestones",
+  "Check your job-search readiness — a scorecard across your résumé, story, network, interviewing, and more",
+  "Build your 30-day plan — four focused weeks: clarify, position, connect, and act",
+  "Celebrate the progress — see how far you've come and commit to your next 30 days",
 ];
 
 const WHO_FOR = [
-  { icon: Compass, title: "Feeling stuck or restless", body: "You're not miserable, but something's off — and you're ready to figure out what." },
-  { icon: Sparkles, title: "Pivoting or returning", body: "You're changing direction or coming back to work and want a clear starting point." },
-  { icon: Star, title: "Craving clarity first", body: "You want to get clear on what you want before you touch the résumé or start applying." },
+  { icon: Compass, title: "In an in-between season", body: "You know something about work needs to change — but you're not sure yet what the change should be." },
+  { icon: Sparkles, title: "Stuck, restless, or drained", body: "You want space to get honest about where you are and what actually matters to you now." },
+  { icon: Star, title: "Ready for a real next step", body: "Whether that's reshaping your current role or starting a search, you want a clear, doable plan." },
 ];
 
 export default async function CareerResetWorkbookPage() {
@@ -84,7 +86,7 @@ export default async function CareerResetWorkbookPage() {
         eyebrow="Free Workbook"
         title="The Career Reset"
         titleAccent="Workbook"
-        description="A guided, no-fluff workbook to help you get unstuck, get clear on what you actually want next, and map the first real steps to get there — at your own pace."
+        description="A free, guided workbook for that in-between season — when you know something about work needs to change, but you're not sure what. Eight short parts help you get honest about where you are, reconnect with your strengths, and map one realistic step forward."
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {downloadCta("lg", "Download the workbook")}
@@ -98,8 +100,8 @@ export default async function CareerResetWorkbookPage() {
           <div className="max-w-2xl mb-10">
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 mb-3">What&apos;s inside</h2>
             <p className="text-neutral-600 leading-relaxed">
-              It&apos;s the same set of questions Rachel walks clients through at the start of a career reset — pulled
-              together so you can work through them on your own.
+              Eight short, guided parts — the same reflection Rachel walks clients through — that you can work through
+              at your own pace. No perfect answers required; just honest ones.
             </p>
           </div>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
