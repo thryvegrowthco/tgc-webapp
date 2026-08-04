@@ -14,6 +14,7 @@ import { CharacterCount } from "@tiptap/extension-character-count";
 import { toast } from "sonner";
 import { newsletterEditorExtensions } from "@/lib/newsletter/extensions";
 import { emailSafeBaseUrl, normalizeLinkHref } from "@/lib/editor/links";
+import { toPlainJSON } from "@/lib/editor/json";
 import { cn } from "@/lib/utils";
 import { MediaPicker } from "@/components/admin/MediaPicker";
 import type { JSONContent } from "@tiptap/react";
@@ -81,7 +82,9 @@ export function NewsletterEditor({
       },
     },
     onUpdate({ editor }) {
-      onChange?.(editor.getJSON());
+      // Plain-prototype copy: Server Actions drop ProseMirror's
+      // null-prototype attrs, taking every href/src/level with them.
+      onChange?.(toPlainJSON(editor.getJSON()));
     },
   });
 

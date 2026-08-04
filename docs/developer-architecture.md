@@ -210,6 +210,14 @@ Stripe client is wrapped in a `Proxy` to defer initialization until first access
   - `MediaPicker` takes three optional props that all default to the original editor behavior, so existing call sites need no changes: `title` (dialog heading), `defaultTab` (`"upload"` by default), and `hideGifTab`. The featured-image call site passes `title="Choose a featured image"`, `defaultTab="image"`, and `hideGifTab` — a GIF makes a poor OpenGraph image.
 - **Renderer:** `src/app/blog/[slug]/page.tsx` uses `generateHTML` from `@tiptap/html` with matching extension set
 - Extension sets must match between editor and renderer — mismatches cause empty output or errors
+
+> ### ⚠️ Never pass raw `editor.getJSON()` to a Server Action
+>
+> `prosemirror-model` builds every node/mark `attrs` with `Object.create(null)` (see `computeAttrs`). **React's Server Action serializer silently drops null-prototype objects**, so `attrs` disappears in transit — a link arrives with no `href`, an image with no `src`, a heading with no `level`. Nothing surfaces the problem: the editor looks right, `JSON.stringify` serializes null-prototype objects perfectly, and any Node-side test of the payload passes. Only the row that lands in Postgres is wrong, and Tiptap re-reads the mangled JSON without complaint because every missing attr just falls back to its default.
+>
+> Every `onUpdate` that emits editor JSON therefore wraps it in **`toPlainJSON()`** (`src/lib/editor/json.ts`), which round-trips through JSON to re-parent each object onto `Object.prototype`. Applied in `NewsletterEditor.tsx`, `RichTextEditor.tsx`, and `ServiceAgreementEditor.tsx` — the three `getJSON()` call sites. If you add a fourth editor, do the same.
+>
+> This was the root cause of newsletter links arriving unclickable, and it is guarded by `scripts/test-newsletter-links.mts` (asserts the raw attrs really are null-prototype and that `toPlainJSON` re-parents them, nested included).
 - **Link button (both editors):** `setLink()` in `RichTextEditor.tsx` / `NewsletterEditor.tsx` runs the prompt value through `normalizeLinkHref()` (`src/lib/editor/links.ts`), then **checks the boolean returned by `.run()` and re-reads `editor.getAttributes("link").href` to confirm the href actually landed on the mark**, toasting an error on any failure. This is deliberate: Tiptap's `setLink` returns `false` without applying anything when its `isAllowedUri` check rejects the href, and a link mark saved without an `href` renders as ordinary text in a sent email — a failure that is invisible in the editor. Never drop these guards back to a bare `.run()`.
 - `published_at` is set once (first publish) and preserved on all subsequent updates — see `updateBlogPost`
 - Slug uniqueness enforced with a separate query before insert/update (not a DB constraint, to allow friendly error messages)

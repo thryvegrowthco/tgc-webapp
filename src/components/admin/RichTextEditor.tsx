@@ -9,6 +9,7 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { toast } from "sonner";
 import { normalizeLinkHref } from "@/lib/editor/links";
+import { toPlainJSON } from "@/lib/editor/json";
 import { cn } from "@/lib/utils";
 import { MediaPicker } from "@/components/admin/MediaPicker";
 import type { JSONContent } from "@tiptap/react";
@@ -94,7 +95,9 @@ export function RichTextEditor({
       },
     },
     onUpdate({ editor }) {
-      onChange?.(editor.getJSON());
+      // Plain-prototype copy: Server Actions drop ProseMirror's
+      // null-prototype attrs, taking every href/src/level with them.
+      onChange?.(toPlainJSON(editor.getJSON()));
     },
   });
 

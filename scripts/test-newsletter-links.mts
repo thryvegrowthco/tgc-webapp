@@ -6,6 +6,9 @@
 const { renderIssueHTML, renderIssueText } = await import("@/lib/email/newsletter-render");
 const { auditLinks, stripEmptyLinks } = await import("@/lib/newsletter/links");
 const { normalizeLinkHref, emailSafeBaseUrl } = await import("@/lib/editor/links");
+const { toPlainJSON } = await import("@/lib/editor/json");
+const { getSchema } = await import("@tiptap/core");
+const { newsletterEditorExtensions } = await import("@/lib/newsletter/extensions");
 
 let pass = 0,
   fail = 0;
@@ -63,6 +66,22 @@ try {
   check("url: javascript: rejected", !!normalizeLinkHref("javascript:alert(1)", { baseUrl: BASE }).error);
   check("url: empty rejected", !!normalizeLinkHref("   ", { baseUrl: BASE }).error);
   check("url: https passes unchanged", normalizeLinkHref(URL_, { baseUrl: BASE }).href === URL_);
+
+  // ── The Server Action trap ──────────────────────────────────────────────────
+  // ProseMirror builds attrs with Object.create(null); React's Server Action
+  // serializer drops null-prototype objects, so href/src/level vanish in transit
+  // while JSON.stringify still looks perfect. toPlainJSON re-parents them.
+  const schema = getSchema(newsletterEditorExtensions);
+  const rawMark = schema.marks.link.create({ href: URL_ }).toJSON();
+  check("trap: raw Tiptap attrs really are null-prototype", Object.getPrototypeOf(rawMark.attrs) === null);
+  check("trap: JSON.stringify hides the problem", JSON.stringify(rawMark).includes(URL_));
+  const plain = toPlainJSON(rawMark);
+  check("fix: toPlainJSON re-parents attrs onto Object.prototype", Object.getPrototypeOf(plain.attrs) === Object.prototype);
+  check("fix: toPlainJSON preserves the href", plain.attrs.href === URL_);
+  check(
+    "fix: nested attrs are re-parented too",
+    Object.getPrototypeOf(toPlainJSON({ a: { marks: [rawMark] } }).a.marks[0].attrs) === Object.prototype
+  );
 
   // ── Base URL guard: never email a localhost link ────────────────────────────
   check("base: localhost falls back to production", emailSafeBaseUrl("http://localhost:3000") === BASE);

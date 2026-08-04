@@ -105,7 +105,7 @@ Because a featured image is also the preview picture that Facebook, LinkedIn, an
 Yes. Featured images previously looked like they'd been added but weren't actually being saved with the post, so they'd vanish when the page reloaded. They now save properly. If you have older posts where you tried to add a header image, open each one and pick the image again — it'll stick this time.
 
 ### I added a link to my newsletter but the email arrived without it. Why?
-The text was carrying link *styling* but no actual web address, so it went out as plain, unclickable words. This usually happens when content is pasted in from a Google Doc or another email, which brings the underline along without the address behind it.
+This was a genuine bug, now fixed: the web address was being lost while the page saved your draft. The link looked correct in the editor — it just never made it into storage, so the email went out with plain, unclickable words. It affected links, and it could also have dropped images and heading sizes the same way.
 
 You'll now be warned before it can happen again: an **amber box appears in the sidebar** of the issue, listing exactly which words have no address, and you'll get a confirmation prompt if you try to send a test, schedule, or send while it's showing. Fix each one by selecting the words, clicking the **🔗 button**, and entering the address — you'll see a green "Link added" when it works.
 

@@ -9,6 +9,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { legalEditorExtensions } from "@/lib/legal/extensions";
+import { toPlainJSON } from "@/lib/editor/json";
 import { cn } from "@/lib/utils";
 import type { JSONContent } from "@tiptap/react";
 
@@ -72,7 +73,9 @@ export function ServiceAgreementEditor({
       },
     },
     onUpdate({ editor }) {
-      onChange?.(editor.getJSON());
+      // Plain-prototype copy: Server Actions drop ProseMirror's
+      // null-prototype attrs, taking every href/src/level with them.
+      onChange?.(toPlainJSON(editor.getJSON()));
     },
   });
 
