@@ -693,6 +693,8 @@ Once a **Download** resource has a file or link *and* is switched ON, its public
 
 **About paid "Buy Now" resources:** these still show a "Coming soon" badge for now — wiring them to a checkout is a separate step. Free downloads and the view/download counts are live.
 
+**Dedicated landing pages:** some resources have their own full landing page you can share directly (in ads, emails, or social) instead of sending people to the whole Resources list. The **Career Reset Workbook** has one at **`thryvegrowth.co/career-reset-workbook`** — it has a big Download button plus an optional newsletter sign-up. If you'd like a landing page for another resource, just ask.
+
 ---
 
 ## 11b. Testimonials

@@ -14,6 +14,7 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: `${BASE_URL}/services/interview-prep`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/services/resume-materials`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/services/job-alerts`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+  { url: `${BASE_URL}/career-reset-workbook`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/investment`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/packages`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
   { url: `${BASE_URL}/faq`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
