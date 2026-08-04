@@ -8,6 +8,27 @@ import type { JSONContent } from "@tiptap/react";
 import { newsletterRenderExtensions } from "@/lib/newsletter/extensions";
 import { renderNewsletterShell } from "./newsletter-template";
 
+// Drop link marks that have no usable href so a broken/pasted "link" (e.g. text
+// pasted in from Google Docs that carried link styling without a real address)
+// renders as normal text instead of a dead, unclickable <a>. Button-created
+// links always have an href and pass through untouched.
+export function stripEmptyLinks<T extends JSONContent>(node: T): T {
+  if (!node || typeof node !== "object") return node;
+  const next: JSONContent = { ...node };
+  if (Array.isArray(next.marks)) {
+    next.marks = next.marks.filter((m) => {
+      if (m?.type !== "link") return true;
+      const href = m?.attrs?.href;
+      return typeof href === "string" && href.trim() !== "";
+    });
+    if (next.marks.length === 0) delete next.marks;
+  }
+  if (Array.isArray(next.content)) {
+    next.content = next.content.map((c) => stripEmptyLinks(c));
+  }
+  return next as T;
+}
+
 export interface RenderIssueInput {
   subject: string;
   preheader: string;
@@ -18,7 +39,7 @@ export interface RenderIssueInput {
 
 export function renderIssueHTML(input: RenderIssueInput): string {
   const bodyHtml = input.content
-    ? generateHTML(input.content, newsletterRenderExtensions)
+    ? generateHTML(stripEmptyLinks(input.content), newsletterRenderExtensions)
     : "<p>(No content yet.)</p>";
 
   return renderNewsletterShell({
@@ -35,7 +56,7 @@ export function renderIssueHTML(input: RenderIssueInput): string {
 // spam filters and accessibility tools.
 export function renderIssueText(input: RenderIssueInput): string {
   if (!input.content) return "";
-  const html = generateHTML(input.content, newsletterRenderExtensions);
+  const html = generateHTML(stripEmptyLinks(input.content), newsletterRenderExtensions);
   return html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|h\d|li)>/gi, "\n\n")
