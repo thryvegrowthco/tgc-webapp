@@ -684,6 +684,9 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
     client_id: userId,
     subscription_status: "active",
     stripe_subscription_id: subscriptionId,
+    // Converts a comped client to paying. comp_note/comped_at are deliberately
+    // left in place as history — only the source of access changes.
+    access_source: "paid" as const,
     updated_at: new Date().toISOString(),
   };
 

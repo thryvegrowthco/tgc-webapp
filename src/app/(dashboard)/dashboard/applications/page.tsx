@@ -37,12 +37,16 @@ export default async function ApplicationsPage() {
   // Gate when a watchlist subscription exists but isn't active.
   const { data: wl } = await supabase
     .from("watchlist_profiles")
-    .select("subscription_status")
+    .select("subscription_status, access_source")
     .eq("client_id", user.id)
     .maybeSingle();
   if (wl) {
     const access = getWatchlistAccess(wl.subscription_status);
-    if (!access.allowed) return <WatchlistInactiveNotice status={wl.subscription_status} />;
+    if (!access.allowed) {
+      return (
+        <WatchlistInactiveNotice status={wl.subscription_status} accessSource={wl.access_source} />
+      );
+    }
   }
 
   const { data: matchesRaw } = await supabase

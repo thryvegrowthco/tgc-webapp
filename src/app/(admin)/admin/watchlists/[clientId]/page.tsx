@@ -132,13 +132,39 @@ export default async function AdminWatchlistClientPage({
         )}
       </div>
 
-      {/* Subscription + review controls */}
-      {watchlist && (
-        <WatchlistAdminControls
-          clientId={clientId}
-          subscriptionStatus={watchlist.subscription_status}
-          reviewStatus={watchlist.review_status}
-        />
+      {/* Access + review controls. Rendered even with no watchlist row, so a
+          client who has never had Job Alerts can be granted free access here
+          instead of dead-ending. */}
+      <WatchlistAdminControls
+        clientId={clientId}
+        clientName={profile.full_name ?? profile.email}
+        subscriptionStatus={watchlist?.subscription_status ?? null}
+        reviewStatus={watchlist?.review_status ?? "pending_review"}
+        accessSource={watchlist?.access_source ?? null}
+        hasStripeSubscription={Boolean(watchlist?.stripe_subscription_id)}
+        compNote={watchlist?.comp_note ?? null}
+        compedAt={watchlist?.comped_at ?? null}
+        compedUntil={watchlist?.comped_until ?? null}
+      />
+
+      {/* No row yet — offer the criteria form anyway (the admin insert path
+          exists in updateWatchlistProfileAsAdmin, it was just unreachable). */}
+      {!watchlist && (
+        <div className="bg-white rounded-xl border border-neutral-200 p-5">
+          <h2 className="font-semibold text-neutral-900 text-sm mb-1">Client Preferences</h2>
+          <p className="text-sm text-neutral-500 mb-4">
+            No watchlist criteria yet. Fill these in now, or let the client complete the
+            questionnaire from their dashboard.
+          </p>
+          <details>
+            <summary className="cursor-pointer text-sm font-medium text-brand-700">
+              Add criteria
+            </summary>
+            <div className="mt-4">
+              <WatchlistSetupForm initialData={initialData} adminClientId={clientId} />
+            </div>
+          </details>
+        </div>
       )}
 
       {/* Preferences summary */}

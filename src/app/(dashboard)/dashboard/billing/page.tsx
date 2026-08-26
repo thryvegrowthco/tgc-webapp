@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CreditCard, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
+import { CreditCard, AlertCircle, CheckCircle2, ArrowRight, Gift } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe/client";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,27 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // maybeSingle, not single — a coaching-only client has no row, and .single()
+  // logged a PostgREST error on every render.
   const { data: watchlist } = await supabase
     .from("watchlist_profiles")
-    .select("subscription_status, stripe_subscription_id, updated_at")
+    .select("subscription_status, stripe_subscription_id, access_source, comp_note, comped_until, updated_at")
     .eq("client_id", user.id)
-    .single();
+    .maybeSingle();
 
   const hasSubscription = Boolean(watchlist?.stripe_subscription_id);
+  // Complimentary access: real access, but no Stripe customer, so none of the
+  // billing-portal UI applies. Without this branch they'd see the "No active
+  // subscription" upsell while the watchlist works fine.
+  const isComped =
+    watchlist?.access_source === "comped" && watchlist?.subscription_status === "active";
+  const compEndsOn = watchlist?.comped_until
+    ? new Date(watchlist.comped_until).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   let nextBillingDate: string | null = null;
   let cancelAtPeriodEnd = false;
@@ -135,6 +149,59 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </form>
+          </div>
+        </>
+      ) : isComped ? (
+        <>
+          <div className="bg-white border border-neutral-200 rounded-xl p-6 mb-6">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-brand-50 rounded-lg">
+                  <Gift className="h-5 w-5 text-brand-600" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-neutral-900">Job Alerts &amp; Watchlists</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">Complimentary access</p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-100 text-brand-800">
+                Active
+              </span>
+            </div>
+
+            <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              <div>
+                <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">Cost</dt>
+                <dd className="font-medium text-neutral-800">$0 — on the house</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">
+                  {compEndsOn ? "Access through" : "Payment method"}
+                </dt>
+                <dd className="font-medium text-neutral-800">{compEndsOn ?? "None needed"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">Status</dt>
+                <dd className="font-medium text-neutral-800">Active</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="bg-white border border-neutral-200 rounded-xl p-6">
+            <h2 className="font-display font-bold text-neutral-900 mb-2">Nothing to pay</h2>
+            <p className="text-sm text-neutral-600 mb-5 leading-relaxed">
+              Rachel set up your Job Alerts &amp; Watchlist at no cost, so there&apos;s no card on
+              file and no invoices to download.
+              {compEndsOn
+                ? ` Your complimentary access runs through ${compEndsOn} — subscribe any time to keep it going.`
+                : " If you'd ever like to move to a paid subscription, you can start one here."}
+            </p>
+            <Button asChild variant="outline" size="lg">
+              <Link href="/services/job-alerts">
+                See the Job Alerts plan
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </>
       ) : (

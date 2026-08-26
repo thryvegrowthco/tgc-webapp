@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FileText, Download, Send } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { DocumentUploadForm } from "@/components/admin/DocumentUploadForm";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
@@ -15,6 +16,8 @@ import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
 import { AddTaskForm } from "@/components/admin/AddTaskForm";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { GoalsManager } from "@/components/dashboard/GoalsManager";
+import { WatchlistAdminControls } from "@/components/admin/WatchlistAdminControls";
+import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
 import { formatCentralDateTime } from "@/lib/time/central";
 import type { AdminTask, ClientGoal } from "@/types/database";
 
@@ -85,6 +88,7 @@ export default async function AdminClientDetailPage({
     { data: packagesRaw },
     { data: proposalsRaw },
     { data: goalsRaw },
+    { data: watchlistRaw },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -133,6 +137,13 @@ export default async function AdminClientDetailPage({
       .select("id, client_id, title, detail, status, target_date, created_by, created_at, updated_at")
       .eq("client_id", id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("watchlist_profiles")
+      .select(
+        "subscription_status, review_status, access_source, stripe_subscription_id, comp_note, comped_at, comped_until"
+      )
+      .eq("client_id", id)
+      .maybeSingle(),
   ]);
 
   type BookingRow = {
@@ -197,11 +208,34 @@ export default async function AdminClientDetailPage({
   type ProposalRow = { id: string; title: string; status: string; amount_cents: number; created_at: string };
   const proposals = (proposalsRaw ?? []) as ProposalRow[];
   const goals = (goalsRaw ?? []) as ClientGoal[];
+  type WatchlistAccessRow = {
+    subscription_status: string;
+    review_status: "pending_review" | "reviewed";
+    access_source: "paid" | "comped";
+    stripe_subscription_id: string | null;
+    comp_note: string | null;
+    comped_at: string | null;
+    comped_until: string | null;
+  };
+  // null when the client has never had Job Alerts — the controls handle that
+  // state and offer a free-access grant.
+  const watchlist = (watchlistRaw ?? null) as WatchlistAccessRow | null;
   const clientDisplayName = client.full_name ?? client.email;
   const tasksWithClient: TaskListItem[] = tasks.map((t) => ({
     ...t,
     clientName: clientDisplayName,
   }));
+
+  // Has this client ever activated their login? An admin-created account exists
+  // in auth.users with no password until they click the invite, and only the
+  // service client can read that. Safe here: the (admin) layout gates the role.
+  let awaitingActivation = false;
+  try {
+    const { data: authUser } = await createServiceClient().auth.admin.getUserById(id);
+    awaitingActivation = Boolean(authUser?.user && !authUser.user.email_confirmed_at);
+  } catch (err) {
+    console.error("[admin/clients] activation lookup failed:", err);
+  }
 
   const SERVICE_LABELS: Record<string, string> = {
     coaching: "Career & Leadership Coaching",
@@ -219,6 +253,20 @@ export default async function AdminClientDetailPage({
         { label: "Clients", href: "/admin/clients" },
         { label: client.full_name ?? "Client" },
       ]} />
+
+      {/* Invited but never signed in — offer a fresh link (they expire in ~24h). */}
+      {awaitingActivation && (
+        <div className="flex items-start justify-between gap-4 flex-wrap rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="text-sm">
+            <p className="font-semibold text-amber-900">Account not activated yet</p>
+            <p className="text-amber-800 mt-0.5">
+              {client.full_name ?? "This client"} hasn&apos;t set a password, so they can&apos;t log
+              in yet. Invite links expire after 24 hours.
+            </p>
+          </div>
+          <ResendInviteButton clientId={client.id} />
+        </div>
+      )}
 
       {/* Client header */}
       <div className="bg-white rounded-xl border border-neutral-200 p-6">
@@ -345,6 +393,35 @@ export default async function AdminClientDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column */}
         <div className="space-y-8">
+          {/* Job Alerts access — the one place that works whether or not the
+              client has ever had a watchlist. Grant/revoke free access here. */}
+          <section className="bg-white rounded-xl border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+              <h2 className="font-semibold text-neutral-900">Job Alerts access</h2>
+              {watchlist && (
+                <Link
+                  href={`/admin/watchlists/${client.id}`}
+                  className="text-sm text-brand-700 hover:text-brand-800 font-medium"
+                >
+                  Manage watchlist →
+                </Link>
+              )}
+            </div>
+            <div className="p-4">
+              <WatchlistAdminControls
+                clientId={client.id}
+                clientName={clientDisplayName}
+                subscriptionStatus={watchlist?.subscription_status ?? null}
+                reviewStatus={watchlist?.review_status ?? "pending_review"}
+                accessSource={watchlist?.access_source ?? null}
+                hasStripeSubscription={Boolean(watchlist?.stripe_subscription_id)}
+                compNote={watchlist?.comp_note ?? null}
+                compedAt={watchlist?.comped_at ?? null}
+                compedUntil={watchlist?.comped_until ?? null}
+              />
+            </div>
+          </section>
+
           {/* Session packages */}
           {packages.length > 0 && (
             <section className="bg-white rounded-xl border border-neutral-200">

@@ -372,6 +372,71 @@ incomplete /
 
 ---
 
+## 2e. Admin-Created Client + Complimentary Job Alerts Access
+
+Lets Rachel onboard someone with **no payment and no credit card**, and optionally hand them free Job Alerts access.
+
+**Create the account** — `/admin/clients/new` → `createClientAccount` (`src/app/actions/clients.ts`):
+
+```
+Rachel fills name, email, optional phone
+  ☑ Email them an invite now      (optional — uncheck to create silently)
+  ☑ Give them free Job Alerts     (optional — reveals reason + optional end date)
+        │
+        ▼
+Pre-check profiles by email → returns { error, existingClientId } if taken
+        │
+        ▼
+service.auth.admin.generateLink({ type: 'invite', email,
+  options: { data: { full_name }, redirectTo: `${APP_URL}/dashboard/profile?welcome=1` } })
+  → creates the auth.users row (no password yet)
+  → handle_new_user() trigger creates profiles (role 'client', full_name)
+  → follow-up UPDATE adds phone
+        │
+        ├─ grantWatchlist ─→ applyComplimentaryAccess() (see below)
+        │
+        └─ sendInvite ────→ sendClientInvite(email, name, confirmUrl) via Resend
+                            confirmUrl = /auth/confirm?token_hash=…&type=invite
+                                         &next=/dashboard/profile?welcome=1
+```
+
+`generateLink` **bypasses the Send Email hook** — it only mints the token, so the invite copy lives in our code. `inviteUserByEmail` is deliberately not used: it 422s `email_exists` on a second call and therefore cannot resend, and Supabase links expire in ~24h.
+
+**Invitee experience:** branded email → `/auth/confirm?type=invite` → `verifyOtp` confirms the email and **creates a session** → `/dashboard/profile?welcome=1` (passes the proxy — they're authenticated) → welcome banner over the existing "Change Password" card → `updatePassword` → `/dashboard`.
+
+**If they never accept:** the `auth.users` row exists with `email_confirmed_at` NULL and no password; the `profiles` row already exists via the trigger, so they appear in `/admin/clients` immediately and can be comped before ever accepting — they simply can't log in. `/admin/clients/[id]` shows an "Account not activated" banner with a **Resend invite** button → `resendClientInvite`, which uses `type: 'magiclink'` (invite 422s for an existing user) and refuses once the email is confirmed.
+
+**Grant / revoke free access** — `WatchlistAdminControls` on `/admin/clients/[id]` (primary) or `/admin/watchlists/[clientId]`:
+
+```
+grantComplimentaryAccess(clientId, { note, until })   [requireAdmin]
+  └─ applyComplimentaryAccess  (src/lib/watchlist/comp.ts, auth-free)
+       refuse if stripe_subscription_id IS NOT NULL
+       UPSERT watchlist_profiles:
+         subscription_status = 'active'      ← the access gate, unchanged
+         access_source       = 'comped'      ← the label
+         comp_note, comped_by, comped_at, comped_until
+       (insert branch mirrors the Stripe webhook: empty criteria arrays)
+
+revokeComplimentaryAccess(clientId)
+  └─ removeComplimentaryAccess → subscription_status = 'inactive'
+       keeps access_source/'comp_note'/comped_at as history
+```
+
+The **upsert** is the load-bearing part: `setSubscriptionStatus` (behind pause/reactivate/cancel) is an `UPDATE` with no insert, so for a client with no row it matched zero rows and still returned success — which is why free access was previously impossible to grant.
+
+Because the gate stays `subscription_status = 'active'`, a comped client flows through `job-feed`, `job-alerts` and `expire-matches` with **no cron changes** — they get matches and the weekly digest exactly like a paying client. What *does* consult `access_source` is the paid-revenue counters (`/admin` "Paying Clients" + a "+ N comped" sub-label, `/admin/analytics` activeSubscribers, `computeJobAlertsReport`) and the client's own `/dashboard/billing`, which shows a "Complimentary access" card instead of the "No active subscription" upsell.
+
+Pause / Cancel are hidden for a comped client and refused by `setSubscriptionStatus` — they're Stripe verbs, and the old confirm text ("This cancels billing in Stripe") was untrue for a comp.
+
+**Expiry.** `comped_until` is deliberately **not** in the gate. `/api/cron/expire-matches` (already scheduled daily) sweeps lapsed comps to `subscription_status = 'inactive'` and `notifyAdmin`s Rachel with who lapsed. `.lt()` never matches NULL, so open-ended comps are untouched. Keeping the flip in `subscription_status` means the gate, the three crons and the `watchlist_profiles_feed_cursor_idx` partial index can never disagree.
+
+**Conversion to paid.** When a comped client buys the subscription, `handleSubscriptionCheckoutCompleted` writes `access_source = 'paid'` alongside `stripe_subscription_id`, so the normal Stripe lifecycle takes over from there. `comp_note`/`comped_at` are kept as history.
+
+**Security (migration 0033).** `subscription_status` used to default to `'active'`, and neither `saveWatchlistProfile` nor `updateWatchlistProfileAsAdmin` sets it — so submitting the ungated `/dashboard/watchlist/setup` questionnaire, or a direct PostgREST `PATCH`, granted a client full paid access. The default is now `'inactive'` and a `BEFORE INSERT OR UPDATE` trigger pins every privileged column for the `authenticated`/`anon` roles. See `docs/database-schema.md` for why a column-level `REVOKE` cannot do this.
+
+---
+
 ## 2d. Automated Feed, Reminders & Reporting (Phase 2)
 
 **Pluggable sources.** Each board implements `JobSource` (`src/lib/job-api/types.ts`). Registered in `src/lib/job-api/sources.ts` (`ALL_SOURCES`); `getEnabledSources()` returns those toggled on in the `job_sources` table. Shipped: `jsearch` (on) and `usajobs` (off until keys set). Rachel toggles them in `/admin/integrations → Automated Job Sources`.
@@ -580,21 +645,25 @@ requestPasswordReset server action
         ▼
 Supabase fires Send Email hook → POST /api/auth/send-email
   email_action_type = "recovery"
-  Constructs: {APP_URL}/auth/confirm?token_hash=...&type=recovery&next=/reset-password
+  Constructs: {APP_URL}/auth/confirm?token_hash=...&type=recovery&next=/dashboard/profile
   sendPasswordReset(email, name, resetUrl) via Resend
         │
         ▼
 Client clicks email link → /auth/confirm
-  supabase.auth.verifyOtp({ token_hash, type: 'recovery' })
-  Redirects to /reset-password
+  supabase.auth.verifyOtp({ token_hash, type: 'recovery' })  ← creates a session
+  Redirects to /dashboard/profile
         │
         ▼
-Client on /reset-password → enters new password
+Client on /dashboard/profile → "Change Password" card → enters new password
         │
         ▼
 updatePassword server action
   supabase.auth.updateUser({ password: newPassword })
 ```
+
+> **Why not `/reset-password`?** That page is only the *request* form ("enter your email and we'll send you a link"), and `src/proxy.ts` lists it in `AUTH_ROUTES` — so an authenticated user is redirected to `/dashboard`. Because `verifyOtp` creates a session, a recovery link pointing there showed no password field at all. The set-password UI lives on `/dashboard/profile`; the client-invite flow (§2e) targets the same page.
+
+> **The `next` sanitizer.** `/auth/confirm` redirects to `origin + next`, and `next` originates as the hook's `redirect_to` — which Supabase forwards verbatim from `emailRedirectTo`, i.e. usually an absolute URL. Concatenating produced the garbage host `thryvegrowth.cohttps` (it parses without throwing, so it failed silently). `safeNextPath` in `/auth/confirm` and `toPath` in `/api/auth/send-email` now reduce same-origin absolutes to a path and fall back to `/dashboard` otherwise.
 
 ---
 

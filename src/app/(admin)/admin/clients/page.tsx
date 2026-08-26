@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Users, Search } from "lucide-react";
+import { Users, Search, UserPlus } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +28,7 @@ const SUB_BADGE: Record<string, string> = {
 const FILTERS = [
   { key: "", label: "All" },
   { key: "active", label: "Active subs" },
+  { key: "comped", label: "Comped" },
   { key: "pending", label: "Pending review" },
   { key: "inactive", label: "Inactive" },
 ];
@@ -43,13 +44,23 @@ export default async function AdminClientsPage({
 
   // Resolve the subscription filter to a set of client_ids first.
   let filterIds: string[] | null = null;
-  if (sub === "active" || sub === "inactive") {
-    const wlQuery = supabase.from("watchlist_profiles").select("client_id");
-    const { data } =
-      sub === "active"
-        ? await wlQuery.eq("subscription_status", "active")
-        : await wlQuery.neq("subscription_status", "active");
-    filterIds = ((data ?? []) as { client_id: string | null }[]).map((r) => r.client_id).filter(Boolean) as string[];
+  if (sub === "active" || sub === "inactive" || sub === "comped") {
+    // "Active subs" means paying. A comp is active too but earns nothing, so it
+    // gets its own chip rather than padding the paid count.
+    const { data } = await supabase
+      .from("watchlist_profiles")
+      .select("client_id, subscription_status, access_source");
+    const rows = (data ?? []) as {
+      client_id: string | null;
+      subscription_status: string;
+      access_source: string;
+    }[];
+    const match = (r: (typeof rows)[number]) => {
+      if (sub === "active") return r.subscription_status === "active" && r.access_source === "paid";
+      if (sub === "comped") return r.subscription_status === "active" && r.access_source === "comped";
+      return r.subscription_status !== "active";
+    };
+    filterIds = rows.filter(match).map((r) => r.client_id).filter(Boolean) as string[];
   } else if (sub === "pending") {
     const { data } = await supabase
       .from("watchlist_profiles")
@@ -75,25 +86,43 @@ export default async function AdminClientsPage({
   const { data: clientsRaw } = await query;
   const clients = (clientsRaw ?? []) as ClientRow[];
 
-  // Subscription status for the displayed clients.
-  let subMap: Record<string, string> = {};
+  // Job Alerts access for the displayed clients. A comp is rendered distinctly
+  // from a paid subscription so the list never implies revenue that isn't there.
+  let subMap: Record<string, { status: string; source: string }> = {};
   if (clients.length > 0) {
     const { data: wl } = await supabase
       .from("watchlist_profiles")
-      .select("client_id, subscription_status")
+      .select("client_id, subscription_status, access_source")
       .in("client_id", clients.map((c) => c.id));
     subMap = Object.fromEntries(
-      ((wl ?? []) as { client_id: string | null; subscription_status: string }[])
+      (
+        (wl ?? []) as {
+          client_id: string | null;
+          subscription_status: string;
+          access_source: string;
+        }[]
+      )
         .filter((r) => r.client_id)
-        .map((r) => [r.client_id as string, r.subscription_status])
+        .map((r) => [
+          r.client_id as string,
+          { status: r.subscription_status, source: r.access_source },
+        ])
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-neutral-900">Clients</h1>
-        <p className="text-sm text-neutral-500 mt-1">{clients.length} {q || sub ? "matching" : "registered"} clients</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-neutral-900">Clients</h1>
+          <p className="text-sm text-neutral-500 mt-1">{clients.length} {q || sub ? "matching" : "registered"} clients</p>
+        </div>
+        <Link
+          href="/admin/clients/new"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+        >
+          <UserPlus className="h-4 w-4" /> New client
+        </Link>
       </div>
 
       {/* Search + filters */}
@@ -147,7 +176,18 @@ export default async function AdminClientsPage({
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {clients.map((client) => {
-                const status = subMap[client.id];
+                const access = subMap[client.id];
+                const isComped = access?.source === "comped";
+                const label = isComped
+                  ? access.status === "active"
+                    ? "Comped"
+                    : "Comped · ended"
+                  : access?.status;
+                const badgeClass = isComped
+                  ? access.status === "active"
+                    ? "bg-brand-100 text-brand-800"
+                    : "bg-neutral-100 text-neutral-500"
+                  : SUB_BADGE[access?.status ?? ""] ?? "bg-neutral-100 text-neutral-500";
                 return (
                   <tr key={client.id} className="hover:bg-neutral-50 transition-colors">
                     <td className="px-6 py-3 font-medium text-neutral-900">
@@ -161,9 +201,9 @@ export default async function AdminClientsPage({
                       </a>
                     </td>
                     <td className="px-6 py-3 hidden md:table-cell">
-                      {status ? (
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${SUB_BADGE[status] ?? "bg-neutral-100 text-neutral-500"}`}>
-                          {status}
+                      {access ? (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${badgeClass}`}>
+                          {label}
                         </span>
                       ) : (
                         <span className="text-xs text-neutral-300">—</span>

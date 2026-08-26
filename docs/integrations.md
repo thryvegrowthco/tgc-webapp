@@ -22,6 +22,14 @@ All integrations are configured via environment variables. See `docs/environment
 - On signup, `emailRedirectTo` points to `/auth/callback`, which exchanges the auth code for a session cookie
 - All auth emails (signup confirmation, password reset, magic link, email change) are intercepted by the **Send Email hook** (`/api/auth/send-email`) and sent via Resend — see the Resend section below
 - Password reset and confirmation links go through `/auth/confirm?token_hash=...` (the hook constructs token_hash URLs; the existing `/auth/callback` handles `?code=` links only)
+- **`redirect_to` is forwarded verbatim** by Supabase, so it usually arrives at the hook as an *absolute* URL. `/auth/confirm` builds `origin + next`, so both the hook (`toPath`) and the route (`safeNextPath`) reduce same-origin absolutes to a path first — otherwise the link resolves to a nonexistent host. Recovery links land on `/dashboard/profile`, not `/reset-password` (the proxy bounces authenticated users off auth routes)
+
+**Admin user management (`auth.admin.*` via the service client):**
+- `src/app/actions/clients.ts` uses `service.auth.admin.generateLink` to create client accounts from `/admin/clients/new` with no payment, and `getUserById` to detect accounts that haven't been activated. This is a **new consumer of `SUPABASE_SERVICE_ROLE_KEY`** — no new env var.
+- `generateLink` **bypasses the Send Email hook**: it only mints the token and returns `properties.hashed_token`, so the invite email copy lives in our code (`sendClientInvite` in `src/lib/email/auth-emails.ts`), and the link is built with a **relative** `next`.
+- `inviteUserByEmail` is deliberately **not** used — it returns 422 `email_exists` on a second call, so it cannot resend, and Supabase links expire in ~24h. Resend uses `type: 'magiclink'` (`invite` also 422s for an existing user).
+- ⚠️ **Manual prerequisite:** Supabase dashboard → Authentication → URL Configuration → **Redirect URLs** must allow-list `https://www.thryvegrowth.co/**`, `https://thryvegrowth.co/**`, and `http://localhost:3000/**`. Without this GoTrue silently drops `redirectTo`. Allow-list both apex and `www` — the apex 307-redirects to `www`.
+- FK note: `profiles.id → auth.users` and `watchlist_profiles.client_id → profiles(id)` have **no `ON DELETE CASCADE`**, so `auth.admin.deleteUser()` fails with a foreign-key violation unless children are deleted first (`watchlist_profiles` → `profiles` → `deleteUser`).
 
 **Database:**
 - Postgres with Row Level Security (RLS) enabled on all tables
@@ -336,7 +344,7 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | `GET /api/cron/extend-availability` | `0 11 * * *` | Daily 6am CDT / 5am CST |
 | `GET /api/cron/job-feed` | `0 8 * * *` | Daily 3am CDT / 2am CST — automated multi-source ingest + score + assign, `JOB_FEED_BATCH` clients/run (least-recently-fed first) |
 | `GET /api/cron/application-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST — T+7/14/30 nudges after a job is marked applied |
-| `GET /api/cron/expire-matches` | `0 12 * * *` | Daily 7am CDT / 6am CST — flips `new`/`saved`/`interested` matches to `expired` when the posting closes (`closes_at`) or ages past `EXPIRE_AFTER_DAYS` (default 45); expired matches move to the Inactive tab |
+| `GET /api/cron/expire-matches` | `0 12 * * *` | Daily 7am CDT / 6am CST — flips `new`/`saved`/`interested` matches to `expired` when the posting closes (`closes_at`) or ages past `EXPIRE_AFTER_DAYS` (default 45); expired matches move to the Inactive tab. **Also sweeps lapsed complimentary Job Alerts access** (`access_source='comped'` + `comped_until` in the past → `subscription_status='inactive'`, plus a `notifyAdmin` naming who lapsed) and reports it as `lapsedComps` in the JSON summary. No new scheduler entry was needed — this job already existed |
 
 > **`job-feed` runs free on Vercel Hobby.** Each invocation processes only `JOB_FEED_BATCH` clients (default 5, env-tunable), ordered by `watchlist_profiles.last_feed_at` (oldest/never-fed first), and stamps `last_feed_at` after each. So a daily run rotates through everyone over `ceil(active_clients / BATCH)` days, then keeps refreshing — staying well under Hobby's 10s function cap and keeping external API usage low. With both JSearch **and** USAJOBS enabled, set `JOB_FEED_BATCH=3`. Fully idempotent (dedup + `ON CONFLICT DO NOTHING`); the cursor advances even on a per-client error so nothing blocks the queue.
 

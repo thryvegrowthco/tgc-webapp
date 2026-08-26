@@ -12,6 +12,8 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 3b. [Sending a Booking Invitation](#3b-sending-a-booking-invitation)
 3c. [Sending a Proposal](#3c-sending-a-proposal)
 4. [Managing Clients](#4-managing-clients)
+4b. [Adding a Client Yourself](#4b-adding-a-client-yourself)
+4c. [Giving Someone Free Job Alerts](#4c-giving-someone-free-job-alerts)
 5. [Writing Blog Posts](#5-writing-blog-posts)
 6. [Managing Job Watchlists](#6-managing-job-watchlists)
 7. [What Happens When Someone Books](#7-what-happens-when-someone-books)
@@ -270,6 +272,66 @@ To upload a document:
 5. Click Upload
 
 To delete a document, click the trash icon. Deletion is permanent and cannot be undone. The file is removed from both the system and the client's view immediately.
+
+---
+
+## 4b. Adding a Client Yourself
+
+**URL:** `/admin/clients/new` — or click **New client** at the top right of the Clients page.
+
+Use this when you want someone to have an account before they've paid for anything: a friend, a referral, a pilot client, or someone you've been talking to who isn't ready to buy yet. No credit card is involved at any point.
+
+Fill in their name and email (the email is their login, and you can't change it here later). Phone is optional. Then decide two things:
+
+**Email them an invite now** — leave this checked and they get a branded email saying you set up an account for them, with a link to choose their own password. Uncheck it if you'd rather create the account quietly and tell them yourself; you can send the invite later from their client page whenever you like.
+
+**Give them free Job Alerts access** — see the next section.
+
+Click **Create client** and you land on their detail page.
+
+### What they see
+
+They click the link in the email, land on their profile page with a short welcome note, and pick a password. That's it — they're in. Until they do that, they can't log in, because there's no password on the account yet.
+
+### If they never click the link
+
+Invite links stop working after 24 hours. Their client page will show an amber **"Account not activated yet"** banner with a **Resend invite** button — press it and they get a fresh link. You can press it as many times as you need.
+
+The account still exists in the meantime, so they'll show up in your Clients list right away and you can set up their Job Alerts before they've ever logged in.
+
+### If the email is already taken
+
+You'll see "An account with that email already exists" and a link straight to that client. Nothing is created twice.
+
+---
+
+## 4c. Giving Someone Free Job Alerts
+
+You can hand anyone full Job Alerts & Watchlist access at no charge — same curated matches, same weekly digest as a paying client. There's no card on file, no invoice, and nothing in Stripe.
+
+**Where:** the **Job Alerts access** panel on any client's detail page (`/admin/clients/<client>`). It's also on their watchlist page. You can do this whether or not they've ever had Job Alerts before — that was the thing that used to be impossible.
+
+**To grant it:** click **Grant free access**. You'll be asked for two optional things:
+
+- **Reason** — a private note to yourself, like "Friend — free while she job hunts." Only you ever see it.
+- **Ends on** — leave blank for no end date. If you set one, access switches off automatically that day and you'll get an email telling you it lapsed, so a favor doesn't quietly turn into forever.
+
+**To take it away:** click **Revoke free access**. They lose access; no billing is involved either way. The reason and the date you granted it stay on file so you can see the history.
+
+### How you can tell who's comped
+
+- The Clients list shows a **Comped** badge instead of the green **Active** badge, and there's a **Comped** filter chip at the top.
+- The dashboard's Job Alerts tile counts **Paying Clients** only, with a small "+ 2 comped" line underneath. Your revenue numbers and analytics never count free clients as subscribers.
+
+### What the client sees
+
+Their watchlist and application tracker work exactly like a paying client's. On their Billing page they see a **Complimentary access** card — "$0, on the house, no card needed" — plus a soft link to the paid plan, rather than being nagged to subscribe for something they already have.
+
+### If they decide to pay later
+
+Nothing special to do. They buy the Job Alerts subscription the normal way and the account flips from comped to paying on its own. Your note about the comp stays in the history.
+
+**One rule:** you can't comp someone who already has a Job Alerts subscription in Stripe — cancel the subscription first. Likewise, **Pause** and **Cancel service** don't appear for a comped client, because those change billing and there's no billing to change. Use Revoke free access instead.
 
 ---
 

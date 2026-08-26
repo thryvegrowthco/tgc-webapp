@@ -3,6 +3,7 @@
 // service client (admin-only callers).
 
 import { createServiceClient } from "@/lib/supabase/service";
+import type { WatchlistAccessSource } from "@/types/database";
 
 // Status sets (legacy 'offer' counts as 'offer_received').
 const APPLIED = new Set(["applied", "interviewing", "final_interview", "offer_received", "offer", "accepted", "declined", "rejected", "withdrawn"]);
@@ -14,6 +15,7 @@ export interface ClientStat {
   name: string;
   email: string;
   subscriptionStatus: string;
+  accessSource: WatchlistAccessSource;
   reviewStatus: string;
   totalMatches: number;
   applications: number;
@@ -25,7 +27,10 @@ export interface ClientStat {
 
 export interface JobAlertsReport {
   totalClients: number;
+  /** Active AND paying. Excludes comps so revenue metrics stay honest. */
   activeClients: number;
+  /** Active on a complimentary grant — access, but no revenue. */
+  compedClients: number;
   inactiveClients: number;
   applications: number;
   interviews: number;
@@ -40,10 +45,18 @@ export interface JobAlertsReport {
 type WatchlistRow = {
   client_id: string | null;
   subscription_status: string;
+  access_source: WatchlistAccessSource;
   review_status: string;
   target_roles: string[] | null;
   industries: string[] | null;
 };
+
+// "Has access AND is paying for it." The access gate itself is only
+// subscription_status === 'active'; a comp is active too, but earns nothing.
+const isPaying = (w: WatchlistRow) =>
+  w.subscription_status === "active" && w.access_source === "paid";
+const isComped = (w: WatchlistRow) =>
+  w.subscription_status === "active" && w.access_source === "comped";
 
 export async function computeJobAlertsReport(): Promise<JobAlertsReport> {
   const supabase = createServiceClient();
@@ -51,7 +64,7 @@ export async function computeJobAlertsReport(): Promise<JobAlertsReport> {
   const [{ data: wlRaw }, { data: matchesRaw }] = await Promise.all([
     supabase
       .from("watchlist_profiles")
-      .select("client_id, subscription_status, review_status, target_roles, industries"),
+      .select("client_id, subscription_status, access_source, review_status, target_roles, industries"),
     supabase.from("client_job_matches").select("client_id, status"),
   ]);
 
@@ -93,6 +106,7 @@ export async function computeJobAlertsReport(): Promise<JobAlertsReport> {
         name: profile?.full_name ?? "",
         email: profile?.email ?? "",
         subscriptionStatus: w.subscription_status,
+        accessSource: w.access_source,
         reviewStatus: w.review_status,
         totalMatches: t.total,
         applications: t.applications,
@@ -137,7 +151,8 @@ export async function computeJobAlertsReport(): Promise<JobAlertsReport> {
 
   return {
     totalClients: watchlists.length,
-    activeClients: watchlists.filter((w) => w.subscription_status === "active").length,
+    activeClients: watchlists.filter(isPaying).length,
+    compedClients: watchlists.filter(isComped).length,
     inactiveClients: watchlists.filter((w) => w.subscription_status !== "active").length,
     applications,
     interviews,

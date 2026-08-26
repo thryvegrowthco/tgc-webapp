@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   sendSignupConfirmation,
+  sendClientInvite,
   sendPasswordReset,
   sendEmailChange,
   sendMagicLink,
@@ -63,6 +64,19 @@ function verifyLegacySignature(payload: string, signature: string, secret: strin
   }
 }
 
+// Reduce an absolute redirect target to a path (see the `next` comment below).
+// Returns null for anything empty or unparseable so the caller can default.
+function toPath(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const parsed = new URL(raw);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return null;
+  }
+}
+
 interface HookPayload {
   user: {
     email: string;
@@ -120,17 +134,30 @@ export async function POST(request: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? site_url;
 
-  // Determine post-confirmation destination
+  // Determine post-confirmation destination.
+  //
+  // `redirect_to` is whatever was passed as emailRedirectTo — usually an ABSOLUTE
+  // url. /auth/confirm concatenates `origin + next`, so an absolute value here
+  // produces a dead host. Reduce it to a path before it ever reaches the link.
+  //
+  // Recovery goes to /dashboard/profile, NOT /reset-password: that page is the
+  // "email me a link" REQUEST form, and src/proxy.ts lists it in AUTH_ROUTES, so
+  // an authenticated user (verifyOtp creates a session) is bounced to /dashboard
+  // and never sees a password field. The set-password UI lives on the profile page.
   const next =
-    email_action_type === "recovery" ? "/reset-password" : redirect_to || "/dashboard";
+    email_action_type === "recovery" ? "/dashboard/profile" : toPath(redirect_to) ?? "/dashboard";
 
   const confirmUrl = `${appUrl}/auth/confirm?token_hash=${token_hash}&type=${email_action_type}&next=${encodeURIComponent(next)}`;
 
   try {
     switch (email_action_type) {
       case "signup":
-      case "invite":
         await sendSignupConfirmation(email, name, confirmUrl);
+        break;
+      // An invite means an admin created the account for them — "confirm the
+      // account you just made" is the wrong story, so it gets its own copy.
+      case "invite":
+        await sendClientInvite(email, name, confirmUrl);
         break;
       case "recovery":
         await sendPasswordReset(email, name, confirmUrl);

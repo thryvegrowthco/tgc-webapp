@@ -19,7 +19,9 @@ For local development, variables prefixed with `NEXT_PUBLIC_` are safe to expose
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase → Project Settings → API | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase → Project Settings → API | Public anon key for client-side auth — safe for browser |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase → Project Settings → API | Service role key — bypasses RLS, server only, never expose |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase → Project Settings → API | Service role key — bypasses RLS, server only, never expose. Also required for `auth.admin.*` (admin-created client accounts / invites, `src/app/actions/clients.ts`) and to bypass the 0033 privileged-column guard trigger on `watchlist_profiles` |
+
+> **Complimentary Job Alerts access + admin-created clients (migration 0033) added no new environment variables.** They do add a **manual Supabase dashboard step**: Authentication → URL Configuration → Redirect URLs must allow-list `https://www.thryvegrowth.co/**`, `https://thryvegrowth.co/**`, and `http://localhost:3000/**`, or GoTrue silently drops `redirectTo` on invite links. See `docs/integrations.md → Supabase`.
 
 ### Stripe
 

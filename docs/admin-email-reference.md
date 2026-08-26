@@ -79,11 +79,16 @@ The **weekly job digest** and the **newsletter** are separate systems (see the N
 These keep accounts secure and are **managed in code** (not editable in Templates):
 
 - **Signup confirmation** — confirms a new account's email.
-- **Password reset** — the "reset your password" link.
+- **Client invite** — *"Your Thryve Growth Co. account is ready."* Sent when **you** create the account from Clients → New client (with "Email them an invite now" checked), and again whenever you press **Resend invite**. It says you set the account up for them and gives them a link to choose a password. Different from Signup confirmation, which is for people who signed themselves up. The link expires after 24 hours.
+- **Password reset** — the "reset your password" link. Now lands the client on their profile page, where the password field is.
 - **Email change confirmation** — confirms a new email address.
-- **Magic link sign-in** — a one-click sign-in link.
+- **Magic link sign-in** — a one-click sign-in link. Also used by **Resend invite** for someone who was invited more than 24 hours ago.
 
 If you want any of these reworded, ask your developer.
+
+### Free-access expiry notice
+
+If you gave someone free Job Alerts with an **Ends on** date, you (not the client) get an email the day it lapses — *"Complimentary Job Alerts access ended for N clients"* — naming who it was, with a link to your Comped client list. Nothing is sent to the client. This one comes from the nightly job, not from Templates.
 
 ## Placeholder Reference
 

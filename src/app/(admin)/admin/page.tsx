@@ -66,10 +66,18 @@ export default async function AdminOverviewPage() {
   const daysSinceMonday = (now.getDay() + 6) % 7;
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday).toISOString();
 
+  // Paying subscribers only — a comp is active but earns nothing, so it gets
+  // counted separately rather than inflating this tile.
   const { count: activeWatchlist } = await supabase
     .from("watchlist_profiles")
     .select("*", { count: "exact", head: true })
-    .eq("subscription_status", "active");
+    .eq("subscription_status", "active")
+    .eq("access_source", "paid");
+  const { count: compedWatchlist } = await supabase
+    .from("watchlist_profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("subscription_status", "active")
+    .eq("access_source", "comped");
   const { count: pendingReviewCount } = await supabase
     .from("watchlist_profiles")
     .select("*", { count: "exact", head: true })
@@ -233,7 +241,12 @@ export default async function AdminOverviewPage() {
       <section>
         <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">Job Alerts</h2>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <JobMetric label="Active Clients" value={activeWatchlist ?? 0} href="/admin/watchlists" />
+          <JobMetric
+            label="Paying Clients"
+            value={activeWatchlist ?? 0}
+            href="/admin/clients?sub=active"
+            sublabel={(compedWatchlist ?? 0) > 0 ? `+ ${compedWatchlist} comped` : undefined}
+          />
           <JobMetric label="Pending Review" value={pendingReviewCount ?? 0} href="/admin/watchlists" highlight={(pendingReviewCount ?? 0) > 0} />
           <JobMetric label="Inactive" value={inactiveWatchlist ?? 0} href="/admin/watchlists" />
           <JobMetric label="New Matches (wk)" value={newMatchesThisWeek ?? 0} href="/admin/watchlists" />
@@ -390,11 +403,13 @@ function JobMetric({
   value,
   href,
   highlight,
+  sublabel,
 }: {
   label: string;
   value: number;
   href: string;
   highlight?: boolean;
+  sublabel?: string;
 }) {
   return (
     <Link
@@ -406,6 +421,7 @@ function JobMetric({
     >
       <p className="text-2xl font-bold text-neutral-900">{value}</p>
       <p className="text-sm text-neutral-500 mt-0.5">{label}</p>
+      {sublabel && <p className="text-xs text-brand-700 mt-0.5">{sublabel}</p>}
     </Link>
   );
 }

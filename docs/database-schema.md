@@ -372,11 +372,28 @@ One per Job Alerts subscriber. Created/activated by the Stripe webhook on subscr
 | `review_status` | `TEXT` | `'pending_review'` | CHECK: `pending_review`, `reviewed`. Non-blocking admin curation surface (0016) |
 | `reviewed_at` | `TIMESTAMPTZ` | `NULL` | Set when Rachel marks reviewed (0016) |
 | `reviewed_by` | `UUID` | `NULL` | FK → `profiles.id` (0016) |
-| `subscription_status` | `TEXT` | `'active'` | CHECK (0016): `active`, `inactive`, `paused`, `cancelled`, `expired`. Only `active` unlocks the watchlist UI + gets cron emails |
+| `subscription_status` | `TEXT` | `'inactive'` (was `'active'` before 0033) | CHECK (0016): `active`, `inactive`, `paused`, `cancelled`, `expired`. Only `active` unlocks the watchlist UI + gets cron emails |
 | `stripe_subscription_id` | `TEXT` | `NULL` | Used by admin pause/reactivate/cancel actions + webhook sync |
+| `access_source` | `TEXT` | `'paid'` | CHECK (0033): `paid`, `comped`. **Not** the access gate — it records *why* an active row is active |
+| `comp_note` | `TEXT` | `NULL` | Why a comp was granted; kept as history after revoke/conversion (0033) |
+| `comped_by` | `UUID` | `NULL` | FK → `profiles.id ON DELETE SET NULL` — the admin who granted it (0033) |
+| `comped_at` | `TIMESTAMPTZ` | `NULL` | When the comp was granted (0033) |
+| `comped_until` | `TIMESTAMPTZ` | `NULL` | Optional comp end date; `NULL` = no expiry. Swept by `/api/cron/expire-matches` (0033) |
 | `updated_at` | `TIMESTAMPTZ` | `NOW()` | Updated on `saveWatchlistProfile` |
 
-**Access gating:** `getWatchlistAccess()` (`src/lib/watchlist/access.tsx`) blocks the job-alerts dashboard pages (`/dashboard/watchlist`, `/watchlist/setup`, job-alerts portion of `/applications`) when `subscription_status != 'active'`, showing a reactivate CTA. Booking/coaching clients (no row) are unaffected. The Stripe webhook keeps `subscription_status` in sync; admin overrides (`pauseWatchlist`/`reactivateWatchlist`/`cancelWatchlist` in `src/app/actions/watchlist.ts`) also act on the Stripe subscription.
+**Access gating:** `getWatchlistAccess()` (`src/lib/watchlist/access.tsx`) blocks the job-alerts dashboard pages (`/dashboard/watchlist` and the job-alerts portion of `/dashboard/applications`) when `subscription_status != 'active'`, showing a reactivate CTA. `/dashboard/watchlist/setup` is **not** gated — any authenticated client may fill in criteria; since 0033 that no longer grants access (the column defaults to `'inactive'` and the guard trigger pins it). Booking/coaching clients (no row) are unaffected. The Stripe webhook keeps `subscription_status` in sync; admin overrides (`pauseWatchlist`/`reactivateWatchlist`/`cancelWatchlist` in `src/app/actions/watchlist.ts`) also act on the Stripe subscription.
+
+**Complimentary access (0033).** `access_source` is a *label*, orthogonal to the gate: `subscription_status = 'active'` remains the single truth for "has access right now". This is deliberate — the three crons (`job-feed`, `job-alerts`, `expire-matches`) and the `watchlist_profiles_feed_cursor_idx` partial index all filter on `subscription_status = 'active'`, so a comped client receives matches and digests with **zero cron changes**. Do not "fix" this by adding a `'comped'` value to `subscription_status`.
+
+Invariant: *`access_source` answers "if this row is currently active, is that access paid or comped?" It is don't-care for inactive rows.*
+
+Consumers that must combine both columns are the paid-revenue counters only — `/admin` ("Paying Clients" tile), `/admin/analytics` ("activeSubscribers"), and `computeJobAlertsReport()` (`activeClients` = active **and** paid, plus a separate `compedClients`). Grant/revoke live in `src/lib/watchlist/comp.ts` (`applyComplimentaryAccess` / `removeComplimentaryAccess`, auth-free so the harness can drive them), wrapped by `grantComplimentaryAccess` / `revokeComplimentaryAccess` in `src/app/actions/watchlist.ts`. Unlike `setSubscriptionStatus` — which is an `UPDATE` with no insert and therefore a silent no-op for a client with no row — the grant **upserts**, which is what makes free access grantable to someone who has never paid. Granting is refused when `stripe_subscription_id IS NOT NULL`. The Stripe subscription webhook sets `access_source = 'paid'`, converting a comp to a paying client while retaining `comp_note`/`comped_at` as history.
+
+**Privileged-column guard trigger (0033).** `watchlist_guard_privileged_columns()` (`BEFORE INSERT OR UPDATE`) silently pins `subscription_status`, `stripe_subscription_id`, `access_source`, `comp_note`, `comped_by`, `comped_at`, `comped_until`, `review_status`, `reviewed_at`, `reviewed_by` and `last_feed_at` whenever `current_user IN ('authenticated','anon')` — to `OLD` on UPDATE, to safe defaults on INSERT. Criteria columns pass through untouched.
+
+Before 0033, `subscription_status` defaulted to `'active'` and neither `saveWatchlistProfile` nor `updateWatchlistProfileAsAdmin` set it, so submitting the ungated setup questionnaire — or a direct PostgREST `PATCH`, since `watchlist_update_own` has no column restriction — granted a client full paid access. A column-level `REVOKE` cannot fix this: Supabase grants **table-level** `UPDATE` to `authenticated`, a table-level privilege implies every column, and `REVOKE UPDATE (col)` cannot subtract from it. The allow-list alternative (`REVOKE UPDATE` then `GRANT UPDATE (…22 criteria columns…)`) fails closed and silently whenever a criteria column is added, so a trigger is used instead.
+
+> **Rule this imposes:** any future admin write to those columns MUST use `createServiceClient()`. RLS `watchlist_update_own` does permit an admin to update rows through the cookie client, and the trigger would silently discard the change.
 
 ---
 
@@ -813,7 +830,7 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 | `bookings` | None | SELECT own, INSERT own | SELECT all, UPDATE all | Full |
 | `payments` | None | SELECT own | ALL | Full |
 | `documents` | None | SELECT own | INSERT, DELETE, SELECT all | Full |
-| `watchlist_profiles` | None | SELECT own, INSERT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
+| `watchlist_profiles` | None | SELECT own, INSERT own, UPDATE own — **criteria columns only**; privileged columns pinned by the 0033 guard trigger | SELECT all, INSERT, UPDATE (privileged columns still trigger-guarded via the cookie client — use the service client) | Full (bypasses RLS *and* the trigger) |
 | `job_listings` | None | SELECT all | ALL | Full |
 | `client_job_matches` | None | SELECT own, UPDATE own | SELECT all, INSERT, UPDATE | Full |
 | `leads` | None | None | SELECT all, INSERT, UPDATE | Full (used by `/api/leads` + `/api/consultation` for public inserts) |

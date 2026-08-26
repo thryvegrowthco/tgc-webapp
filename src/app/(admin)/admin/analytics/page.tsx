@@ -85,7 +85,12 @@ export default async function AdminAnalyticsPage({
     supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "cancelled"),
     supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("bookings").select("service_type"),
-    supabase.from("watchlist_profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
+    // Paying subscribers only — comps have access but generate no revenue.
+    supabase
+      .from("watchlist_profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "active")
+      .eq("access_source", "paid"),
     supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin").gte("created_at", monthStart),
     supabase.from("payments").select("created_at, amount_cents").eq("status", "paid").gte("created_at", sixMonthsAgo),
   ]);

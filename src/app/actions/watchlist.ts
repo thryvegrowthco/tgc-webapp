@@ -16,7 +16,12 @@ import { createClientNotification } from "@/lib/notifications/client";
 import { notifyAdmin } from "@/lib/notifications/admin";
 import { matchStatusLabel } from "@/lib/matching/status";
 import { SCORING_PROFILE_COLUMNS as SCORING_COLUMNS } from "@/lib/job-api/ingest";
-import type { MatchStatus } from "@/types/database";
+import {
+  applyComplimentaryAccess,
+  removeComplimentaryAccess,
+  type CompResult,
+} from "@/lib/watchlist/comp";
+import type { MatchStatus, WatchlistAccessSource } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 
@@ -755,10 +760,22 @@ async function setSubscriptionStatus(
 
   const { data: row } = await service
     .from("watchlist_profiles")
-    .select("stripe_subscription_id")
+    .select("stripe_subscription_id, access_source")
     .eq("client_id", clientId)
     .maybeSingle();
-  const subId = (row as { stripe_subscription_id: string | null } | null)?.stripe_subscription_id;
+  const existing = row as {
+    stripe_subscription_id: string | null;
+    access_source: WatchlistAccessSource;
+  } | null;
+  const subId = existing?.stripe_subscription_id;
+
+  // These are Stripe verbs. On a comped client they'd silently overwrite the
+  // comp with 'paused'/'cancelled' while the UI promises billing changed.
+  if (existing?.access_source === "comped" && (stripeAction === "pause" || stripeAction === "cancel")) {
+    return {
+      error: "This client has complimentary access. Use “Revoke free access” instead.",
+    };
+  }
 
   if (subId && stripeAction !== "none") {
     try {
@@ -797,6 +814,47 @@ export async function reactivateWatchlist(clientId: string) {
 
 export async function cancelWatchlist(clientId: string) {
   return setSubscriptionStatus(clientId, "cancelled", "cancel");
+}
+
+// ─── Admin: complimentary (free) access ──────────────────────────────────────
+// Unlike setSubscriptionStatus above, these CREATE the watchlist row when it's
+// missing — which is what makes free access grantable to a client who has never
+// paid. No notifyAdmin: Rachel is the one taking the action.
+
+function revalidateAccessSurfaces(clientId: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/clients");
+  revalidatePath(`/admin/clients/${clientId}`);
+  revalidatePath("/admin/watchlists");
+  revalidatePath(`/admin/watchlists/${clientId}`);
+  revalidatePath("/dashboard/watchlist");
+  revalidatePath("/dashboard/billing");
+}
+
+export async function grantComplimentaryAccess(
+  clientId: string,
+  options: { note?: string | null; until?: string | null } = {}
+): Promise<CompResult> {
+  const supabase = await requireAdmin();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const result = await applyComplimentaryAccess(clientId, user?.id ?? null, options);
+  if (result.error) return result;
+
+  revalidateAccessSurfaces(clientId);
+  return result;
+}
+
+export async function revokeComplimentaryAccess(clientId: string): Promise<CompResult> {
+  await requireAdmin();
+
+  const result = await removeComplimentaryAccess(clientId);
+  if (result.error) return result;
+
+  revalidateAccessSurfaces(clientId);
+  return result;
 }
 
 // ─── Admin: toggle an automated job-feed source on/off ───────────────────────

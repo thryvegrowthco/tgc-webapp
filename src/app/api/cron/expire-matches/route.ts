@@ -11,6 +11,7 @@
 import type { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
+import { notifyAdmin } from "@/lib/notifications/admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,11 +33,71 @@ function isClosed(job: JobDates, now: Date, ageCutoff: Date): boolean {
   return false; // no deadline and no posted date → can't tell, leave active
 }
 
+// Turn off complimentary access whose end date has passed, and tell Rachel who
+// lapsed so she can decide whether to extend or let it go.
+async function expireLapsedComps(
+  supabase: ReturnType<typeof createServiceClient>,
+  now: Date
+): Promise<number> {
+  const nowIso = now.toISOString();
+  const { data, error } = await supabase
+    .from("watchlist_profiles")
+    .update({ subscription_status: "inactive", updated_at: nowIso })
+    .eq("access_source", "comped")
+    .eq("subscription_status", "active")
+    .lt("comped_until", nowIso)
+    .select("client_id");
+
+  if (error) {
+    console.error("[expire-matches cron] comp sweep failed:", error);
+    return 0;
+  }
+
+  const lapsed = ((data ?? []) as { client_id: string | null }[])
+    .map((r) => r.client_id)
+    .filter((x): x is string => !!x);
+  if (lapsed.length === 0) return 0;
+
+  try {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .in("id", lapsed);
+    const names = ((profiles ?? []) as { full_name: string | null; email: string }[])
+      .map((p) => p.full_name || p.email)
+      .join(", ");
+
+    await notifyAdmin({
+      type: "watchlist_updated",
+      subject: `Complimentary Job Alerts access ended for ${lapsed.length} client${lapsed.length === 1 ? "" : "s"}`,
+      title: "Free access expired",
+      body: `The end date you set has passed, so Job Alerts access was turned off for: ${names}. Re-grant free access or point them at the paid plan.`,
+      fields: [
+        { label: "Clients", value: names },
+        { label: "Count", value: String(lapsed.length) },
+      ],
+      link: "/admin/clients?sub=comped",
+      ctaLabel: "Review comped clients",
+    });
+  } catch (err) {
+    console.error("[expire-matches cron] comp lapse notification failed:", err);
+  }
+
+  return lapsed.length;
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return new Response("Unauthorized", { status: 401 });
 
   const now = getNowFromRequest(request);
   const supabase = createServiceClient();
+
+  // ── Lapsed complimentary access ────────────────────────────────────────────
+  // A comp's end date is deliberately NOT part of the access gate — flipping
+  // subscription_status here keeps 'active' the single, index-backed truth for
+  // "has access right now", so the gate, this cron, the job-feed and the digest
+  // can never disagree. `.lt` never matches NULL, so open-ended comps are safe.
+  const lapsedComps = await expireLapsedComps(supabase, now);
 
   const { data: wl } = await supabase
     .from("watchlist_profiles")
@@ -97,6 +158,7 @@ export async function GET(request: NextRequest) {
     clients: clientIds.length,
     candidates,
     expired,
+    lapsedComps,
     expireAfterDays: EXPIRE_AFTER_DAYS,
   };
 

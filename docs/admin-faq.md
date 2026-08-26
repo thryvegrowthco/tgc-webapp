@@ -41,6 +41,30 @@ When you send booking options, the invitation itself has a status:
 
 ## Frequently Asked Questions
 
+### Can I add a client without a credit card?
+Yes. Go to **Clients → New client** (`/admin/clients/new`). Enter their name and email and you're done — nothing is charged, no card is asked for, and they can buy a service later whenever they're ready. You choose whether to email them the invite right away or create the account quietly and send it later.
+
+### How do I give a friend free Job Alerts?
+Open their client page and use the **Job Alerts access** panel → **Grant free access**. They get the full Job Alerts & Watchlist experience — curated matches and the weekly digest — at no cost. You can add a private note about why, and optionally an end date so it doesn't run forever. To take it back, press **Revoke free access**. This works even for someone who has never had Job Alerts before.
+
+### Can I set free access to expire?
+Yes — set an **Ends on** date when you grant it. Access switches off automatically that day and you get an email telling you who lapsed, so you can decide whether to extend it or point them at the paid plan. Leave the date blank if you want it open-ended.
+
+### What if they never click the invite email?
+Invite links stop working after 24 hours. Their client page shows an amber **"Account not activated yet"** banner with a **Resend invite** button — press it for a fresh link, as often as you need. The account already exists either way, so they show up in your Clients list and you can set up their Job Alerts before they've ever logged in.
+
+### Do comped clients show up in my revenue numbers?
+No. The dashboard tile counts **Paying Clients** only and shows free ones separately as a small "+ 2 comped" line. Analytics and the subscriber count exclude them too. In the Clients list they carry a **Comped** badge rather than the green **Active** badge, and there's a **Comped** filter chip.
+
+### What happens when a comped client starts paying?
+Nothing for you to do. They buy the Job Alerts subscription the normal way and the account switches from comped to paying by itself. Your note about the original comp stays on file as history.
+
+### Why can't I Pause or Cancel a comped client?
+Those two buttons change billing in Stripe, and a comped client has no billing to change — so they're hidden. Use **Revoke free access** instead, which removes their access without touching payments. For the same reason you can't comp someone who already has a Job Alerts subscription; cancel the subscription first.
+
+### Could someone give themselves free Job Alerts?
+No. Access is only ever granted by you or by a real payment. (This used to be possible by filling in the watchlist questionnaire; that hole is closed — filling in criteria no longer grants access.)
+
 ### How do I send someone a few times to choose from?
 The quickest way: on your **Overview** (admin home) page, click the **"Invite a client to book"** button in the "Book a client in" box at the top. You can also get there from **Invite to Book → New invitation** in the sidebar, or the **Create booking invitation** button on a client's page. Pick the dates and times, choose the meeting type, and send. The client gets an email, picks one, and the session is created automatically — added to your Google Calendar and confirmed by email. See **Booking Flow Diagrams** for the full picture. (If a yellow "Google Calendar isn't connected" note appears on the Invite to Book page, connect it under Integrations so sessions land on your calendar.)
 
@@ -123,6 +147,9 @@ Yes. Every email goes out in two versions — a designed one and a plain-text on
 | Send a quote-based proposal and collect payment | **Proposals → New proposal** |
 | Approve or manage testimonials | **Testimonials** |
 | Manage one client / their sessions / their goals | **Clients → (the client)** |
+| Add a client without taking payment | **Clients → New client** |
+| Give someone free Job Alerts (or take it back) | **Clients → (the client) → Job Alerts access** |
+| See who has free access | **Clients → Comped** filter |
 | See business insights and download CSVs | **Analytics** |
 | Edit an automated email | **Templates** |
 | Turn an email on/off | **Settings** |

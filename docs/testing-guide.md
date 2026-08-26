@@ -299,8 +299,41 @@ Auth-protected routes return **307**, public routes return **200**. Anything els
 
 ---
 
+## 7. Complimentary access + admin-created clients (migration 0033)
+
+### Automated harness
+
+```bash
+npx tsx scripts/test-comped-access-walk.mts
+```
+
+Blocks Resend / Stripe / Google / RapidAPI, creates its own throwaway auth user, and cleans up in a `finally`. It exits early with a clear message if `0033` isn't applied yet. It drives `src/lib/watchlist/comp.ts` rather than the server actions, because `requireAdmin()` has no session in a `.mts` and throws `NEXT_REDIRECT`.
+
+What it proves, in order: the `handle_new_user()` trigger creates a `role='client'` profile · **a signed-in client cannot self-grant access** (both `INSERT` and `UPDATE` of `subscription_status`/`access_source` are silently coerced, while their criteria still save) · grant creates a row for a client who has none · re-grant is idempotent · a comped client appears in the `job-feed` batch · the gate still allows only `active` · `computeJobAlertsReport` labels the comp and excludes it from `activeClients` · grant is refused when a Stripe sub is on file · a past `comped_until` is swept to inactive while a `NULL` one is not · revoke keeps `access_source`/note/date as history · conversion to paid flips `access_source` · revoke is refused on a paid row.
+
+> **Teardown order matters.** Neither `profiles.id → auth.users` nor `watchlist_profiles.client_id → profiles(id)` has `ON DELETE CASCADE`, so `auth.admin.deleteUser()` fails on a foreign-key violation unless you delete `watchlist_profiles` → `profiles` → user, in that order.
+
+### Manual walk
+
+1. Apply `apply-0033.sql` in the Supabase SQL editor. Sanity-check why the trigger was needed rather than a `REVOKE`:
+   `SELECT has_column_privilege('authenticated','watchlist_profiles','subscription_status','UPDATE');` → expect `true`.
+2. Supabase → Authentication → URL Configuration → **Redirect URLs**: add `https://www.thryvegrowth.co/**`, `https://thryvegrowth.co/**`, `http://localhost:3000/**`. Without this GoTrue silently drops `redirectTo`.
+3. As a logged-in **client**, open devtools and try a PostgREST `PATCH` setting `subscription_status='active'` on your own row → confirm it does not take effect.
+4. `/admin/clients/new` → invite yourself at a `+alias` address. Check the inbox, click the link, land on `/dashboard/profile?welcome=1` with the welcome banner, set a password, confirm `/dashboard` loads.
+5. Grant a comp on that client → `/dashboard/watchlist` unlocks; `/dashboard/billing` shows the **Complimentary access** card, *not* the "No active subscription" upsell; the `/admin` tile reads "Paying Clients" without incrementing and shows "+ 1 comped".
+6. Hit `/api/cron/job-feed` locally (no `CRON_SECRET` → open) and confirm the comped client is in the batch.
+7. Revoke → the watchlist notice reads "Your complimentary Job Alerts access has ended" with a **View Job Alerts** CTA, not "Manage billing".
+8. Set `comped_until` to yesterday, hit `/api/cron/expire-matches`, and confirm `lapsedComps: 1` in the JSON plus the admin notification.
+9. Stripe test-mode checkout as that client → `access_source` flips to `paid`, and Billing shows the real subscription card.
+
+---
+
 ## Common gotchas
 
+- **"column watchlist_profiles.access_source does not exist"** → migration `0033` not applied. Paste `apply-0033.sql` into the Supabase SQL editor.
+- **An admin status/comp change appears to save but doesn't stick** → the write went through the *cookie* client, and the `0033` guard trigger silently pinned it. Privileged columns on `watchlist_profiles` must be written with `createServiceClient()`.
+- **Invite link lands on a dead host** → the `next` sanitizer in `/auth/confirm` or `/api/auth/send-email` was bypassed; `redirect_to` arrives absolute and must be reduced to a path first.
+- **Invite email never arrives / link 404s** → the Redirect URLs allow-list is missing the environment you're testing (see manual step 2).
 - **"Could not find the table 'leads'"** → migration `0006` not applied. See section 0.1.
 - **"column client_job_matches.score does not exist"** → migration `0007` not applied.
 - **"column client_profiles.client_id does not exist"** → migration `0008` not applied.

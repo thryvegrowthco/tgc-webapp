@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { redirect } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { User, Lock } from "lucide-react";
+import { User, Lock, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 
 export default function ProfilePage() {
+  const isWelcome = useSearchParams().get("welcome") === "1";
   const [profile, setProfile] = React.useState<Profile | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -72,6 +73,19 @@ export default function ProfilePage() {
         <h1 className="font-display text-2xl font-bold text-neutral-900">Profile</h1>
         <p className="text-neutral-500 mt-1 text-sm">Manage your account information.</p>
       </div>
+
+      {/* Invited clients land here with no password set (see actions/clients.ts). */}
+      {isWelcome && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <KeyRound className="h-5 w-5 text-brand-700 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-brand-900">Welcome to Thryve Growth Co.</p>
+            <p className="text-brand-800 mt-0.5">
+              You&apos;re signed in. Set a password below so you can log back in any time.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Profile info */}
       <div className="bg-white border border-neutral-200 rounded-xl p-6 mb-6">

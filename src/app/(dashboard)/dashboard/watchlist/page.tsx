@@ -26,7 +26,7 @@ export default async function WatchlistPage({
 
   const { data: watchlistProfile } = await supabase
     .from("watchlist_profiles")
-    .select("id, subscription_status")
+    .select("id, subscription_status, access_source")
     .eq("client_id", user.id)
     .maybeSingle();
 
@@ -59,7 +59,12 @@ export default async function WatchlistPage({
   // Gate job-alerts content when the subscription is not active.
   const access = getWatchlistAccess(watchlistProfile.subscription_status);
   if (!access.allowed) {
-    return <WatchlistInactiveNotice status={watchlistProfile.subscription_status} />;
+    return (
+      <WatchlistInactiveNotice
+        status={watchlistProfile.subscription_status}
+        accessSource={watchlistProfile.access_source}
+      />
+    );
   }
 
   const { data: matchesRaw } = await supabase

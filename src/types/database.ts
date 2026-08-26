@@ -32,6 +32,11 @@ export type MatchStatus =
   | "offer"
   | "expired";
 
+// Why a watchlist row's access is active — NOT the access gate itself (that is
+// still `subscription_status === 'active'`). Don't-care for inactive rows.
+// Keep in sync with the CHECK in 0033_comped_watchlist_access.sql.
+export type WatchlistAccessSource = "paid" | "comped";
+
 export type Database = {
   public: {
     Tables: {
@@ -711,6 +716,11 @@ export type Database = {
           last_feed_at: string | null;
           subscription_status: string;
           stripe_subscription_id: string | null;
+          access_source: WatchlistAccessSource;
+          comp_note: string | null;
+          comped_by: string | null;
+          comped_at: string | null;
+          comped_until: string | null;
           updated_at: string;
         };
         Insert: {
@@ -743,6 +753,11 @@ export type Database = {
           last_feed_at?: string | null;
           subscription_status?: string;
           stripe_subscription_id?: string | null;
+          access_source?: WatchlistAccessSource;
+          comp_note?: string | null;
+          comped_by?: string | null;
+          comped_at?: string | null;
+          comped_until?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -775,6 +790,11 @@ export type Database = {
           last_feed_at?: string | null;
           subscription_status?: string;
           stripe_subscription_id?: string | null;
+          access_source?: WatchlistAccessSource;
+          comp_note?: string | null;
+          comped_by?: string | null;
+          comped_at?: string | null;
+          comped_until?: string | null;
           updated_at?: string;
         };
         Relationships: [];

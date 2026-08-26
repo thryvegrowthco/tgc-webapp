@@ -16,6 +16,7 @@ type WatchlistRow = {
   locations: string[] | null;
   remote_preference: string | null;
   subscription_status: string | null;
+  access_source: string | null;
   updated_at: string | null;
 };
 
@@ -31,7 +32,7 @@ export default async function AdminWatchlistsPage() {
   const { data: watchlistsRaw } = await supabase
     .from("watchlist_profiles")
     .select(
-      "id, client_id, target_roles, locations, remote_preference, subscription_status, updated_at"
+      "id, client_id, target_roles, locations, remote_preference, subscription_status, access_source, updated_at"
     )
     .order("updated_at", { ascending: false });
 
@@ -79,11 +80,16 @@ export default async function AdminWatchlistsPage() {
                       <p className="font-medium text-neutral-900 text-sm truncate">
                         {profile?.full_name ?? profile?.email ?? "Unknown Client"}
                       </p>
-                      {w.subscription_status === "active" && (
-                        <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          Active
-                        </span>
-                      )}
+                      {w.subscription_status === "active" &&
+                        (w.access_source === "comped" ? (
+                          <span className="text-xs font-semibold bg-brand-100 text-brand-800 px-2 py-0.5 rounded-full">
+                            Comped
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            Active
+                          </span>
+                        ))}
                     </div>
                     {profile?.email && profile.full_name && (
                       <p className="text-xs text-neutral-400 mb-1">{profile.email}</p>

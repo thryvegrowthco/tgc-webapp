@@ -26,8 +26,26 @@ const STATUS_MESSAGE: Record<string, string> = {
   expired: "Your Job Alerts subscription has expired.",
 };
 
-export function WatchlistInactiveNotice({ status }: { status: string }) {
-  const message = STATUS_MESSAGE[status] ?? "Your Job Alerts subscription is not active.";
+export function WatchlistInactiveNotice({
+  status,
+  accessSource,
+}: {
+  status: string;
+  accessSource?: string | null;
+}) {
+  // A comped client has no subscription and no card on file, so the standard
+  // "reactivate your subscription / manage billing" copy sends them to a page
+  // with nothing on it. Tell them the truth and point at the paid plan instead.
+  const isComped = accessSource === "comped";
+  const message = isComped
+    ? "Your complimentary Job Alerts access has ended."
+    : STATUS_MESSAGE[status] ?? "Your Job Alerts subscription is not active.";
+  const body = isComped
+    ? "Subscribe to keep receiving curated job matches and to access your watchlist and applications."
+    : "Reactivate your subscription to keep receiving curated job matches and to access your watchlist and applications.";
+  const ctaHref = isComped ? "/services/job-alerts" : "/dashboard/billing";
+  const ctaLabel = isComped ? "View Job Alerts" : "Manage billing";
+
   return (
     <div>
       <div className="mb-8">
@@ -40,15 +58,12 @@ export function WatchlistInactiveNotice({ status }: { status: string }) {
           <Lock className="h-5 w-5 text-amber-600" />
         </div>
         <h3 className="font-display font-bold text-neutral-900 mb-2">{message}</h3>
-        <p className="text-sm text-neutral-500 mb-5 max-w-sm mx-auto">
-          Reactivate your subscription to keep receiving curated job matches and to access your
-          watchlist and applications.
-        </p>
+        <p className="text-sm text-neutral-500 mb-5 max-w-sm mx-auto">{body}</p>
         <Link
-          href="/dashboard/billing"
+          href={ctaHref}
           className="inline-flex items-center gap-1 text-sm font-medium text-white bg-brand-700 hover:bg-brand-800 rounded-lg px-4 py-2.5"
         >
-          Manage billing <ArrowRight className="h-4 w-4" />
+          {ctaLabel} <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </div>
