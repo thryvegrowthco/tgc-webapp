@@ -781,6 +781,8 @@ Once a **Download** resource has a file or link *and* is switched ON, its public
 
 **Dedicated landing pages:** some resources have their own full landing page you can share directly (in ads, emails, or social) instead of sending people to the whole Resources list. The **Career Reset Workbook** has one at **`thryvegrowth.co/career-reset-workbook`** — it has a big Download button plus an optional newsletter sign-up. If you'd like a landing page for another resource, just ask.
 
+**Your business card page:** the QR code on your business card opens **`thryvegrowth.co/card`**, a simple page with your photo, a **Book a free consultation** button, a **Save to contacts** button and your email address. It's hidden from Google, and it must stay on the site because printed cards point to it. If you'd like it to say something different, just ask.
+
 ---
 
 ## 11b. Testimonials
