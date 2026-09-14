@@ -24,6 +24,7 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: `${BASE_URL}/privacy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
   { url: `${BASE_URL}/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
   // Testimonials is intentionally excluded (noindex page)
+  // /card is intentionally excluded (noindex; reached from the QR code on Rachel's business card)
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

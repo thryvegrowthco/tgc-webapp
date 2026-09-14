@@ -13,21 +13,6 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: "inline",
   },
-  // /card is the URL printed as a QR code on Rachel's business cards
-  // (artwork: Desktop/Apps/designs/thryve-growth-co/business-card, outside
-  // this repo). Cards already in circulation depend on it, so repoint the
-  // destination when needed but never delete the entry. permanent:false
-  // (307) keeps browsers from caching it, so a new destination takes effect.
-  async redirects() {
-    return [
-      {
-        source: "/card",
-        destination:
-          "/consultation?utm_source=print&utm_medium=business_card&utm_campaign=rachel_card_2026",
-        permanent: false,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

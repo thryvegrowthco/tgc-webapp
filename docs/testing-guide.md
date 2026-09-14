@@ -288,11 +288,14 @@ After all the above, do one quick sanity pass to confirm nothing regressed:
 | `/investment` | New prices, "A Quick Note on Pricing", "Not Sure Where to Start?" CTA |
 | `/dashboard` | Soft prompt visible (if onboarding incomplete), all 7 sidebar links work |
 | `/admin` | Sidebar shows Leads; all admin pages load |
+| `/card` | Business card page: logo, photo, "Rachel Dietz", Book a free consultation, Save to contacts; **200** with no redirect |
+| `/card/rachel-dietz.vcf` | `Content-Type: text/vcard; charset=utf-8`; on a phone it opens as a contact card |
 
 ```bash
-for r in / about services investment privacy terms resources packages services/job-alerts dashboard admin; do
+for r in / about services investment privacy terms resources packages services/job-alerts card dashboard admin; do
   echo "/$r → $(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://localhost:3000/$r)"
 done
+curl -sI http://localhost:3000/card/rachel-dietz.vcf | grep -i '^content-type'
 ```
 
 Auth-protected routes return **307**, public routes return **200**. Anything else (`500`, `404`) means something broke.
