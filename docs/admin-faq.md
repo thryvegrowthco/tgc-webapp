@@ -98,6 +98,9 @@ Use **blackout dates** in your availability settings (see the Admin Guide, "Mana
 ### What's the difference between a "booking invitation" and the public Book page?
 The public **Book** page is where anyone can buy and self-schedule. A **booking invitation** is you personally offering a specific client a few hand-picked times — perfect for returning clients or anyone you're scheduling directly.
 
+### Where does the QR code on my business card go?
+It opens **thryvegrowth.co/card**, which forwards people straight to your **free consultation request page**. That in-between address exists so the destination can be changed later (for example, to your homepage) without reprinting any cards. Because cards are already printed with it, the **/card** address must stay on the website. Scans are labeled "business card" in your website analytics, but a consultation request that comes from a card looks the same as any other on the lead itself.
+
 ### How do I send a proposal and get paid for custom work?
 Use a **proposal** for quote-based work — recruitment, HR projects, anything you scope and price rather than sell as a fixed session. Go to **Proposals → New proposal** (or start one from a lead's or client's page so the name and email fill in for you). Write the scope and terms, set a price (a single total or line items, or **$0** for a no-charge agreement you just want signed), and **Send**. The client gets a "Review & Accept Proposal" email, accepts by typing their name, and — if there's a price — pays online right then. You get a notification when they accept and a second one when payment goes through; a receipt is sent to them automatically. See the Admin Guide, "Sending a Proposal," for the full walkthrough.
 
