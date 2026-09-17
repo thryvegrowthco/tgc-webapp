@@ -193,6 +193,29 @@ You'll now be warned before it can happen again: an **amber box appears in the s
 
 If you had the newsletter page open in your browser for a long time before this change, refresh the page first (hold Shift and click reload) so you're using the current version.
 
+### I got an email saying the newsletter job failed. Did my newsletter not go out?
+
+Almost certainly it did — or there was nothing to send at that moment. The system checks for due
+newsletters every hour, and most of those checks happen when nothing is scheduled at all. A
+failure alert on one of those empty checks means a momentary connection problem, not a missed
+newsletter.
+
+The way to tell for certain is the issue's own status on the Newsletter page. **Sent** means it
+went out. **Scheduled** means it hasn't gone yet and will be retried on the next hourly check.
+Only **Failed** means an email genuinely didn't reach your subscribers.
+
+This has been tightened up: the system now only sends an alert when an issue was actually due and
+actually failed. Empty checks and momentary blips no longer email you, because there was never
+anything for you to do about them.
+
+### An issue is stuck showing "Sending". What do I do?
+
+Nothing — wait 15 minutes. If a send is interrupted partway through (usually a site update landing
+at the same moment), the issue used to sit at Sending forever and never go out. Now anything stuck
+in Sending for more than 15 minutes is automatically put back to Scheduled and retried on the next
+hourly check. If it's still showing Sending well beyond that, pass it on to whoever manages the
+site.
+
 ### Do links work in every kind of email?
 Yes. Every email goes out in two versions — a designed one and a plain-text one for readers whose email program can't show formatting. The plain-text version used to drop web addresses entirely; it now writes them out in full after the link text, like *Download the workbook (https://www.thryvegrowth.co/career-reset-workbook)*, and includes the unsubscribe link.
 

@@ -343,7 +343,11 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **Why external:** Vercel Hobby caps cron jobs aggressively; cron-job.org's free tier allows up to 50 jobs with minute-level granularity — comfortably covers ours (see the inventory below).
 
-**Auth model:** Every cron route handler still calls `isAuthorized(request)` from `src/lib/cron/auth.ts`. That helper compares the `Authorization` header to `Bearer ${CRON_SECRET}`. cron-job.org sends the same header on every job invocation. Locally, with no `CRON_SECRET` set, the endpoint allows all requests (dev-safe).
+**Auth model:** Every cron route handler calls `isAuthorized(request)` from `src/lib/cron/auth.ts`. That helper compares the `Authorization` header to `Bearer ${CRON_SECRET}`. cron-job.org sends the same header on every job invocation. Locally, with no `CRON_SECRET` set, the endpoint allows all requests (dev-safe).
+
+> `job-alerts`, `newsletter-milestones` and `newsletter-reengage` still carry a private byte-identical copy of `isAuthorized` instead of importing the shared helper. They behave the same, but they miss `getNowFromRequest`'s `?now=<ISO>` dry-run hook. `newsletter-send` was migrated to the shared helper; the other three are still outstanding.
+
+**`/api/*` does not run the proxy middleware.** `src/proxy.ts`'s matcher excludes `api/`. That middleware only guards `/dashboard` and `/admin` *page* navigations; every auth-sensitive route handler calls `getUser()` itself. Before this exclusion, each cron tick paid for a Supabase Auth round-trip that could only ever fail the request — an uncaught throw there is a `MIDDLEWARE_INVOCATION_FAILED`, i.e. a 500 before the handler runs. `proxy()` now also degrades to "no user" rather than throwing.
 
 **Timeouts — two different clocks:**
 
@@ -359,7 +363,7 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | Endpoint | UTC cron | Local Central time |
 |---|---|---|
 | `GET /api/cron/job-alerts` | `0 9 * * 1` | Mon 3am CDT / 4am CST |
-| `GET /api/cron/newsletter-send` | `0 * * * *` | Hourly at :00 |
+| `GET /api/cron/newsletter-send` | `0 * * * *` | Hourly at :00 — sends due issues, and reclaims any issue stuck at `sending` for >15 min. Writes a `newsletter_send_run` row to `automation_log` every run. **Returns 500 only when an issue was genuinely due and failed to go out**; an idle tick or a transient Supabase error returns 200, because the issue stays `scheduled` and the next tick retries it |
 | `GET /api/cron/newsletter-reengage` | `0 14 * * 3` | Wed 9am CDT / 8am CST |
 | `GET /api/cron/newsletter-milestones` | `0 14 * * *` | Daily 9am CDT / 8am CST |
 | `GET /api/cron/intake-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST |

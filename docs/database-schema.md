@@ -561,9 +561,13 @@ One row per weekly newsletter draft → scheduled → sent.
 | `approved_by` | `UUID` | `NULL` | FK to `profiles` (the admin who approved) |
 | `approved_at` | `TIMESTAMPTZ` | `NULL` | — |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
-| `updated_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `updated_at` | `TIMESTAMPTZ` | `NOW()` | **No trigger** — only moves when the app sets it. While `status='sending'` it doubles as the send lock's timestamp |
 
 Index: `(status, scheduled_for)` for the hourly cron's hot query.
+
+**`sending` is a lock, and it has a timeout.** `sendIssue` sets `status='sending'` plus `updated_at=NOW()` to claim an issue. The hourly cron reclaims anything left at `sending` for more than 15 minutes (`STALE_LOCK_MS` in `src/app/api/cron/newsletter-send/route.ts`) by putting it back to `scheduled`. Without that, a process killed mid-send would strand the issue forever: the due query only matches `scheduled`, and `sendIssue`'s own `.in("status", [...])` guard blocks a manual resend too.
+
+**`automation_log` rows:** the send cron writes one `newsletter_send_run` row per run (`status` `success` / `failed` / `skipped`, with a summary payload). `automation_log.event_key` is plain `TEXT` with no CHECK constraint, so new event keys need no migration; its `status` CHECK already allows all three values.
 
 ---
 

@@ -957,7 +957,11 @@ To backfill an address onto broken links in an already-saved issue:
 cron-job.org hits /api/cron/newsletter-send hourly ("0 * * * *")
         │
         ▼
-Route handler authenticates via CRON_SECRET
+Route handler authenticates via CRON_SECRET (shared isAuthorized)
+        │
+        ▼
+Reclaim stale locks: UPDATE status='scheduled'
+  WHERE status='sending' AND updated_at < NOW() - 15 min
         │
         ▼
 SELECT FROM newsletter_issues
@@ -965,7 +969,8 @@ SELECT FROM newsletter_issues
         │
         ▼
 For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
-  1. Lock: UPDATE status='sending' (atomic; safe under cron retries)
+  1. Lock: UPDATE status='sending', updated_at=NOW()
+     (atomic — two concurrent ticks cannot both win the row)
   2. Render baseHtml + baseText once via renderIssueHTML / renderIssueText
      (the text part keeps link destinations as "anchor text (https://url)" and
       carries its own footer + {{unsubscribe_url}} — the HTML shell's footer
@@ -975,12 +980,31 @@ For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
        - Build per-recipient payload with first_name + tokenized
          unsubscribe URL substituted into the rendered HTML
        - Add List-Unsubscribe + List-Unsubscribe-Post headers (RFC 8058)
-       - resend.batch.send(payload)
+       - resend.batch.send(payload), then CHECK result.error and that
+         Resend acknowledged one id per recipient (the SDK resolves
+         { data: null, error } on a 401/403/422/429 — it never throws)
        - Insert newsletter_sends rows with resend_message_id
        - Sleep 1.1s between batches (stays under Resend's 10 req/s)
   5. UPDATE status='sent', sent_at, sent_count, failed_count
-  6. UPDATE last_sent_at on each delivered subscriber
+  6. UPDATE last_sent_at on the subscribers that actually received it
+        │
+        ▼
+Write one automation_log row: event_key='newsletter_send_run'
 ```
+
+**The lock is always released.** Everything after step 1 runs inside a guard that
+marks the issue `failed` before rethrowing; a killed process (deploy, timeout,
+OOM) is caught instead by the stale-lock reclaim at the top of the next tick.
+Without both, an issue stranded at `sending` would never be retried — the due
+query only matches `scheduled`, and the lock's own status guard blocks a manual
+resend too.
+
+**Alerting contract.** The route returns **500 only when an issue was genuinely
+due and failed to go out**. An idle tick, or a transient Supabase error, returns
+200: the issue stays `scheduled`, so the next hourly tick retries it, and paging
+a human over a self-healing blip is noise. Every run — success, skip or failure —
+writes exactly one `automation_log` row (`newsletter_send_run`), which is the
+durable record to check when something looks wrong.
 
 Hourly cron precision means an issue scheduled for 9:15 AM sends at the next
 top-of-hour. Acceptable for a weekly newsletter; documented in `rachel-admin-guide.md`.

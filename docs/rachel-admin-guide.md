@@ -723,6 +723,28 @@ it can't slip past you.
   - **Approve & schedule** — locks in the schedule. The send will happen automatically.
   - **Send now** — sends immediately to everyone matching your audience filter. Use sparingly.
 
+### If a scheduled send hits a problem
+
+The system checks for due newsletters every hour, so a send has many chances to succeed. If one
+check can't reach the database, nothing is lost — your issue stays **Scheduled** and the next
+hourly check picks it up. You won't be emailed about a hiccup like that, because there's nothing
+for you to do.
+
+You *will* be alerted when it actually matters: if an issue was due and the email genuinely failed
+to go out, the issue is marked **Failed** rather than Sent, and the alert goes to whoever manages
+the site. An issue marked Failed has not reached your subscribers.
+
+There's also a safety net for an interrupted send. If the system is restarted partway through
+sending — during a site update, say — an issue could previously get stuck showing **Sending**
+forever and never actually go out. Now anything stuck in Sending for more than 15 minutes is
+automatically put back to Scheduled and retried on the next hourly check.
+
+One thing worth knowing about the numbers: the **Sent** count now reflects emails the email
+service actually accepted. Previously, if the email service rejected a batch outright, the issue
+could still show as Sent with a full count. If you ever see an issue marked Failed, or a sent
+count lower than your subscriber total, that's the system reporting honestly rather than a new
+problem.
+
 ### Preview
 
 Click **Open preview** in the sidebar to see how the email will look in an inbox. The header shows the fake "from", subject, and preview line; the body is the real rendered email.

@@ -38,3 +38,71 @@ email them a secure setup link. Public /signup stays closed.
 - Welcome email lives in auth-emails.ts (same family as the invited-client email) = "prefer whatever the codebase already does for invited clients"; no new EmailTemplateKey/DB migration.
 - Idempotency: handlers short-circuit on replay (unique stripe_session_id on bookings/packages; invitation.booking_id; proposal.status=paid) AND welcome gated on isNew, so a replay never double-creates or double-emails.
 - No DB migration needed (profiles row created by existing handle_new_user trigger; reuse existing admin_notifications type).
+
+---
+
+## Newsletter cron 500 — 2026-09-12 (incident + hardening)
+
+Full plan: `~/.claude/plans/my-newsletter-cron-is-eager-clover.md`.
+
+**Trigger:** cron-job.org reported `GET /api/cron/newsletter-send` → 500 at 2026-09-12 00:00:06 GMT.
+
+**Finding: nothing was lost.** Verified against production — all 17 issues `sent`, zero
+`newsletter_sends` rows on 09-12, nothing due at that tick, and the 09-15 14:00 issue sent 8s
+after schedule. It was an **idle no-op tick that should have returned 200**.
+
+**Root cause (most probable):** a transient Supabase/PostgREST error hit the route's graceful
+`if (error)` 500 branch. `newsletter-send` was the *only* hourly cron that converted a query
+error into a 500 — `session-reminders` shares the same `0 * * * *` tick but discards `error`
+entirely, which is why exactly one failure email arrived. postgrest-js defaults to
+`shouldThrowOnError=false` and returns fetch failures as an `error` object, so a 2-3s blip
+produces precisely this signature. Secondary candidate: an uncaught throw in the proxy
+middleware, which ran on `/api/*` and made an unguarded Supabase Auth network call per tick.
+Ruled out: missing env vars — `NEXT_PUBLIC_*` are compile-time inlined into the server bundle
+(verified in `.next/server`), and no deploy occurred on 09-12.
+The exact error is unrecoverable: Vercel runtime logs aged out, and the route logged nothing.
+
+### Changes
+- [x] `src/proxy.ts` — matcher now excludes `api/`; `updateSession` failures degrade to
+      `user: null` (fails closed) instead of a `MIDDLEWARE_INVOCATION_FAILED` 500.
+- [x] `src/app/api/cron/newsletter-send/route.ts` — rebuilt on the `job-feed` pattern: shared
+      `isAuthorized`, whole body guarded, `maxDuration` 300 → 60 (Hobby clamps anyway), one
+      `newsletter_send_run` row in `automation_log` per run, stale-lock reclaim, and **500 only
+      when a due issue failed to send**.
+- [x] `src/lib/email/newsletter-send.ts` — check `resend.batch.send`'s `result.error` and the
+      acknowledged-id count (the SDK resolves `{data:null,error}` and never throws, so a
+      401/403/429 was being written to the ledger as a successful delivery); release the
+      `sending` lock on any throw; stamp `last_sent_at` on the subscribers actually delivered
+      to rather than `slice(0, sentCount)`; `markIssueFailed` keeps the real `failed_count`.
+- [x] `package.json` — declare `happy-dom` (an undeclared peer of `@tiptap/html`, top-level
+      imported by the render path; if a lockfile regen dropped it, every request to this route
+      would 500 at module load).
+- [x] Docs: `integrations.md`, `workflows.md` §7c, `developer-architecture.md`,
+      `database-schema.md`, `rachel-admin-guide.md`, `admin-faq.md`; help center regenerated.
+      Corrected two false claims: "every cron route imports the shared auth helper" (3 still
+      don't) and "Hobby caps functions at 10 seconds" (it's 60).
+
+### Verification (all run)
+- [x] `tsc --noEmit` clean; eslint clean on changed files; `next build` succeeds.
+- [x] Compiled `functions-config-manifest.json` confirms the middleware no longer matches any
+      `/api/*` path, and still matches `/dashboard`, `/admin`, `/login`, `/`.
+- [x] Idle tick → `200 {checked:0}` + a `newsletter_send_run` / `skipped` row in `automation_log`.
+- [x] Stale-lock reclaim: issue stuck at `sending` with a 20-min-old `updated_at` → `reclaimed:1`,
+      flipped back to `scheduled`, zero sends created.
+- [x] Negative test: the same issue with a *fresh* `updated_at` → `reclaimed:0`, left at `sending`.
+      (The sweep discriminates; it doesn't just always fire.)
+- [x] Resend premise proven against the live API: `batch.send` with a bad key **resolves** to
+      `{data:null,error:{statusCode:401,...}}` and does not throw. Old code would have recorded
+      it as a delivered send; the new check catches it on both guards.
+- [x] Production ledger audit: all 189 `newsletter_sends` rows carry a real Resend message id,
+      so the silent-failure bug had never actually fired.
+
+### Still outstanding
+- [ ] After deploy: no-auth probe of `/api/cron/newsletter-send` must still 401; then an
+      authenticated call should return `200 {checked:0}` and log a row.
+- [ ] `job-alerts`, `newsletter-milestones`, `newsletter-reengage` still carry a private copy of
+      `isAuthorized` (no `?now=` dry-run hook).
+- [ ] `newsletter-milestones` / `newsletter-reengage` record nothing, so they have no idempotency
+      guard — the same subscribers can be re-emailed every run.
+- [ ] `NewsletterIssueForm.tsx` computes the default schedule in browser-local time but saves it
+      as Central, shifting the hour for any admin outside Central.

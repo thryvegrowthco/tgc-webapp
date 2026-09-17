@@ -55,10 +55,12 @@ export interface SendIssueResult {
 export async function sendIssue(issueId: string): Promise<SendIssueResult> {
   const supabase = createServiceClient();
 
-  // 1. Lock the issue: only move scheduled/pending issues into sending
+  // 1. Lock the issue: only move scheduled/pending issues into sending.
+  //    updated_at doubles as the lock timestamp — the cron reclaims any issue
+  //    left 'sending' too long (see api/cron/newsletter-send/route.ts).
   const { data: locked, error: lockError } = await supabase
     .from("newsletter_issues")
-    .update({ status: "sending" })
+    .update({ status: "sending", updated_at: new Date().toISOString() })
     .eq("id", issueId)
     .in("status", ["scheduled", "pending_approval", "draft"])
     .select("id, title, subject, preheader, content, status, target_interests")
@@ -67,8 +69,30 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
   if (lockError || !locked) {
     throw new Error(`Cannot lock issue ${issueId} for sending: ${lockError?.message ?? "not found or already sending"}`);
   }
-  const issue = locked as unknown as IssueRow;
 
+  // Past this point the issue is locked. Anything that escapes would strand it
+  // at 'sending' forever: the cron only selects 'scheduled', and the guard
+  // above blocks a manual retry too. So always release the lock on the way out.
+  //
+  // It is released to 'failed', deliberately, not back to 'scheduled'. A throw
+  // can happen *after* some batches have already gone out, and an automatic
+  // retry would then double-send to those people. 'failed' is visible in the
+  // admin UI and makes the cron return 500 (so cron-job.org alerts), which is
+  // the safe trade: a human decides whether to resend. Batch-level failures
+  // don't reach here at all — the send loop records them and carries on.
+  try {
+    return await deliverIssue(supabase, issueId, locked as unknown as IssueRow);
+  } catch (err) {
+    await markIssueFailed(issueId, err instanceof Error ? err.message : String(err));
+    throw err;
+  }
+}
+
+async function deliverIssue(
+  supabase: ReturnType<typeof createServiceClient>,
+  issueId: string,
+  issue: IssueRow
+): Promise<SendIssueResult> {
   // 2. Load recipients
   let recipientQuery = supabase
     .from("newsletter_subscribers")
@@ -81,7 +105,7 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
 
   const { data: recipientsRaw, error: recipientsError } = await recipientQuery;
   if (recipientsError) {
-    await markIssueFailed(issueId, recipientsError.message);
+    // The caller's catch releases the lock and marks the issue failed.
     throw new Error(`Failed to load recipients: ${recipientsError.message}`);
   }
   const recipients = (recipientsRaw ?? []) as SubscriberRow[];
@@ -117,6 +141,9 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
   let sentCount = 0;
   let failedCount = 0;
   const errors: string[] = [];
+  // Tracked explicitly rather than derived from sentCount: batches can fail out
+  // of order, so the delivered recipients are not a prefix of the array.
+  const sentSubscriberIds: string[] = [];
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
     const batch = recipients.slice(i, i + BATCH_SIZE);
@@ -152,7 +179,24 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
 
     try {
       const result = await resend.batch.send(payload);
+
+      // The Resend SDK does NOT throw on an API error — it resolves to
+      // { data: null, error } for every non-ok response, and even turns a
+      // network failure into an `application_error`. Without these two checks a
+      // 401 (bad key), 403 (unverified sending domain), 422, 429 or an outage
+      // would be written to the ledger as a clean success for every recipient,
+      // and the issue marked 'sent' with failed_count 0.
+      const batchError = (result as { error?: { message?: string } | null }).error;
+      if (batchError) {
+        throw new Error(batchError.message ?? "Resend returned an error with no message");
+      }
+
       const responseData = (result as { data?: { data?: Array<{ id: string }> } }).data?.data ?? [];
+      if (responseData.length !== batch.length) {
+        throw new Error(
+          `Resend acknowledged ${responseData.length} of ${batch.length} messages`
+        );
+      }
 
       const sendRows = batch.map((sub, idx) => ({
         issue_id: issueId,
@@ -167,6 +211,7 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
       }
 
       sentCount += batch.length;
+      sentSubscriberIds.push(...batch.map((sub) => sub.id));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       failedCount += batch.length;
@@ -198,30 +243,33 @@ export async function sendIssue(issueId: string): Promise<SendIssueResult> {
       sent_at: now,
       sent_count: sentCount,
       failed_count: failedCount,
+      updated_at: now,
     })
     .eq("id", issueId);
 
-  // Update last_sent_at for each recipient that got the email
-  if (sentCount > 0) {
-    const sentSubscriberIds = recipients
-      .slice(0, sentCount)
-      .map((s) => s.id);
-    if (sentSubscriberIds.length > 0) {
-      await supabase
-        .from("newsletter_subscribers")
-        .update({ last_sent_at: now })
-        .in("id", sentSubscriberIds);
-    }
+  // Update last_sent_at for each recipient that actually got the email
+  if (sentSubscriberIds.length > 0) {
+    await supabase
+      .from("newsletter_subscribers")
+      .update({ last_sent_at: now })
+      .in("id", sentSubscriberIds);
   }
 
   return { issueId, sent: sentCount, failed: failedCount, errors };
 }
 
+// Only reached when delivery threw, which means the batch loop never completed
+// and no per-recipient tally exists — hence failed_count 0. A run that finishes
+// with some batches failing sets the real count itself, in deliverIssue.
 async function markIssueFailed(issueId: string, reason: string) {
   const supabase = createServiceClient();
   await supabase
     .from("newsletter_issues")
-    .update({ status: "failed", failed_count: 0 })
+    .update({
+      status: "failed",
+      failed_count: 0,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", issueId);
   console.error(`[newsletter-send] issue ${issueId} failed:`, reason);
 }
