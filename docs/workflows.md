@@ -709,11 +709,18 @@ ContactForm (src/components/shared/ContactForm.tsx)
 ## 6b. Free Consultation Request Flow
 
 ```
-Visitor on /consultation → fills firstName, lastName, email, phone?, timing?, message → submits
+Visitor on /consultation (or /consultation?from=card, from the business card) → fills
+firstName, lastName, email, phone?, timing?, message → submits
+        │
+        ▼
+consultation/page.tsx
+  0. Awaits searchParams FIRST, runs ?from= through entryToken() (src/lib/leads/source.ts)
+     and passes only an allowlisted token to the form, which renders it as a hidden
+     `from` input. An unknown or repeated token yields null and no hidden field.
         │
         ▼
 ConsultationForm (src/components/marketing/ConsultationForm.tsx)
-  POST /api/consultation with JSON payload
+  POST /api/consultation with JSON payload (including `from` when present)
         │
         ▼
 /api/consultation route handler (src/app/api/consultation/route.ts)
@@ -727,9 +734,12 @@ ConsultationForm (src/components/marketing/ConsultationForm.tsx)
        (warm acknowledgement, 1–2 business day response promise)
   4. Best-effort: syncContactToGHL with tags ["thryve-lead", "consultation-requested"]
        - timing (when provided) written to consultation_timing custom field
-  5. Best-effort: INSERT a leads row (service client) — source='consultation',
-     status='new', timeline=timing, notes=message — so Rachel can track it and
-     convert it into a proposal (see 1d). Failure does not fail the request.
+  5. Best-effort: INSERT a leads row (service client) — status='new', timeline=timing,
+     notes=message, and source = the allowlisted placement (`business_card` when the
+     request carried ?from=card, via consultationSource()) or 'consultation'. An
+     unrecognised token is ignored, never rejected: a stale printed link must not cost
+     a lead. insert() resolves with { error } rather than throwing, so that error is
+     now logged. Failure does not fail the request.
   6. Return { ok: true } → ConsultationForm shows "Request received!"
 ```
 

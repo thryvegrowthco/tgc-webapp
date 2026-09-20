@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BUSINESS_CARD_SOURCE, leadSourceLabel } from "@/lib/leads/source";
 import { createClient } from "@/lib/supabase/server";
 import type { Lead } from "@/types/database";
 
@@ -36,6 +37,9 @@ export default async function AdminLeadsPage() {
     return acc;
   }, {});
 
+  // The rows are already in memory, so the business card count is free.
+  const cardCount = leads.filter((l) => l.source === BUSINESS_CARD_SOURCE).length;
+
   const summary = [
     { key: "new", label: "New" },
     { key: "contacted", label: "Contacted" },
@@ -49,7 +53,8 @@ export default async function AdminLeadsPage() {
       <div>
         <h1 className="font-display text-2xl font-bold text-neutral-900">Leads</h1>
         <p className="text-sm text-neutral-500 mt-1">
-          {leads.length} {leads.length === 1 ? "lead" : "leads"} from the Job Watchlist form
+          {leads.length} {leads.length === 1 ? "lead" : "leads"} from your website forms
+          {cardCount > 0 ? ` · ${cardCount} from your business card` : ""}
         </p>
       </div>
 
@@ -70,7 +75,7 @@ export default async function AdminLeadsPage() {
           <EmptyState
             icon={Inbox}
             title="No leads yet."
-            description="Leads from /services/job-alerts will show up here as they come in."
+            description="Consultation requests, Job Alerts sign ups and business card scans all show up here as they come in."
           />
         ) : (
           <table className="w-full text-sm">
@@ -93,6 +98,13 @@ export default async function AdminLeadsPage() {
                     >
                       {lead.full_name}
                     </Link>
+                    {/* Under the name, not in a new column: Target role hides below
+                        md and Received below lg, and this is the one field worth
+                        having on a phone. No `capitalize` — these labels are
+                        written the way they should read. */}
+                    <span className="mt-0.5 block text-xs font-normal text-neutral-500">
+                      {leadSourceLabel(lead.source)}
+                    </span>
                   </td>
                   <td className="px-6 py-3 text-neutral-600">
                     <a href={`mailto:${lead.email}`} className="hover:text-brand-700 transition-colors">

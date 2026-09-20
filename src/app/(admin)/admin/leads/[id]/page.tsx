@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Calendar, FileSignature } from "lucide-react";
+import { leadSourceLabel, leadSourcePhrase } from "@/lib/leads/source";
 import { createClient } from "@/lib/supabase/server";
 import { LeadStatusSelect } from "@/components/admin/LeadStatusSelect";
 import { LeadAdminNotesForm } from "@/components/admin/LeadAdminNotesForm";
@@ -57,7 +58,7 @@ export default async function AdminLeadDetailPage({ params }: Props) {
           <div>
             <h1 className="font-display text-2xl font-bold text-neutral-900">{lead.full_name}</h1>
             <p className="text-sm text-neutral-500 mt-1">
-              Captured from {lead.source.replace(/_/g, " ")} on{" "}
+              Captured from {leadSourcePhrase(lead.source)} on{" "}
               {new Date(lead.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
             </p>
           </div>
@@ -119,7 +120,9 @@ export default async function AdminLeadDetailPage({ params }: Props) {
           currentPosition: lead.current_position,
           timeline: lead.timeline ? formatTimeline(lead.timeline) : null,
           notes: lead.notes,
-          source: lead.source,
+          // The label, not the raw column: the draft prompt reads "How they found
+          // us", and "business_card" is not how anyone says it.
+          source: leadSourceLabel(lead.source),
         }}
       />
 

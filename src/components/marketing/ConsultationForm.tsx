@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import type { EntryToken } from "@/lib/leads/source";
 import { cn } from "@/lib/utils";
 
 const TIMING_OPTIONS = [
@@ -16,7 +17,8 @@ const TIMING_OPTIONS = [
   "Flexible",
 ] as const;
 
-export function ConsultationForm() {
+/** `entry` is the allowlisted `?from=` placement token, or null for a direct visit. */
+export function ConsultationForm({ entry = null }: { entry?: EntryToken | null }) {
   const [submitted, setSubmitted] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -27,6 +29,7 @@ export function ConsultationForm() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const from = String(formData.get("from") ?? "");
     const payload = {
       firstName: String(formData.get("firstName") ?? ""),
       lastName: String(formData.get("lastName") ?? ""),
@@ -34,6 +37,9 @@ export function ConsultationForm() {
       phone: String(formData.get("phone") ?? ""),
       timing: String(formData.get("timing") ?? ""),
       message: String(formData.get("message") ?? ""),
+      // Where this request started. The server accepts only tokens it published,
+      // so this is a hint, never a value we trust.
+      ...(from ? { from } : {}),
     };
 
     try {
@@ -77,6 +83,11 @@ export function ConsultationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Where this request started, e.g. the business card. A hidden field rather
+          than a closure, so the whole client half is provable with curl and a
+          read-only console line, without ever submitting the form. */}
+      {entry && <input type="hidden" name="from" value={entry} />}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="consult-first-name">

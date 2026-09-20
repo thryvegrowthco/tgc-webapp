@@ -226,7 +226,10 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 | Trigger | Tags applied | Where in code |
 |---|---|---|
 | Booking checkout completed | `thryve-client`, `booked`; stores service type in custom field | `src/lib/gohighlevel/client.ts → syncBookingToGHL` |
+| Free consultation requested | `thryve-lead`, `consultation-requested`; timing in the `consultation_timing` custom field | `src/app/api/consultation/route.ts` → `syncContactToGHL` |
 | Newsletter form submitted | `thryve-newsletter` | `src/lib/gohighlevel/client.ts → syncNewsletterSubscriber` |
+
+**Business-card leads are deliberately NOT tagged here.** A request that starts at `/card` is stored as `leads.source = 'business_card'` in Postgres, but no GHL tag is added: `syncContactToGHL` posts a whole `tags` array to v1 `/contacts/upsert` (`src/lib/gohighlevel/client.ts`), and whether v1 merges or replaces that array has not been verified against this location. If it replaces, that person's next non-card consultation would silently erase the tag, and a segment that loses members is worse than no segment. Adding CRM segmentation later is its own change: `syncContactToGHL` already returns the contact id, so an additive second call is the shape to use.
 
 **Graceful degradation:** If `GHL_API_KEY` or `GHL_LOCATION_ID` are not set, the sync functions log a console warning and return early. Bookings and newsletter signups continue to work normally. This means you can run the app locally without GHL credentials.
 

@@ -217,7 +217,7 @@ On the Proposals page you can copy the link, edit a draft, send it, or cancel on
 
 **Important:** once a client accepts a proposal, it's locked — you can no longer edit it, because the accepted version is a signed record. If you need to change something after that, create a new proposal. And a proposal that's already been paid can't be cancelled here — if you need to refund it, do that in Stripe.
 
-**Tip:** when someone fills out your free consultation form, they're now automatically saved as a **lead**. That means you can open their lead, talk it through, and turn it into a proposal in a couple of clicks without retyping their details.
+**Tip:** when someone fills out your free consultation form, they're now automatically saved as a **lead**. That means you can open their lead, talk it through, and turn it into a proposal in a couple of clicks without retyping their details. Each lead also shows where it came from, right under the person's name on your Leads list: **Business card**, **Consultation** or **Job Alerts**.
 
 ---
 
@@ -785,6 +785,8 @@ Once a **Download** resource has a file or link *and* is switched ON, its public
 
 **Your business card page:** the QR code on your business card opens **`thryvegrowth.co/card`**, a simple page with your photo, a **Book a free consultation** button, a **Save to contacts** button and your email address. It's hidden from Google, and it must stay on the site because printed cards point to it. If you'd like it to say something different, just ask.
 
+When someone taps **Book a free consultation** on that page, or the booking link in the contact they saved from it, the request is saved as a lead marked **Business card**, and the email alert that lands in your inbox says **Came from: Business card**. Your Leads page shows a count of them under the heading. Someone who scans the card, browses the site and comes back another day is not counted, because nothing is stored on their phone.
+
 ---
 
 ## 11b. Testimonials
@@ -883,7 +885,7 @@ That's it — within a few seconds the tracker is running on your public site.
 **To turn one off:** flip the toggle to Off and Save. The script stops loading on the next page view.
 
 **Cookie consent banner:**
-Visitors to your public site see a small banner at the bottom-left asking them to accept or decline cookies. The trackers above only fire after a visitor clicks **Accept**. If they click **Reject** (or dismiss the banner), no tracking scripts load for them. This is what keeps the site compliant with privacy regulations like GDPR/CCPA. You don't have to do anything — the banner handles itself.
+Visitors to your public site see a slim bar across the very bottom of the screen asking them to accept or decline cookies. It is deliberately short so it stays out of the way on a phone, though it does sit over the bottom of the page until the visitor chooses. The trackers above only fire after a visitor clicks **Accept**. If they click **Reject**, or close the bar with the X, no tracking scripts load for them and their choice is remembered. This is what keeps the site compliant with privacy regulations like GDPR/CCPA. You don't have to do anything — the bar handles itself.
 
 **Privacy policy stays accurate automatically:**
 Your `/privacy` page lists exactly which trackers are running, with a per-tracker opt-out link for visitors who want to opt out at the source. When you flip a tracker on or off in admin, the privacy page updates on the next visit. No manual edits.

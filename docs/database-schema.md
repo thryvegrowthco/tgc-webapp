@@ -453,7 +453,7 @@ Join table connecting a client to job listings assigned to them.
 
 ### `leads`
 
-Prospects captured from the public `JobWatchlistLeadForm` on `/services/job-alerts`. Distinct from `profiles` because leads don't have Supabase auth accounts yet.
+Prospects captured from the public `JobWatchlistLeadForm` on `/services/job-alerts` and from the free-consultation form (`POST /api/consultation`), including requests that start at the business card page. Distinct from `profiles` because leads don't have Supabase auth accounts yet.
 
 | Column | Type | Default | Notes |
 |---|---|---|---|
@@ -467,7 +467,7 @@ Prospects captured from the public `JobWatchlistLeadForm` on `/services/job-aler
 | `remote_preference` | `TEXT` | `NULL` | CHECK: `remote`, `hybrid`, `onsite`, `any` |
 | `timeline` | `TEXT` | `NULL` | e.g., `actively_searching`, `next_3_months`, `next_6_months`, `exploring` |
 | `notes` | `TEXT` | `NULL` | Free-text from the lead |
-| `source` | `TEXT` | `'job_watchlist'` | Lead-source tracking |
+| `source` | `TEXT` | `'job_watchlist'` | Lead-source tracking. What the app writes: `'job_watchlist'` (POST /api/leads), `'consultation'` (POST /api/consultation), `'business_card'` (a consultation request carrying `?from=card` from `/card`). Free text — **no CHECK and no NOT NULL** — so `src/lib/leads/source.ts` is what keeps a query string out of this column, and its label helpers tolerate a null or unknown value |
 | `status` | `TEXT` | `'new'` | CHECK: `new`, `contacted`, `qualified`, `converted`, `lost` |
 | `admin_notes` | `TEXT` | `NULL` | Internal notes; visible only on `/admin/leads/[id]` |
 | `converted_profile_id` | `UUID` | `NULL` | FK to `profiles.id` once the lead becomes a client |

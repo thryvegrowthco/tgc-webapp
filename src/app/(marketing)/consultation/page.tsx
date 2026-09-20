@@ -3,11 +3,15 @@ import Link from "next/link";
 import { Mail, Clock, CheckCircle2, ShieldCheck } from "lucide-react";
 import { ConsultationForm } from "@/components/marketing/ConsultationForm";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
+import { entryToken } from "@/lib/leads/source";
 
 export const metadata: Metadata = {
   title: "Book a Free 30-Minute Consultation Call",
   description:
     "Request a free 30-minute consultation call with Rachel at Thryve Growth Co. No payment, no pressure — just an honest conversation about what you're working through.",
+  // /card is noindex but follow, so crawlers reach /consultation?from=card. The
+  // canonical keeps that placement token from becoming a second indexable copy.
+  alternates: { canonical: "/consultation" },
 };
 
 const whatToExpect = [
@@ -17,7 +21,21 @@ const whatToExpect = [
   "Reply within 1–2 business days with available times",
 ];
 
-export default function ConsultationPage() {
+interface ConsultationPageProps {
+  searchParams: Promise<{ from?: string | string[] }>;
+}
+
+export default async function ConsultationPage({ searchParams }: ConsultationPageProps) {
+  // Read the request BEFORE any branch that could return or redirect: an early
+  // return above a dynamic read lets Next decide this route's rendering mode at
+  // build time. Nothing goes above this line.
+  const { from } = await searchParams;
+
+  // Only a token we published survives. A repeated ?from= arrives as an array, and
+  // an unknown or hostile one becomes null, which renders no hidden field, so
+  // nothing from the URL is ever echoed back into the page.
+  const entry = entryToken(from);
+
   return (
     <>
       {/* Hero */}
@@ -128,7 +146,7 @@ export default function ConsultationPage() {
                 <h2 className="font-display text-2xl font-bold text-neutral-900 mb-6">
                   Tell me a little about what&apos;s going on
                 </h2>
-                <ConsultationForm />
+                <ConsultationForm entry={entry} />
               </div>
             </div>
           </div>

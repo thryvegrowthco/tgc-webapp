@@ -14,7 +14,11 @@ export const CARD_CONTACT = {
   organization: "Thryve Growth Co.",
   email: "rachel@thryvegrowth.co",
   website: "https://www.thryvegrowth.co",
-  consultationUrl: "https://www.thryvegrowth.co/consultation",
+  // The same placement token the page's button carries, so a request that starts
+  // from a saved contact counts as a business card lead too (src/lib/leads/source.ts).
+  // The .vcf route is force-static, so this reaches the file on the next build, and
+  // contacts already saved to someone's phone keep the old tokenless URL.
+  consultationUrl: "https://www.thryvegrowth.co/consultation?from=card",
   services: ["HR Consulting", "Leadership", "Career Coaching"],
   linkedin: "https://www.linkedin.com/company/thryvegrowthco/",
   instagram: "https://www.instagram.com/thryvegrowthco/",

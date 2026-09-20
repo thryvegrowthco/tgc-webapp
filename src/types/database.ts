@@ -1282,7 +1282,10 @@ export type Database = {
           remote_preference: "remote" | "hybrid" | "onsite" | "any" | null;
           timeline: string | null;
           notes: string | null;
-          source: string;
+          // `source TEXT DEFAULT 'job_watchlist'` (0006_leads.sql): a default, not
+          // NOT NULL. Both app inserts always set it, but a row written by hand can
+          // be null, and this column now renders on every row of /admin/leads.
+          source: string | null;
           status: "new" | "contacted" | "qualified" | "converted" | "lost";
           admin_notes: string | null;
           converted_profile_id: string | null;

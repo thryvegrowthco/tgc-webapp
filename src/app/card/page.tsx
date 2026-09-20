@@ -10,7 +10,7 @@ import { CARD_CONTACT, VCARD_PATH } from "@/lib/card/contact";
 // freely, but never delete or move it. The card's print build (Desktop/Apps/
 // designs/thryve-growth-co/business-card, outside this repo) fetches this page live
 // and refuses to write print files unless it still carries the name, the booking
-// link, the email and the contact download.
+// link with its ?from=card token, the email and the contact download.
 //
 // Standalone on purpose (no marketing Header/Footer): the card's own palette, cream
 // front and sage back, and the three things someone who just met Rachel wants.
@@ -110,8 +110,14 @@ export default function CardPage() {
           <div aria-hidden="true" className="mt-4 h-px w-9 bg-brand-500" />
 
           <div className="mt-6 grid gap-3">
+            {/* ?from=card is the whole of the card's attribution: it is what makes a
+                request that starts here store as a business card lead
+                (src/lib/leads/source.ts). A placement token, never a UTM. The print
+                build matches this href byte for byte, so card.json's
+                qr.expect.contains carries it too, and a change here must be DEPLOYED
+                before that build will write print files again. */}
             <Button asChild size="lg" className="w-full">
-              <Link href="/consultation">Book a free consultation</Link>
+              <Link href="/consultation?from=card">Book a free consultation</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="w-full">
               <a href={VCARD_PATH}>Save to contacts</a>

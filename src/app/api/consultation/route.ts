@@ -5,6 +5,11 @@ import {
 } from "@/lib/email/resend";
 import { syncContactToGHL } from "@/lib/gohighlevel/client";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+import {
+  CONSULTATION_SOURCE,
+  consultationSource,
+  leadSourceLabel,
+} from "@/lib/leads/source";
 import { createServiceClient } from "@/lib/supabase/service";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,13 +31,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { firstName, lastName, email, phone, timing, message } = (body ?? {}) as {
+  const { firstName, lastName, email, phone, timing, message, from } = (body ?? {}) as {
     firstName?: unknown;
     lastName?: unknown;
     email?: unknown;
     phone?: unknown;
     timing?: unknown;
     message?: unknown;
+    from?: unknown;
   };
 
   const required = { firstName, lastName, email, message };
@@ -75,6 +81,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid timing" }, { status: 400 });
   }
 
+  // Attribution, not input. An unknown or hostile `from` quietly becomes an ordinary
+  // consultation request, deliberately not the 400 that `timing` gets above: a stale
+  // printed link must never cost Rachel a lead.
+  const source = consultationSource(from);
+  const sourceLabel = source === CONSULTATION_SOURCE ? undefined : leadSourceLabel(source);
+
   const payload = {
     firstName: data.firstName,
     lastName: data.lastName,
@@ -82,6 +94,7 @@ export async function POST(request: NextRequest) {
     phone: data.phone || undefined,
     timing: data.timing || undefined,
     message: data.message,
+    sourceLabel,
   };
 
   // Admin alert — skippable via /admin/settings (the request still succeeds).
@@ -129,15 +142,18 @@ export async function POST(request: NextRequest) {
   // Capture the request as a lead so Rachel can track + convert it to a proposal
   // (best-effort; the request still succeeds if this fails).
   try {
-    await createServiceClient().from("leads").insert({
+    const { error: leadError } = await createServiceClient().from("leads").insert({
       full_name: `${data.firstName} ${data.lastName}`.trim(),
       email: data.email,
       phone: data.phone || null,
       timeline: data.timing || null,
       notes: data.message,
-      source: "consultation",
+      source,
       status: "new",
     });
+    // insert() resolves with { error } instead of throwing, so without this a failed
+    // capture is invisible, which is the one thing attribution must not be.
+    if (leadError) console.error("[consultation] lead capture failed:", leadError);
   } catch (err) {
     console.error("[consultation] lead capture failed:", err);
   }

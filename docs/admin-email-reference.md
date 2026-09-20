@@ -63,6 +63,15 @@ When a client **accepts**, **declines**, or **pays** a proposal, you also get an
 | `post_service_followup` | ~24 hours after a session is marked complete | "How'd it go?" — next steps, a testimonial link, and a re-book link. |
 | `deliverable_ready` | When you upload a document marked as a deliverable / resume rewrite / HR doc | "Your [deliverable] is ready" with a link to their dashboard. |
 
+## Lead & Form Alerts
+
+These come to you, not to a client, and they are built into the app rather than edited in Templates. Ask your developer if you want the wording changed.
+
+| Email | When it sends | What it says |
+|---|---|---|
+| Free consultation request | Someone submits the form on your consultation page | The person's name, email, phone and preferred timing, what they want to talk about, and — when the request started from your business card — a **Came from: Business card** row. Reply straight to the email to answer them. |
+| Consultation auto-reply | Immediately, to the person who submitted | A warm acknowledgement and your 1–2 business day response promise. |
+
 ## Job Watchlist Emails
 
 | Email (template) | When it sends | What it says |

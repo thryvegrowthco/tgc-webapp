@@ -174,6 +174,11 @@ export interface ConsultationRequest {
   phone?: string;
   timing?: string;
   message: string;
+  /**
+   * Rachel-facing placement label when the request carried one, e.g. "Business card".
+   * Absent for an ordinary request from the website, so the row is an exception.
+   */
+  sourceLabel?: string;
 }
 
 export async function sendConsultationRequest(data: ConsultationRequest) {
@@ -212,6 +217,11 @@ export async function sendConsultationRequest(data: ConsultationRequest) {
           <tr>
             <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Preferred timing</td>
             <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px;">${escapeHtml(data.timing)}</td>
+          </tr>` : ""}
+          ${data.sourceLabel ? `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">Came from</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px;">${escapeHtml(data.sourceLabel)}</td>
           </tr>` : ""}
         </table>
         <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 20px;">
