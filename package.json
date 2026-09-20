@@ -5,7 +5,8 @@
   "scripts": {
     "generate:help": "node scripts/generate-help-content.mjs",
     "predev": "node scripts/generate-help-content.mjs",
-    "prebuild": "node scripts/generate-help-content.mjs",
+    "prebuild": "node scripts/generate-help-content.mjs && node scripts/check-og-image.mjs",
+    "check:og": "node scripts/check-og-image.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

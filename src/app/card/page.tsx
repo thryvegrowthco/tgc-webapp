@@ -22,6 +22,9 @@ const SHARE_TITLE = `${c.fullName} | Thryve Growth Co.`;
 const SHARE_DESCRIPTION =
   "Clarity. Accountability. Real Growth. Book a free consultation with Rachel or save her contact details.";
 
+// Never add an `images` key to the openGraph below. This segment ships its own
+// opengraph-image.jpg, and Next injects it only while this metadata has no images
+// key of its own; setting one replaces the card's preview with the site default.
 export const metadata: Metadata = {
   title: c.fullName,
   description: `${c.fullName}, founder of Thryve Growth Co. HR consulting, leadership and career coaching.`,

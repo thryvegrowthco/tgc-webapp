@@ -7,6 +7,7 @@ import { RachelPhoto } from "@/components/shared/RachelPhoto";
 import { NewsletterForm } from "@/components/shared/NewsletterForm";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
+import { OG_DEFAULTS } from "@/lib/seo/og";
 import type { Testimonial } from "@/types/database";
 
 const SLUG = "career-reset-workbook";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   description:
     "A free, guided workbook to help you get unstuck, get clear on what you actually want next, and map your first real steps — at your own pace. From Thryve Growth Co.",
   openGraph: {
+    ...OG_DEFAULTS,
     title: "The Career Reset Workbook — Free",
     description:
       "Feeling stuck? This free workbook walks you through the exact questions a career coach starts with — so you leave with clarity and a first plan.",

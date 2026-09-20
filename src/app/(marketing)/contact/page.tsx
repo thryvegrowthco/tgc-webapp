@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, ArrowRight } from "lucide-react";
 import { ContactForm } from "@/components/shared/ContactForm";
+import { OG_DEFAULTS } from "@/lib/seo/og";
 
 export const metadata: Metadata = {
   title: "Contact",
   description:
     "Get in touch with Rachel at Thryve Growth Co. Questions about services, pricing, or just want to say hello? Reach out.",
   openGraph: {
+    ...OG_DEFAULTS,
     title: "Contact | Thryve Growth Co.",
     description:
       "Get in touch with Thryve Growth Co. for questions, inquiries, or just to say hello.",

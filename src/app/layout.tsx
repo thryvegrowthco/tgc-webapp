@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { TrackingPixels } from "@/components/tracking/TrackingPixels";
 import { CookieConsent } from "@/components/tracking/CookieConsent";
+import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/og";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,19 +40,21 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Thryve Growth Co. LLC" }],
   creator: "Thryve Growth Co. LLC",
-  metadataBase: new URL("https://thryvegrowth.co"),
+  // www is the canonical host: the apex 307s to it, so every relative metadata URL
+  // resolved here (the preview image above all) would otherwise be fetched through
+  // a redirect.
+  metadataBase: new URL(SITE_URL),
   openGraph: {
-    type: "website",
-    siteName: "Thryve Growth Co.",
+    ...OG_DEFAULTS,
     title: "Thryve Growth Co. | HR Consulting & Career Coaching",
     description:
       "Grow Better Leaders. Build Stronger Teams. Move Careers Forward. Real-world HR expertise meets honest career coaching.",
-    images: [{ url: "/images/site/og-image.jpg", width: 1200, height: 630 }],
   },
+  // The card type only. A title or description here would win over every page's own
+  // openGraph copy on X, Slack and iMessage, which is what used to make every page
+  // share as "Thryve Growth Co. / Clarity. Accountability. Real Growth."
   twitter: {
     card: "summary_large_image",
-    title: "Thryve Growth Co.",
-    description: "Clarity. Accountability. Real Growth.",
   },
   robots: {
     index: true,

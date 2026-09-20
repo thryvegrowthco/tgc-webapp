@@ -6,6 +6,7 @@ import { generateHTML } from "@tiptap/html";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Link as TiptapLink } from "@tiptap/extension-link";
 import { Image as TiptapImage } from "@tiptap/extension-image";
+import { OG_DEFAULTS } from "@/lib/seo/og";
 import { createClient } from "@/lib/supabase/server";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
@@ -49,15 +50,27 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
   return {
     title: post.title,
-    description: post.excerpt ?? undefined,
+    // Conditional spreads, not `?? undefined`: writing a key with an undefined value
+    // stores null and WIPES the root's value, so a post with no excerpt would ship
+    // no description at all, and a post with no featured image would lose the site
+    // default instead of falling back to it.
+    ...(post.excerpt ? { description: post.excerpt } : {}),
     openGraph: {
+      ...OG_DEFAULTS,
       title: post.title,
-      description: post.excerpt ?? undefined,
+      ...(post.excerpt ? { description: post.excerpt } : {}),
       type: "article",
-      publishedTime: post.published_at ?? undefined,
-      images: post.featured_image_path
-        ? [{ url: post.featured_image_path, alt: post.featured_image_alt ?? post.title }]
-        : undefined,
+      ...(post.published_at ? { publishedTime: post.published_at } : {}),
+      // A featured image REPLACES the array rather than joining it: it is a hotlink
+      // of unknown size, so keeping 1200x630 attached to it would be a lie that
+      // Facebook and LinkedIn both act on.
+      ...(post.featured_image_path
+        ? {
+            images: [
+              { url: post.featured_image_path, alt: post.featured_image_alt ?? post.title },
+            ],
+          }
+        : {}),
     },
   };
 }

@@ -134,6 +134,9 @@ They come from Unsplash, a large library of free professional photography. The p
 ### Why doesn't the Featured Image picker have a GIFs tab?
 Because a featured image is also the preview picture that Facebook, LinkedIn, and other sites show when someone shares your post — and animated GIFs either don't show up properly there or show a single frozen frame. The GIFs tab is still available inside the post itself, using the image button in the editor toolbar.
 
+### What picture shows up when someone shares a link to my site?
+By default, a Thryve card with your logo and "Clarity. Accountability. Real Growth." A blog post shows its own featured image instead, and a post without one falls back to that default. Your business card page shows a picture of the printed card. One thing to expect: Facebook and LinkedIn remember the first preview they ever saw for a web address, so a link you shared before today may keep showing the old blank preview until it is re-checked in their own preview tools. New shares are fine.
+
 ### I added a featured image before and it kept disappearing. Is that fixed?
 Yes. Featured images previously looked like they'd been added but weren't actually being saved with the post, so they'd vanish when the page reloaded. They now save properly. If you have older posts where you tried to add a header image, open each one and pick the image again — it'll stick this time.
 
