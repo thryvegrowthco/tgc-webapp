@@ -382,7 +382,7 @@ For each endpoint above:
 
 **What it does:** Lets Rachel run real visitor analytics + conversion tracking on the public marketing site. Six providers are supported out of the box; each is configured by pasting an ID into a card on `/admin/integrations` and flipping a toggle. Scripts only fire after the visitor accepts the cookie consent banner — see the consent gate in `src/components/tracking/TrackingScripts.tsx`.
 
-**Provider catalog** (see `src/lib/tracking/scripts.ts` `PROVIDER_SCRIPTS` for the exact `<Script>` shape each one renders):
+**Provider catalog** (see `src/lib/tracking/scripts.tsx` `PROVIDER_SCRIPTS` for the exact `<Script>` shape each one renders):
 
 | Provider key | Name | Where to find the ID | Format |
 |---|---|---|---|
@@ -393,7 +393,7 @@ For each endpoint above:
 | `linkedin_insight` | LinkedIn Insight | `linkedin.com/campaignmanager` → Analyze → Insight Tag → "Partner ID" | 7–8 digit number |
 | `microsoft_clarity` | Microsoft Clarity | `clarity.microsoft.com` → your project → Settings → Setup → "Project ID" | ~10 character alphanumeric |
 
-**Adding a new provider:** add an entry to `PROVIDER_SCRIPTS` in `src/lib/tracking/scripts.ts` (snippet + opt-out URL) and an `INSERT` row to the next migration. No other code changes needed — admin UI, public injection, and privacy disclosure are all data-driven.
+**Adding a new provider:** add an entry to `PROVIDER_SCRIPTS` in `src/lib/tracking/scripts.tsx` (snippet + opt-out URL) and an `INSERT` row to the next migration. No other code changes needed — admin UI, public injection, and privacy disclosure are all data-driven.
 
 **Cookie consent gate:** the `cookie_consent` localStorage key has three states — unset (banner visible), `"accepted"` (scripts fire), `"rejected"` (scripts stay off). `CookieConsent.tsx` writes the value and dispatches the `thryve:consent-change` custom event. `TrackingScripts.tsx` listens for both that and the cross-tab `storage` event so updates are immediate.
 
