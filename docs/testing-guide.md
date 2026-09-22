@@ -324,7 +324,7 @@ What it proves, in order: the `handle_new_user()` trigger creates a `role='clien
 3. As a logged-in **client**, open devtools and try a PostgREST `PATCH` setting `subscription_status='active'` on your own row → confirm it does not take effect.
 4. `/admin/clients/new` → invite yourself at a `+alias` address. Check the inbox, click the link, land on `/dashboard/profile?welcome=1` with the welcome banner, set a password, confirm `/dashboard` loads.
 5. Grant a comp on that client → `/dashboard/watchlist` unlocks; `/dashboard/billing` shows the **Complimentary access** card, *not* the "No active subscription" upsell; the `/admin` tile reads "Paying Clients" without incrementing and shows "+ 1 comped".
-6. Hit `/api/cron/job-feed` locally (no `CRON_SECRET` → open) and confirm the comped client is in the batch.
+6. Hit `/api/cron/job-feed` locally (no `CRON_SECRET` → open). It answers `202 {"accepted":true,…,"clients":N}` straight away and does the ingest afterwards, so confirm the comped client is in the batch from the `[job-feed cron] {…}` console line (or the new `job_feed_run` row in `automation_log`), not from the response body.
 7. Revoke → the watchlist notice reads "Your complimentary Job Alerts access has ended" with a **View Job Alerts** CTA, not "Manage billing".
 8. Set `comped_until` to yesterday, hit `/api/cron/expire-matches`, and confirm `lapsedComps: 1` in the JSON plus the admin notification.
 9. Stripe test-mode checkout as that client → `access_source` flips to `paid`, and Billing shows the real subscription card.

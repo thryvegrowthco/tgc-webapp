@@ -93,7 +93,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 *If absent, "Fetch from JSearch" and the `jsearch` feed source return 0 results. Manual job entry still works.
 **If absent, the `usajobs` source graceful-degrades to 0 results. Enable the source in `/admin/integrations` only after both are set. The automated feed runs via `/api/cron/job-feed`.
 
-| `JOB_FEED_BATCH` | No | — | Clients processed per `/api/cron/job-feed` run (default `5`). Keeps each run under Vercel Hobby's 10s cap. Set `3` if both JSearch + USAJOBS are enabled. |
+| `JOB_FEED_BATCH` | No | — | Clients processed per `/api/cron/job-feed` run (default `5`). Bounds per-run API usage and wall time (worst case ≈ 45 s per client with both sources; the batch runs in `after()` under `maxDuration = 300`). Set `3` if both JSearch + USAJOBS are enabled. |
 | `EXPIRE_AFTER_DAYS` | No | — | Age fallback for `/api/cron/expire-matches` (default `45`). When a posting has no `closes_at` deadline, a `new`/`saved`/`interested` match expires once its `date_posted` is older than this many days. |
 
 ### Auth Hooks

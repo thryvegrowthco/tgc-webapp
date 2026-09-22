@@ -90,6 +90,10 @@ If you want any of these reworded, ask your developer.
 
 If you gave someone free Job Alerts with an **Ends on** date, you (not the client) get an email the day it lapses — *"Complimentary Job Alerts access ended for N clients"* — naming who it was, with a link to your Comped client list. Nothing is sent to the client. This one comes from the nightly job, not from Templates.
 
+### Automated job search problem notice
+
+If the daily automated job search runs into errors — a job board not answering, for example — you (not the client) get an email titled *"Automated job search hit a problem"* listing how many clients were processed, which job boards were used, and what went wrong, with a button to the Integrations page. Nothing is lost; the search runs again the next morning. Like the free-access notice, this comes from the scheduled job, not from Templates — and it is deliberately not affected by the notification switches in Settings, so it always reaches you.
+
 ## Placeholder Reference
 
 Placeholders are filled in automatically. The most common ones:

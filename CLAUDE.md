@@ -36,7 +36,7 @@ This project runs Next.js **16.2.2**, which has breaking changes from all prior 
 | Job Search | JSearch via RapidAPI | Watchlist feature only; optional — gracefully degrades |
 | Rich Text | Tiptap v3.22.x | Blog editor (`RichTextEditor.tsx`) + renderer (`blog/[slug]/page.tsx`) |
 | Analytics | Vercel Analytics | — |
-| Deployment | Vercel (auto-deploy on push to main) | Cron: every Monday 9AM UTC |
+| Deployment | Vercel (auto-deploy on push to main) | Scheduled jobs run from cron-job.org — inventory in `docs/integrations.md` |
 
 ---
 
@@ -77,7 +77,7 @@ The `requireAdmin()` helper in `src/app/actions/blog.ts` and `src/app/actions/wa
 
 **Blog content format:** Stored as Tiptap ProseMirror JSON (`JSONB`) in `blog_posts.content`. The extension sets in `RichTextEditor.tsx` (editor) and `blog/[slug]/page.tsx` (renderer) **must match** — mismatches cause empty output.
 
-**Cron auth:** `GET /api/cron/job-alerts` requires `Authorization: Bearer {CRON_SECRET}`. In production Vercel sends this automatically. Absent locally, the endpoint allows all requests.
+**Cron auth:** every `GET /api/cron/*` route requires `Authorization: Bearer {CRON_SECRET}` (`isAuthorized()` in `src/lib/cron/auth.ts`). In production cron-job.org sends this header on every job. Absent locally, the endpoints allow all requests. cron-job.org drops any request after 30 s — a route that can run longer must respond first and do its work in `after()` (see `/api/cron/job-feed`).
 
 ---
 

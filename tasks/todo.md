@@ -142,3 +142,18 @@ The invitation → session flow already existed and works; #7 was purely discove
 ### Files added/touched
 - Added: `supabase/migrations/0032_blog_featured_image_alt.sql`, `apply-0032.sql`
 - Edited: `src/components/admin/{BlogPostForm,MediaPicker}.tsx`, `src/app/actions/blog.ts`, `src/types/database.ts`, `src/app/(admin)/admin/content/[id]/page.tsx`, `src/app/(marketing)/blog/page.tsx` + `[slug]/page.tsx`, `docs/{database-schema,developer-architecture,workflows,integrations,environment-variables,rachel-admin-guide,admin-faq}.md` + generated help
+
+---
+
+# job-feed cron: cron-job.org "Timeout" (2026-09-22)
+
+Plan: `~/.claude/plans/thryve-growth-co-recieved-async-hippo.md`. Branch `fix/job-feed-cron-timeout` off `origin/main` 675863a.
+
+**Diagnosis.** cron-job.org closes any request after 30 s. Production `automation_log` shows every `job_feed_run` completed (`success`), but 10–62 s after the 13:00 UTC trigger — the response, not the work, was late. Serial external fetches with no timeout + inline Resend sends inside the request.
+
+- [x] `src/app/api/cron/job-feed/route.ts` — auth + batch read, then `after()` runs the ingest; `202 Accepted` in < 1 s; `maxDuration = 300`; pre-flight DB error → `500` (cron-job.org still alerts); exactly one `job_feed_run` row per run (+ `durationMs`); errors → `sendAdminAlert` email (not toggle-gated, no migration).
+- [x] `src/lib/job-api/jsearch.ts` / `usajobs.ts` — `AbortSignal.timeout` (25 s / 15 s), `cache: "no-store"` (Next's stale-while-revalidate would serve yesterday's body and refetch without the signal), timeout → `[]` with a warn.
+- [x] `src/lib/job-api/types.ts` — contract requires a bounded fetch.
+- [x] Docs: integrations (30 s vs 300 s, schedule `0 13 * * *`, adapter bounds, setup/verification), developer-architecture, workflows §2d, environment-variables, testing-guide, CLAUDE.md, rachel-admin-guide, admin-faq, admin-email-reference; `npm run generate:help`.
+- [x] Verify: tsc 0, eslint clean, `next build` 0; offline `AbortSignal.timeout` → `TimeoutError`; local dev with `JOB_FEED_BATCH=0 RAPIDAPI_KEY=`: no header → 401, bad token → 401, authenticated → `202 {accepted:true,…,clients:0}` in 0.87 s, `[job-feed cron] {…durationMs:0}` logged 2 s later and the `job_feed_run` row landed in prod.
+- [ ] After deploy: unauthenticated prod probe → 401; next 13:00 UTC run is green on cron-job.org and logs a normal `success` row (fetched ~40, matched 5–10, plausible `durationMs`).

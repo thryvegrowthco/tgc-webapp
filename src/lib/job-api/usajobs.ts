@@ -37,6 +37,10 @@ interface UsaJobsResponse {
   SearchResult?: { SearchResultItems?: UsaJobsItem[] };
 }
 
+// Hard ceiling on one USAJOBS call (normally well under 3 s). A timed-out call
+// yields [] like any other failed call, never a thrown error.
+const FETCH_TIMEOUT_MS = 15_000;
+
 function buildSalary(rem?: UsaJobsRemuneration[]): string | null {
   const r = rem?.[0];
   if (!r) return null;
@@ -73,7 +77,11 @@ export const usajobsSource: JobSource = {
           "User-Agent": userAgent,
           "Authorization-Key": apiKey,
         },
-        next: { revalidate: 3600 },
+        // Not cached: the daily feed must see today's postings, and Next's
+        // stale-while-revalidate would hand back yesterday's body and refetch
+        // in the background with the abort signal stripped.
+        cache: "no-store",
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (!response.ok) {
         console.error("[usajobs] API error:", response.status);
@@ -112,7 +120,11 @@ export const usajobsSource: JobSource = {
         })
         .filter((j): j is NormalizedJob => j !== null);
     } catch (err) {
-      console.error("[usajobs] search failed:", err);
+      if (err instanceof Error && err.name === "TimeoutError") {
+        console.warn(`[usajobs] request timed out after ${FETCH_TIMEOUT_MS} ms — returning no jobs`);
+      } else {
+        console.error("[usajobs] search failed:", err);
+      }
       return [];
     }
   },

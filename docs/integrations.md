@@ -275,8 +275,8 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 | Key | File | Env vars | Notes |
 |---|---|---|---|
-| `jsearch` | `src/lib/job-api/jsearch.ts` (`jsearchSource`) | `RAPIDAPI_KEY` | Aggregates LinkedIn/Indeed/ZipRecruiter/Google data. Enabled by default. Captures `job_offer_expiration_datetime_utc` → `job_listings.closes_at`. |
-| `usajobs` | `src/lib/job-api/usajobs.ts` (`usajobsSource`) | `USAJOBS_API_KEY`, `USAJOBS_USER_AGENT` | Official federal board. Off until keys are set. Register at developer.usajobs.gov; `USAJOBS_USER_AGENT` is the email you registered with (sent as the `User-Agent` header). Graceful-degrades to `[]` without keys. Captures `ApplicationCloseDate` → `job_listings.closes_at`. |
+| `jsearch` | `src/lib/job-api/jsearch.ts` (`jsearchSource`) | `RAPIDAPI_KEY` | Aggregates LinkedIn/Indeed/ZipRecruiter/Google data. Enabled by default. Captures `job_offer_expiration_datetime_utc` → `job_listings.closes_at`. Each call is `cache: "no-store"` and bounded by `AbortSignal.timeout(25_000)`; a timeout yields `[]`. |
+| `usajobs` | `src/lib/job-api/usajobs.ts` (`usajobsSource`) | `USAJOBS_API_KEY`, `USAJOBS_USER_AGENT` | Official federal board. Off until keys are set. Register at developer.usajobs.gov; `USAJOBS_USER_AGENT` is the email you registered with (sent as the `User-Agent` header). Graceful-degrades to `[]` without keys. Captures `ApplicationCloseDate` → `job_listings.closes_at`. Each call is `cache: "no-store"` and bounded by `AbortSignal.timeout(15_000)`; a timeout yields `[]`. |
 
 ---
 
@@ -324,7 +324,12 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 **Auth model:** Every cron route handler still calls `isAuthorized(request)` from `src/lib/cron/auth.ts`. That helper compares the `Authorization` header to `Bearer ${CRON_SECRET}`. cron-job.org sends the same header on every job invocation. Locally, with no `CRON_SECRET` set, the endpoint allows all requests (dev-safe).
 
-**Function timeout:** The Vercel Hobby plan caps function execution at 10 seconds. All current jobs finish well inside that. If a job ever exceeds it, split the work or upgrade the Vercel plan — cron-job.org just retries on failure.
+**Timeouts — two different clocks:**
+
+- **cron-job.org closes any request after 30 seconds** and records the run as `Timeout` (and emails Rachel, once, until the next success). Vercel keeps executing the function after the client disconnects, so the work usually still completes — but the history goes red and nobody can tell the difference from a real failure.
+- **Vercel** (Hobby, Fluid compute) lets a route run up to **300 s** via `export const maxDuration`. Without that export the platform default applies.
+
+Rule: any cron route that can take more than ~20 s must **respond first and do the work afterwards** — `after()` from `next/server`, which Vercel keeps alive up to `maxDuration` — and every outbound `fetch` must carry an `AbortSignal.timeout` so a hung upstream cannot eat the budget. `/api/cron/job-feed` is the reference implementation (it answers `202` in under a second; its outcome lives in `automation_log` and, on errors, in an email to Rachel). Everything else currently finishes in a few seconds and stays synchronous.
 
 ### Cron inventory (source of truth)
 
@@ -342,11 +347,11 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | `GET /api/cron/auto-complete-sessions` | `30 * * * *` | Hourly at :30 |
 | `GET /api/cron/post-service-followup` | `0 16 * * *` | Daily 11am CDT / 10am CST |
 | `GET /api/cron/extend-availability` | `0 11 * * *` | Daily 6am CDT / 5am CST |
-| `GET /api/cron/job-feed` | `0 8 * * *` | Daily 3am CDT / 2am CST — automated multi-source ingest + score + assign, `JOB_FEED_BATCH` clients/run (least-recently-fed first) |
+| `GET /api/cron/job-feed` | `0 13 * * *` | Daily 8am CDT / 7am CST — automated multi-source ingest + score + assign, `JOB_FEED_BATCH` clients/run (least-recently-fed first). Answers `202 Accepted` in under a second, then runs the ingest in `after()` (≤ 300 s); writes one `job_feed_run` row to `automation_log` (`payload.durationMs` records the real run time) and emails Rachel *"Automated job search hit a problem"* if the run had errors |
 | `GET /api/cron/application-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST — T+7/14/30 nudges after a job is marked applied |
 | `GET /api/cron/expire-matches` | `0 12 * * *` | Daily 7am CDT / 6am CST — flips `new`/`saved`/`interested` matches to `expired` when the posting closes (`closes_at`) or ages past `EXPIRE_AFTER_DAYS` (default 45); expired matches move to the Inactive tab. **Also sweeps lapsed complimentary Job Alerts access** (`access_source='comped'` + `comped_until` in the past → `subscription_status='inactive'`, plus a `notifyAdmin` naming who lapsed) and reports it as `lapsedComps` in the JSON summary. No new scheduler entry was needed — this job already existed |
 
-> **`job-feed` runs free on Vercel Hobby.** Each invocation processes only `JOB_FEED_BATCH` clients (default 5, env-tunable), ordered by `watchlist_profiles.last_feed_at` (oldest/never-fed first), and stamps `last_feed_at` after each. So a daily run rotates through everyone over `ceil(active_clients / BATCH)` days, then keeps refreshing — staying well under Hobby's 10s function cap and keeping external API usage low. With both JSearch **and** USAJOBS enabled, set `JOB_FEED_BATCH=3`. Fully idempotent (dedup + `ON CONFLICT DO NOTHING`); the cursor advances even on a per-client error so nothing blocks the queue.
+> **`job-feed` runs free on Vercel Hobby.** Each invocation processes only `JOB_FEED_BATCH` clients (default 5, env-tunable), ordered by `watchlist_profiles.last_feed_at` (oldest/never-fed first), and stamps `last_feed_at` after each. So a daily run rotates through everyone over `ceil(active_clients / BATCH)` days, then keeps refreshing — keeping external API usage low and the run comfortably inside `maxDuration = 300` (worst case ≈ 45 s per client with both sources, since each adapter's fetch is bounded: JSearch 25 s, USAJOBS 15 s). With both JSearch **and** USAJOBS enabled, set `JOB_FEED_BATCH=3`. Fully idempotent (dedup + `ON CONFLICT DO NOTHING`); the cursor advances even on a per-client error so nothing blocks the queue. Because the HTTP response is only an ack, check `automation_log` (`event_key = 'job_feed_run'`) — not cron-job.org's history — to see what a run actually did.
 
 ### Setting up a new job on cron-job.org
 
@@ -362,12 +367,13 @@ For each endpoint above:
    - Value: `Bearer <CRON_SECRET>` (paste the actual secret — same value as Vercel → Settings → Environment Variables → `CRON_SECRET`)
 7. **Advanced → Notifications**: enable failure notifications to Rachel's email
 8. **Save & enable**
-9. Use the **Test execution** button to confirm `200 OK` before relying on the schedule
+9. Use the **Test execution** button to confirm a 2xx before relying on the schedule (`job-feed` answers `202 Accepted` and does its work after responding; every other job answers `200 OK`)
 
 ### Verification
 
 - `curl -i https://www.thryvegrowth.co/api/cron/intake-reminders` (no header) → `401 Unauthorized` (use the `www.` host — the apex 307-redirects)
 - `curl -H "Authorization: Bearer $CRON_SECRET" https://www.thryvegrowth.co/api/cron/intake-reminders` → `200 OK` with JSON body
+- `job-feed`: the authenticated call returns `202 {"accepted":true,"batch":…,"sources":[…],"clients":N}` in under a second, and a `job_feed_run` row appears in `automation_log` within a couple of minutes. **Do not call it by hand in production just to test** — it starts a real ingest and may email clients; the unauthenticated `401` probe is enough.
 - Idempotency: invoking any reminder job twice in the same window is a no-op (enforced by `automation_log` UNIQUE constraints and per-row `*_sent_at` columns)
 
 ---

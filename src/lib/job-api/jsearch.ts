@@ -32,6 +32,12 @@ export interface JobSearchParams {
   numPages?: number;
 }
 
+// Hard ceiling on one JSearch call. The aggregator has a genuinely slow tail
+// (single calls well past 15 s have been seen in production), so this only
+// guards against an indefinite hang — a timed-out call yields [] like any
+// other failed call, never a thrown error.
+const FETCH_TIMEOUT_MS = 25_000;
+
 function buildLocation(job: JSearchJob): string | null {
   const parts = [job.job_city, job.job_state, job.job_country].filter(Boolean);
   return parts.length > 0 ? parts.join(", ") : null;
@@ -65,13 +71,26 @@ export async function searchJobs(params: JobSearchParams): Promise<JSearchJob[]>
   url.searchParams.set("num_pages", String(params.numPages ?? 1));
   if (params.isRemote) url.searchParams.set("work_from_home", "true");
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      "X-RapidAPI-Key": apiKey,
-      "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
-    },
-    next: { revalidate: 3600 }, // cache 1h
-  });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      headers: {
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+      },
+      // Not cached: the daily feed must see today's postings, and Next's
+      // stale-while-revalidate would hand back yesterday's body and refetch in
+      // the background with the abort signal stripped.
+      cache: "no-store",
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "TimeoutError") {
+      console.warn(`[JSearch] request timed out after ${FETCH_TIMEOUT_MS} ms — returning no jobs`);
+      return [];
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     console.error("[JSearch] API error:", response.status, await response.text());

@@ -34,6 +34,10 @@ export interface JobSource {
   /** Stable key — must equal the job_sources.provider value and the source tag written to job_listings. */
   key: string;
   label: string;
-  /** Returns up to ~25 normalized jobs. Must never throw — return [] on error. */
+  /**
+   * Returns up to ~25 normalized jobs. Must never throw — return [] on error —
+   * and must bound its outbound fetch (`AbortSignal.timeout`) so one hung board
+   * can never stall the whole feed run.
+   */
   search(params: JobSourceSearchParams): Promise<NormalizedJob[]>;
 }
