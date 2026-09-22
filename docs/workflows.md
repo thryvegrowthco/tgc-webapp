@@ -442,20 +442,33 @@ Pause / Cancel are hidden for a comped client and refused by `setSubscriptionSta
 **Pluggable sources.** Each board implements `JobSource` (`src/lib/job-api/types.ts`). Registered in `src/lib/job-api/sources.ts` (`ALL_SOURCES`); `getEnabledSources()` returns those toggled on in the `job_sources` table. Shipped: `jsearch` (on) and `usajobs` (off until keys set). Rachel toggles them in `/admin/integrations → Automated Job Sources`.
 
 ```
-Mon 8AM UTC: GET /api/cron/job-feed
+Daily 13:00 UTC: GET /api/cron/job-feed  (cron-job.org)
         │
         ▼
-getEnabledSources() → for each active watchlist_profiles row:
+isAuthorized → getEnabledSources() → read JOB_FEED_BATCH least-recently-fed
+active watchlist_profiles rows → respond 202 { accepted: true, clients: N }
+        │   (cron-job.org drops the connection at 30 s; the rest runs in
+        │    after(), kept alive by Vercel up to maxDuration = 300)
+        ▼
+for each row in the batch:
    ingestForClient(clientId, profile, sources)   [src/lib/job-api/ingest.ts]
      1. each source.search({query from target_roles, location, isRemote})
      2. dedup by external_id (batch + vs existing job_listings)
      3. insert new job_listings
      4. scoreJobAgainstProfile → upsert client_job_matches (score ≥ 60), ignoreDuplicates
      5. notify client of newly-created matches (new_job_match in-app + email)
+     6. stamp watchlist_profiles.last_feed_at (even if this client errored)
         │
         ▼
-writes one job_feed_run row to automation_log {sources, clients, fetched, inserted, matched}
+writes exactly one job_feed_run row to automation_log
+  {sources, batch, clients, fetched, inserted, matched, errors, durationMs}
+        │
+        ▼ (only when errors > 0)
+sendAdminAlert → Rachel: "Automated job search hit a problem" (email only —
+  deliberately not gated by the notification toggles)
 ```
+
+Each adapter's outbound `fetch` is `cache: "no-store"` and bounded by `AbortSignal.timeout` (JSearch 25 s, USAJOBS 15 s), so one hung board degrades to "0 jobs from that source" instead of stalling the run.
 
 This is the engine that *creates* matches; the older `/api/cron/job-alerts` only *emails a digest* of matches already created.
 

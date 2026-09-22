@@ -50,6 +50,12 @@ Open their client page and use the **Job Alerts access** panel → **Grant free 
 ### Can I set free access to expire?
 Yes — set an **Ends on** date when you grant it. Access switches off automatically that day and you get an email telling you who lapsed, so you can decide whether to extend it or point them at the paid plan. Leave the date blank if you want it open-ended.
 
+### I got an email from cron-job.org saying a cronjob failed. What is that?
+cron-job.org is the outside scheduler that nudges the site every day to run the automated job search (and a few other routine jobs). If its email says **Timeout**, it gave up waiting for a reply after 30 seconds. The automated job search used to reply only after it had finished searching every job board, which sometimes took longer than that — so you could get a timeout email even though the search itself finished fine. It now replies right away and does the searching in the background, so those timeout emails should stop. If one still arrives, forward it to your developer.
+
+### I got an email saying the automated job search hit a problem. What do I do?
+Nothing breaks — the search runs again the next morning. Open **Integrations → Automated Job Sources** and check that the job boards you expect are switched on. If the same email arrives two or three days in a row, a job board key or connection probably needs attention: forward the email to your developer.
+
 ### What if they never click the invite email?
 Invite links stop working after 24 hours. Their client page shows an amber **"Account not activated yet"** banner with a **Resend invite** button — press it for a fresh link, as often as you need. The account already exists either way, so they show up in your Clients list and you can set up their Job Alerts before they've ever logged in.
 

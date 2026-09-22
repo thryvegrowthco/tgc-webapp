@@ -497,9 +497,11 @@ Expired jobs don't disappear — they move to a separate **Inactive** tab so the
 
 ### Automated Job Sources
 
-On the Integrations page there's an **Automated Job Sources** section. Each toggle turns a job board on or off for the automated weekly search. JSearch (which already covers LinkedIn, Indeed, ZipRecruiter, and Google listings) is on by default. USAJOBS.gov (federal jobs) can be turned on once its access key is set up.
+On the Integrations page there's an **Automated Job Sources** section. Each toggle turns a job board on or off for the automated daily search. JSearch (which already covers LinkedIn, Indeed, ZipRecruiter, and Google listings) is on by default. USAJOBS.gov (federal jobs) can be turned on once its access key is set up.
 
-Every Monday the system automatically searches every enabled source against each active client's watchlist, scores the results, removes duplicates, and adds new matches to their list — then emails each client about their new matches. You don't have to do anything; your manual picks and the automated matches live side by side.
+Every morning (around 8 AM Central, 7 AM in winter) the system automatically searches every enabled source against the watchlists of a few active clients at a time, taking turns so everyone is refreshed every few days. It scores the results, removes duplicates, adds new matches to each client's list, and emails them about their new matches. You don't have to do anything; your manual picks and the automated matches live side by side.
+
+If a morning's search runs into a problem — a job board not answering, for example — you get an email titled **Automated job search hit a problem** with a button to the Integrations page. Nothing is lost: the search simply runs again the next morning. No email means it ran fine.
 
 ### The Weekly Job Alert Email
 
