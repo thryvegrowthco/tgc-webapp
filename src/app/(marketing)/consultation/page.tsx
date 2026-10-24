@@ -4,11 +4,20 @@ import { Mail, Clock, CheckCircle2, ShieldCheck } from "lucide-react";
 import { ConsultationForm } from "@/components/marketing/ConsultationForm";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
 import { entryToken } from "@/lib/leads/source";
+import { OG_DEFAULTS } from "@/lib/seo/og";
 
 export const metadata: Metadata = {
   title: "Book a Free 30-Minute Consultation Call",
   description:
     "Request a free 30-minute consultation call with Rachel at Thryve Growth Co. No payment, no pressure — just an honest conversation about what you're working through.",
+  // Spread OG_DEFAULTS first so this page keeps the site's preview image, name and
+  // type; otherwise a bare openGraph here would drop the share image (see og.ts).
+  openGraph: {
+    ...OG_DEFAULTS,
+    title: "Book a Free 30-Minute Consultation Call | Thryve Growth Co.",
+    description:
+      "Request a free 30-minute consultation call with Rachel at Thryve Growth Co. No payment, no pressure — just an honest conversation about what you're working through.",
+  },
   // /card is noindex but follow, so crawlers reach /consultation?from=card. The
   // canonical keeps that placement token from becoming a second indexable copy.
   alternates: { canonical: "/consultation" },
