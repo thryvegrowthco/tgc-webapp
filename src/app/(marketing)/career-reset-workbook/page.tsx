@@ -16,29 +16,29 @@ const DOWNLOAD_URL = `/api/resources/download/${SLUG}`;
 export const metadata: Metadata = {
   title: "Career Reset Workbook",
   description:
-    "A free, guided workbook to help you get unstuck, get clear on what you actually want next, and map your first real steps — at your own pace. From Thryve Growth Co.",
+    "A free, guided workbook to help you get unstuck, get clear on what you actually want next, and map your first real steps, at your own pace. From Thryve Growth Co.",
   openGraph: {
     ...OG_DEFAULTS,
-    title: "The Career Reset Workbook — Free",
+    title: "The Career Reset Workbook (Free)",
     description:
-      "Feeling stuck? This free workbook walks you through the exact questions a career coach starts with — so you leave with clarity and a first plan.",
+      "Feeling stuck? This free workbook walks you through the exact questions a career coach starts with, so you leave with clarity and a first plan.",
   },
 };
 
 // ── The workbook's eight parts (matches the actual PDF) ───────────────────────
 const INSIDE = [
-  "Pause + Reflect — take an honest “career temperature” and name what's draining you versus what's working",
-  "Rediscover your strengths — build an evidence bank of real wins and name your five strongest strengths",
-  "Create your career vision — picture an ordinary good day two years out and turn it into a clear direction",
-  "Define your non-negotiables — choose the five things that matter most, with your real deal-breakers",
-  "Set goals that create movement — a 90-day goal broken into realistic 30 / 60 / 90-day milestones",
-  "Check your job-search readiness — a scorecard across your résumé, story, network, interviewing, and more",
-  "Build your 30-day plan — four focused weeks: clarify, position, connect, and act",
-  "Celebrate the progress — see how far you've come and commit to your next 30 days",
+  "Pause + Reflect: take an honest “career temperature” and name what's draining you versus what's working",
+  "Rediscover your strengths: build an evidence bank of real wins and name your five strongest strengths",
+  "Create your career vision: picture an ordinary good day two years out and turn it into a clear direction",
+  "Define your non-negotiables: choose the five things that matter most, with your real deal-breakers",
+  "Set goals that create movement: a 90-day goal broken into realistic 30 / 60 / 90-day milestones",
+  "Check your job-search readiness: a scorecard across your résumé, story, network, interviewing, and more",
+  "Build your 30-day plan: four focused weeks (clarify, position, connect, and act)",
+  "Celebrate the progress: see how far you've come and commit to your next 30 days",
 ];
 
 const WHO_FOR = [
-  { icon: Compass, title: "In an in-between season", body: "You know something about work needs to change — but you're not sure yet what the change should be." },
+  { icon: Compass, title: "In an in-between season", body: "You know something about work needs to change, but you're not sure yet what the change should be." },
   { icon: Sparkles, title: "Stuck, restless, or drained", body: "You want space to get honest about where you are and what actually matters to you now." },
   { icon: Star, title: "Ready for a real next step", body: "Whether that's reshaping your current role or starting a search, you want a clear, doable plan." },
 ];
@@ -88,7 +88,7 @@ export default async function CareerResetWorkbookPage() {
         eyebrow="Free Workbook"
         title="The Career Reset"
         titleAccent="Workbook"
-        description="A free, guided workbook for that in-between season — when you know something about work needs to change, but you're not sure what. Eight short parts help you get honest about where you are, reconnect with your strengths, and map one realistic step forward."
+        description="A free, guided workbook for that in-between season, when you know something about work needs to change but you're not sure what. Eight short parts help you get honest about where you are, reconnect with your strengths, and map one realistic step forward."
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {downloadCta("lg", "Download the workbook")}
@@ -102,7 +102,7 @@ export default async function CareerResetWorkbookPage() {
           <div className="max-w-2xl mb-10">
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 mb-3">What&apos;s inside</h2>
             <p className="text-neutral-600 leading-relaxed">
-              Eight short, guided parts — the same reflection Rachel walks clients through — that you can work through
+              Eight short, guided parts (the same reflection Rachel walks clients through) that you can work through
               at your own pace. No perfect answers required; just honest ones.
             </p>
           </div>
@@ -151,7 +151,7 @@ export default async function CareerResetWorkbookPage() {
               <p className="text-neutral-600 leading-relaxed">
                 Rachel is an HR consultant and career coach who has spent years helping people get unstuck and move
                 toward work that actually fits. This workbook distills the first questions she walks every client
-                through — so you can get a running start on your own, for free.
+                through, so you can get a running start on your own, for free.
               </p>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default async function CareerResetWorkbookPage() {
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 mb-3">Get the workbook</h2>
           <p className="text-neutral-600 leading-relaxed mb-8">
-            Download it now — it&apos;s free and yours to keep. No email required.
+            Download it now. It&apos;s free and yours to keep. No email required.
           </p>
           <div className="flex justify-center">
             {downloadCta("xl", "Download the free workbook")}
@@ -185,7 +185,7 @@ export default async function CareerResetWorkbookPage() {
 
           <div className="mt-12 pt-8 border-t border-brand-100">
             <p className="text-sm text-neutral-600 mb-4">
-              Want more like this? Join the newsletter for practical career &amp; leadership tips — no spam, unsubscribe anytime.
+              Want more like this? Join the newsletter for practical career &amp; leadership tips. No spam, unsubscribe anytime.
             </p>
             <div className="max-w-md mx-auto">
               <NewsletterForm variant="inline" source="career-reset-workbook" />

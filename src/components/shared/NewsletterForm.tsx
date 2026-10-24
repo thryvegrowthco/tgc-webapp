@@ -57,7 +57,7 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
       <div className="rounded-xl border border-brand-200 bg-brand-50 p-5">
         <p className="text-sm font-semibold text-brand-800 mb-1">You&apos;re subscribed.</p>
         <p className="text-sm text-brand-700/90">
-          Check your inbox for a quick welcome note from Rachel — talk soon.
+          Check your inbox for a quick welcome note from Rachel. Talk soon.
         </p>
       </div>
     );
