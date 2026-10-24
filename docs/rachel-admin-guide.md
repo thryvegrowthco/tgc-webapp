@@ -817,7 +817,7 @@ The quote box keeps your line breaks exactly as you type or paste them. For a te
 They appear on your public Testimonials page, and your three most recent approved ones also show on the free Career Reset Workbook page. When there is only one to show on the workbook page, it is displayed as a single wide quote so a long note stays easy to read.
 
 **A note on your public page:**
-Your public Testimonials page **starts empty** — none of the old sample quotes were carried over. It will stay that way (showing a friendly "stories are on the way" message) until you approve a few. Once you've approved a handful, ask your developer to make the page show up in search results.
+Your public Testimonials page **starts empty** — none of the old sample quotes were carried over. It will stay that way (showing a friendly "stories are on the way" message) until you approve a few. The page is now linked from your site menu and footer and shows up in search results, so approved testimonials reach visitors and search engines on their own.
 
 ---
 

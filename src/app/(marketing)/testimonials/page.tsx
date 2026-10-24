@@ -4,18 +4,13 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Stars } from "@/components/shared/Stars";
 import { createClient } from "@/lib/supabase/server";
+import { pageMeta } from "@/lib/seo/page-meta";
 import type { Testimonial } from "@/types/database";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/testimonials", {
   title: "Client Testimonials",
   description: "What clients say about working with Thryve Growth Co.",
-  // Kept noindex until enough approved testimonials have accumulated; flip to
-  // index:true once the page is populated.
-  robots: {
-    index: false,
-    follow: true,
-  },
-};
+});
 
 const QuoteIcon = () => (
   <svg

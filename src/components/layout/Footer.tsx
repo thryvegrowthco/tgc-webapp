@@ -23,6 +23,7 @@ const companyLinks = [
   { label: "FAQ", href: "/faq" },
   { label: "Newsletter", href: "/newsletter" },
   { label: "Blog", href: "/blog" },
+  { label: "Testimonials", href: "/testimonials" },
   { label: "Contact", href: "/contact" },
 ];
 

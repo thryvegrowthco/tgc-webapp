@@ -40,6 +40,7 @@ const navLinks = [
   { label: "Investment", href: "/investment" },
   { label: "Resources", href: "/resources" },
   { label: "Blog", href: "/blog" },
+  { label: "Testimonials", href: "/testimonials" },
 ];
 
 export function Header() {
