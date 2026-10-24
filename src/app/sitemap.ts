@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { SITE_URL } from "@/lib/seo/og";
 
-const BASE_URL = "https://thryvegrowth.co";
+const BASE_URL = SITE_URL;
 
 // Static marketing pages with their priority/change frequency
 const STATIC_ROUTES: MetadataRoute.Sitemap = [
