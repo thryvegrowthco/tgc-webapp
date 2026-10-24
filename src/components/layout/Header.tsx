@@ -85,7 +85,7 @@ export function Header() {
             <Logo />
 
             {/* Desktop Nav */}
-            <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
+            <nav className="hidden xl:flex items-center gap-1" aria-label="Main navigation">
 
               {/* Services dropdown */}
               <div className="relative" ref={dropdownRef}>
@@ -190,7 +190,7 @@ export function Header() {
             </nav>
 
             {/* Desktop CTA */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden xl:flex items-center gap-3">
               <Button asChild size="lg">
                 <Link href="/consultation">Book a Free 30-Minute Consultation Call</Link>
               </Button>
@@ -198,7 +198,7 @@ export function Header() {
 
             {/* Mobile menu button */}
             <button
-              className="lg:hidden p-2 rounded-md text-neutral-600 hover:text-brand-700 hover:bg-brand-50 transition-colors"
+              className="xl:hidden p-2 rounded-md text-neutral-600 hover:text-brand-700 hover:bg-brand-50 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
@@ -211,7 +211,7 @@ export function Header() {
 
       {/* Mobile Menu Overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 xl:hidden">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
