@@ -91,11 +91,12 @@ export function TestimonialEditForm({ testimonial }: { testimonial?: Testimonial
           id="te-quote"
           value={quote}
           onChange={(e) => setQuote(e.target.value)}
-          rows={5}
+          rows={8}
           maxLength={2000}
           required
           className={TEXTAREA_CLASS}
         />
+        <p className="text-xs text-neutral-400">Line breaks are kept. Leave a blank line between paragraphs.</p>
       </div>
 
       {/* Author + title + service */}

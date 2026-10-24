@@ -810,6 +810,12 @@ Every testimonial a client submits shows up on your Testimonials page as **Pendi
 **Adding one yourself:**
 Sometimes a client emails you a lovely note instead of using the link. Click **New** (or "Add testimonial") to type it in yourself — the quote, their name, and an optional title, service, and rating. Ones you add this way are set to **Approved** right away, so they go straight to your public page (you can still hide or edit them).
 
+**Longer, multi-paragraph quotes:**
+The quote box keeps your line breaks exactly as you type or paste them. For a testimonial with more than one paragraph, leave a blank line between each paragraph and those breaks will show on the site. The box is tall enough to paste a long note straight in, and a star rating you set appears above the quote.
+
+**Where approved testimonials show up:**
+They appear on your public Testimonials page, and your three most recent approved ones also show on the free Career Reset Workbook page. When there is only one to show on the workbook page, it is displayed as a single wide quote so a long note stays easy to read.
+
 **A note on your public page:**
 Your public Testimonials page **starts empty** — none of the old sample quotes were carried over. It will stay that way (showing a friendly "stories are on the way" message) until you approve a few. Once you've approved a handful, ask your developer to make the page show up in search results.
 

@@ -5,6 +5,7 @@ import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { RachelPhoto } from "@/components/shared/RachelPhoto";
 import { NewsletterForm } from "@/components/shared/NewsletterForm";
+import { Stars } from "@/components/shared/Stars";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { OG_DEFAULTS } from "@/lib/seo/og";
@@ -157,11 +158,23 @@ export default async function CareerResetWorkbookPage() {
           </div>
 
           {testimonials.length > 0 && (
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+              className={
+                testimonials.length === 1
+                  ? "mt-12 flex justify-center"
+                  : "mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
+              }
+            >
               {testimonials.map((t) => (
-                <figure key={t.id} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6">
-                  <blockquote className="text-sm text-neutral-700 leading-relaxed">&ldquo;{t.quote}&rdquo;</blockquote>
-                  <figcaption className="mt-3 text-xs font-medium text-neutral-500">
+                <figure
+                  key={t.id}
+                  className={`flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-6${
+                    testimonials.length === 1 ? " w-full max-w-3xl" : ""
+                  }`}
+                >
+                  <Stars rating={t.rating} />
+                  <blockquote className="text-sm text-neutral-700 leading-relaxed whitespace-pre-line">&ldquo;{t.quote}&rdquo;</blockquote>
+                  <figcaption className="text-xs font-medium text-neutral-500">
                     {t.author_name}
                     {t.author_title ? `, ${t.author_title}` : ""}
                   </figcaption>

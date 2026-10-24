@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Stars } from "@/components/shared/Stars";
 import { createClient } from "@/lib/supabase/server";
 import type { Testimonial } from "@/types/database";
 
@@ -27,20 +28,6 @@ const QuoteIcon = () => (
     <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
   </svg>
 );
-
-function Stars({ rating }: { rating: number | null }) {
-  if (!rating) return null;
-  return (
-    <div className="flex items-center gap-0.5" aria-label={`${rating} of 5 stars`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          className={n <= rating ? "h-4 w-4 fill-amber-400 text-amber-400" : "h-4 w-4 text-neutral-200"}
-        />
-      ))}
-    </div>
-  );
-}
 
 export default async function TestimonialsPage() {
   const supabase = await createClient();
@@ -98,7 +85,7 @@ export default async function TestimonialsPage() {
                     <QuoteIcon />
                     <Stars rating={t.rating} />
                   </div>
-                  <blockquote className="flex-1 text-neutral-700 leading-relaxed italic">
+                  <blockquote className="flex-1 text-neutral-700 leading-relaxed italic whitespace-pre-line">
                     &ldquo;{t.quote}&rdquo;
                   </blockquote>
                   <div className="flex items-end justify-between gap-4">
