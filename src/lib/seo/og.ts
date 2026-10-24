@@ -31,9 +31,9 @@ export const SITE_URL = "https://www.thryvegrowth.co";
  * scripts/check-og-image.mjs recomputes the hash and fails the build on any drift.
  */
 export const OG_IMAGE = {
-  url: "/images/site/og-image.jpg?v=6004c06b",
-  width: 1200,
-  height: 630,
+  url: "/images/site/og-image.jpg?v=0a005b73",
+  width: 2400,
+  height: 1260,
   type: "image/jpeg",
   alt: "The Thryve Growth Co. logo on cream above the words Clarity. Accountability. Real Growth.",
 };
