@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/packages", {
   title: "Packages",
   description:
     "Bundled coaching and career packages from Thryve Growth Co., built for more support, more value, and more momentum.",
-};
+});
 
 const packages = [
   {

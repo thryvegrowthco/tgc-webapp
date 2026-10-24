@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/resume-materials", {
   title: "Resume & Career Materials",
   description:
     "Resume review, full rewrite, LinkedIn optimization, and cover letters: career materials that actually tell your story the right way.",
-};
+});
 
 const options = [
   {

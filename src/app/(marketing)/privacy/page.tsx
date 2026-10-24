@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { createClient } from "@/lib/supabase/server";
 import { getDisclosure } from "@/lib/tracking/scripts";
 import type { TrackingPixel } from "@/types/database";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/privacy", {
   title: "Privacy Policy",
   description: "Privacy Policy for Thryve Growth Co. LLC",
-};
+});
 
 export default async function PrivacyPage() {
   const effectiveDate = "June 3, 2026";

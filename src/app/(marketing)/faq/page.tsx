@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import {
@@ -9,11 +10,11 @@ import {
 } from "@/components/ui/accordion";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/faq", {
   title: "FAQ",
   description:
     "Frequently asked questions about Thryve Growth Co. services, pricing, how coaching works, and what to expect.",
-};
+});
 
 const faqCategories = [
   {

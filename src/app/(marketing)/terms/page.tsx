@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/terms", {
   title: "Terms of Service",
   description: "Terms of Service for Thryve Growth Co. LLC",
-};
+});
 
 export default function TermsPage() {
   const effectiveDate = "April 1, 2025";

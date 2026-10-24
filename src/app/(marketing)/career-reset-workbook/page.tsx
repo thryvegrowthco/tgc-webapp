@@ -8,23 +8,20 @@ import { NewsletterForm } from "@/components/shared/NewsletterForm";
 import { Stars } from "@/components/shared/Stars";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { OG_DEFAULTS } from "@/lib/seo/og";
+import { pageMeta } from "@/lib/seo/page-meta";
 import type { Testimonial } from "@/types/database";
 
 const SLUG = "career-reset-workbook";
 const DOWNLOAD_URL = `/api/resources/download/${SLUG}`;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/career-reset-workbook", {
   title: "Career Reset Workbook",
   description:
     "A free, guided workbook to help you get unstuck, get clear on what you actually want next, and map your first real steps, at your own pace. From Thryve Growth Co.",
-  openGraph: {
-    ...OG_DEFAULTS,
-    title: "The Career Reset Workbook (Free)",
-    description:
-      "Feeling stuck? This free workbook walks you through the exact questions a career coach starts with, so you leave with clarity and a first plan.",
-  },
-};
+  shareTitle: "The Career Reset Workbook (Free)",
+  shareDescription:
+    "Feeling stuck? This free workbook walks you through the exact questions a career coach starts with, so you leave with clarity and a first plan.",
+});
 
 // ── The workbook's eight parts (matches the actual PDF) ───────────────────────
 const INSIDE = [

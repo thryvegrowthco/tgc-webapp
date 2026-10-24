@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight, Bell, Search, User } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -6,11 +7,11 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 import { Button } from "@/components/ui/button";
 import { JobWatchlistLeadForm } from "@/components/marketing/JobWatchlistLeadForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/job-alerts", {
   title: "Job Alerts & Watchlists",
   description:
     "Curated job matches delivered to you, filtered to your goals, your experience, and your preferences. Manual curation by Rachel plus automated job board feeds.",
-};
+});
 
 const howItWorks = [
   {

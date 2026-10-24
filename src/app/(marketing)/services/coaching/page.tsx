@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/coaching", {
   title: "Career & Leadership Coaching",
   description:
     "1:1 career and leadership coaching grounded in real HR experience. Get clarity, build confidence, and move forward with a strategy that actually fits your life.",
-};
+});
 
 const included = [
   "1:1 coaching sessions (virtual)",

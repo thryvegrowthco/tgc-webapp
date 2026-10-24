@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowRight, FileText, Briefcase, Users, Sparkles, Download } from "lucide-react";
 import { SectionCTA } from "@/components/shared/SectionCTA";
@@ -6,11 +7,11 @@ import { ResourceViewTracker } from "@/components/marketing/ResourceViewTracker"
 import { createClient } from "@/lib/supabase/server";
 import type { Resource } from "@/types/database";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/resources", {
   title: "Resources",
   description:
     "Ready to use templates and resources from Thryve Growth Co. Practical tools for career growth, leadership, and HR.",
-};
+});
 
 const categories = [
   {

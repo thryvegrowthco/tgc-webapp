@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/investment", {
   title: "Investment",
   description:
     "Transparent pricing for all Thryve Growth Co. services: HR consulting, career coaching, interview prep, resume writing, and job alerts.",
-};
+});
 
 const individualServices = [
   {

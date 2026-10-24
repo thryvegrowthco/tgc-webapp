@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { notFound } from "next/navigation";
 import { AgreementRenderer } from "@/components/legal/AgreementRenderer";
 import { getCurrentAgreement } from "@/app/actions/legal";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/legal/service-agreement", {
   title: "Service Agreement — Thryve Growth Co.",
+  // Title already carries the brand; keep the share title from doubling it.
+  shareTitle: "Service Agreement — Thryve Growth Co.",
   description: "The terms that govern services provided by Thryve Growth Co.",
-};
+});
 
 export default async function ServiceAgreementPage() {
   const current = await getCurrentAgreement();

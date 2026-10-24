@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/interview-prep", {
   title: "Interview Preparation",
   description:
     "Walk into your next interview prepared and confident. Real mock interviews, honest feedback, and strategy from someone who's been on both sides of the table.",
-};
+});
 
 const included = [
   "Pre-session review of your resume, role, and target company",

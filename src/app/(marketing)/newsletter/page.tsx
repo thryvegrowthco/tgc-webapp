@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { NewsletterForm } from "@/components/shared/NewsletterForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/newsletter", {
   title: "The Thryve Newsletter — Thryve Growth Co.",
+  // Title already carries the brand, so the share title skips the " | Thryve
+  // Growth Co." the default would otherwise double up.
+  shareTitle: "The Thryve Newsletter — Thryve Growth Co.",
   description:
     "One short email a week. Career, leadership, and HR insights you can actually use — no hype, no funnel.",
-};
+});
 
 export default function NewsletterLandingPage() {
   return (

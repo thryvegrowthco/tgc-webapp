@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowRight, Building2, User, Users, FileText, Briefcase, Bell, UserSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services", {
   title: "Services",
   description:
     "HR consulting, career coaching, culture consulting, interview prep, resume writing, and job alerts: real-world support for individuals and organizations ready to grow.",
-};
+});
 
 const coreServices = [
   {

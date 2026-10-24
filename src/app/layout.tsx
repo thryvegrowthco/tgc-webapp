@@ -44,6 +44,10 @@ export const metadata: Metadata = {
   // resolved here (the preview image above all) would otherwise be fetched through
   // a redirect.
   metadataBase: new URL(SITE_URL),
+  // NEVER set openGraph.url or alternates.canonical here. Children inherit this
+  // root openGraph (Next 16 replaces, but a child with no openGraph falls back to
+  // it), so a url/canonical on the root would make every page that doesn't set its
+  // own claim to be the homepage. Pages add both via pageMeta() (src/lib/seo/page-meta.ts).
   openGraph: {
     ...OG_DEFAULTS,
     title: "Thryve Growth Co. | HR Consulting & Career Coaching",

@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/culture-engagement", {
   title: "Culture & Engagement Consulting",
   description:
     "Build a culture that's clear, aligned, and sustainable. Strategic culture and engagement consulting for organizations ready to build something that actually lasts.",
-};
+});
 
 const included = [
   "Culture assessment: honest look at current state vs. desired state",

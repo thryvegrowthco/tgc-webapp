@@ -147,6 +147,12 @@ function metadataBlock(code) {
 function spreadProblems(rel, src, hasOwnImageFile) {
   const code = stripComments(src);
   if (!/openGraph\s*:/.test(code)) return [];
+  // pageMeta() (src/lib/seo/page-meta.ts) spreads OG_DEFAULTS and writes og:url
+  // itself, so a page that delegates to it needs no inline spread even though its
+  // source carries an `openGraph:` key (the extras it passes the helper). A segment
+  // that ships its own image file never uses the helper, so the exemption is gated
+  // on that to keep the card's own-image rules below in force.
+  if (/\bpageMeta\s*\(/.test(code) && !hasOwnImageFile) return [];
   const spreads = /\.\.\.\s*OG_DEFAULTS\b/.test(code);
   const setsImages = /\bimages\s*:/.test(metadataBlock(code) ?? code);
   const problems = [];
@@ -221,6 +227,10 @@ function selfProof() {
       spreadProblems("planted.tsx", "export const metadata = { openGraph: { ...OG_DEFAULTS } };", false),
     ],
     ["page with no openGraph at all", spreadProblems("planted.tsx", "export const metadata = { title: 'x' };", false)],
+    [
+      "page delegating to pageMeta with openGraph extras",
+      spreadProblems("planted.tsx", "export const metadata = pageMeta('/x', { openGraph: { type: 'article' } });", false),
+    ],
     [
       "segment with its own image file and no images key",
       spreadProblems("planted.tsx", "export const metadata = { openGraph: { title: 'x' } };", true),

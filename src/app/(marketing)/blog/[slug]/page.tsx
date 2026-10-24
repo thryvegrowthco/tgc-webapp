@@ -6,7 +6,7 @@ import { generateHTML } from "@tiptap/html";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Link as TiptapLink } from "@tiptap/extension-link";
 import { Image as TiptapImage } from "@tiptap/extension-image";
-import { OG_DEFAULTS } from "@/lib/seo/og";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { createClient } from "@/lib/supabase/server";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
@@ -48,17 +48,15 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const post = await getPost(slug);
   if (!post) return { title: "Post Not Found" };
 
-  return {
+  return pageMeta(`/blog/${post.slug}`, {
     title: post.title,
-    // Conditional spreads, not `?? undefined`: writing a key with an undefined value
-    // stores null and WIPES the root's value, so a post with no excerpt would ship
-    // no description at all, and a post with no featured image would lose the site
-    // default instead of falling back to it.
-    ...(post.excerpt ? { description: post.excerpt } : {}),
+    // Empty description inherits the root value: pageMeta omits the key rather than
+    // writing an undefined that stores null and WIPES it (same reason the
+    // publishedTime and image spreads below stay conditional).
+    description: post.excerpt ?? "",
+    // og:title is the bare post title, not the templated " | Thryve Growth Co." one.
+    shareTitle: post.title,
     openGraph: {
-      ...OG_DEFAULTS,
-      title: post.title,
-      ...(post.excerpt ? { description: post.excerpt } : {}),
       type: "article",
       ...(post.published_at ? { publishedTime: post.published_at } : {}),
       // A featured image REPLACES the array rather than joining it: it is a hotlink
@@ -72,7 +70,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
           }
         : {}),
     },
-  };
+  });
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { Mail, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { BookingFlow, type BookingAgreementState } from "@/components/booking/BookingFlow";
@@ -7,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAgreement, getLatestSigningForUser } from "@/app/actions/legal";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/book", {
   title: "Book a Call",
   description:
     "Book a session with Rachel at Thryve Growth Co. Select your service, choose a time, and pay securely via Stripe.",
-};
+});
 
 const whatToExpect = [
   "A real conversation, no sales pressure",

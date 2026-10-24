@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { Badge } from "@/components/ui/badge";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/hr-consulting", {
   title: "HR Consulting & Team Development",
   description:
     "Strategic HR consulting for growing organizations. Build structure, develop leaders, and create the HR foundation your team needs to perform.",
-};
+});
 
 const included = [
   "HR infrastructure audit: what's working, what isn't, and what's missing",

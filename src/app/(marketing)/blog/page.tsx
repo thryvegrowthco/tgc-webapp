@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowRight, Clock, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { NewsletterForm } from "@/components/shared/NewsletterForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/blog", {
   title: "Blog",
   description:
     "Practical insights on career growth, leadership, HR best practices, and professional development from Rachel at Thryve Growth Co.",
-};
+});
 
 export default async function BlogPage() {
   const supabase = await createClient();

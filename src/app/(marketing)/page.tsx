@@ -5,19 +5,17 @@ import { HomeServicesOverview } from "@/components/marketing/home/HomeServicesOv
 import { HomeYourDifference } from "@/components/marketing/home/HomeYourDifference";
 import { HomeHowWeWork } from "@/components/marketing/home/HomeHowWeWork";
 import { HomeFinalCTA } from "@/components/marketing/home/HomeFinalCTA";
-import { OG_DEFAULTS } from "@/lib/seo/og";
+import { pageMeta } from "@/lib/seo/page-meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/", {
   title: "HR Consulting & Career Coaching | Thryve Growth Co.",
+  absoluteTitle: true,
   description:
     "Grow Better Leaders. Build Stronger Teams. Move Careers Forward. Real-world HR consulting and career coaching grounded in clarity, accountability, and honest guidance.",
-  openGraph: {
-    ...OG_DEFAULTS,
-    title: "Thryve Growth Co. | HR Consulting & Career Coaching",
-    description:
-      "Grow Better Leaders. Build Stronger Teams. Move Careers Forward. Real-world HR expertise meets honest career coaching.",
-  },
-};
+  shareTitle: "Thryve Growth Co. | HR Consulting & Career Coaching",
+  shareDescription:
+    "Grow Better Leaders. Build Stronger Teams. Move Careers Forward. Real-world HR expertise meets honest career coaching.",
+});
 
 export default function HomePage() {
   return (

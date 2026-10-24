@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { Badge } from "@/components/ui/badge";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta("/services/recruitment-screening", {
   title: "Recruitment & Candidate Screening",
   description:
     "Flexible recruitment support for small businesses and organizations. Resume screening, candidate phone screens, interview question development, and hiring process consultation — tailored to your needs.",
-};
+});
 
 const included = [
   "Resume and application screening",
