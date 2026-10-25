@@ -151,6 +151,14 @@ export function SessionEditorDrawer({
   const canReassign = !!clients && isFuture && booking.workflowStatus !== "cancelled";
   const reassignTargets = (clients ?? []).filter((c) => c.id !== booking.clientId);
 
+  const isCancelled = booking.workflowStatus === "cancelled";
+  // Cancelling routes through the Cancel button, so "Cancelled" isn't a normal
+  // status choice — but a cancelled row must still render its current status, so
+  // surface the option only when the row is already cancelled.
+  const statusOptions = isCancelled
+    ? [...STATUS_OPTIONS, { value: "cancelled", label: "Cancelled" }]
+    : STATUS_OPTIONS;
+
   async function del() {
     setBusy(true);
     const res = await adminDeleteSession(booking.id, deleteText);
@@ -275,7 +283,7 @@ export function SessionEditorDrawer({
               <div className="space-y-1">
                 <Label className="text-xs">Status</Label>
                 <select value={workflowStatus} onChange={(e) => setWorkflowStatus(e.target.value)} className={SELECT_CLASS}>
-                  {STATUS_OPTIONS.map((o) => (
+                  {statusOptions.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
@@ -387,28 +395,30 @@ export function SessionEditorDrawer({
             </div>
           )}
 
-          {/* Cancel */}
-          <div className="mt-5 pt-4 border-t border-neutral-200 space-y-2">
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={notifyCancel}
-                onChange={(e) => setNotifyCancel(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
-              />
-              <span className="text-sm text-neutral-700">Email the client when cancelling</span>
-            </label>
-            <div>
-              <button
-                type="button"
-                onClick={cancel}
-                disabled={busy}
-                className="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-40"
-              >
-                Cancel session
-              </button>
+          {/* Cancel — hidden once a session is already cancelled. */}
+          {!isCancelled && (
+            <div className="mt-5 pt-4 border-t border-neutral-200 space-y-2">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={notifyCancel}
+                  onChange={(e) => setNotifyCancel(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
+                />
+                <span className="text-sm text-neutral-700">Email the client when cancelling</span>
+              </label>
+              <div>
+                <button
+                  type="button"
+                  onClick={cancel}
+                  disabled={busy}
+                  className="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-40"
+                >
+                  Cancel session
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Danger zone — permanent delete (test/duplicate rows only) */}
           <div className="mt-5 pt-4 border-t border-neutral-200 space-y-2">

@@ -93,9 +93,10 @@ export default async function AdminSessionsPage({
     .select(
       "id, service_type, service_key, session_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, duration_minutes, location_type, location_details, payment_status, amount_cents, admin_notes, client_id, created_at"
     )
-    .neq("workflow_status", "cancelled")
     .order("session_at", { ascending: true, nullsFirst: false });
 
+  // Cancelled rows are hidden only in the default "active" view (which already
+  // restricts to ACTIVE_STATUSES). "All statuses" and "Cancelled" show them.
   if (status === "active") {
     query = query.in("workflow_status", ACTIVE_STATUSES as WorkflowStatus[]);
   } else if (status !== "all") {
@@ -176,6 +177,11 @@ export default async function AdminSessionsPage({
           <p className="font-semibold text-neutral-900 text-sm truncate">
             {client?.full_name || client?.email || "Unknown client"}
           </p>
+          {row.workflow_status === "cancelled" && (
+            <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">
+              Cancelled
+            </span>
+          )}
           {intakeOverdue && (
             <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">
               Overdue
