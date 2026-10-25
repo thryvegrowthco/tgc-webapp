@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LOCATION_TYPE_LABELS } from "@/lib/booking/display";
+import { RetryCalendarEventButton } from "@/components/admin/RetryCalendarEventButton";
 import {
   adminUpdateSession,
   adminReassignClient,
@@ -60,6 +61,8 @@ export interface SessionEditorBooking {
   locationType: string;
   locationDetails: string | null;
   meetLink: string | null;
+  /** Calendar event creation failed for a Google Meet session; offer a retry. */
+  meetLinkPending?: boolean;
   paymentStatus: string;
   workflowStatus: string;
   amountCents: number | null;
@@ -374,6 +377,15 @@ export function SessionEditorDrawer({
               <div className="space-y-1">
                 <Label className="text-xs">Meeting link (optional)</Label>
                 <Input value={meetLink} onChange={(e) => setMeetLink(e.target.value)} className="h-9" placeholder="https://meet.google.com/..." />
+                {booking.meetLinkPending && !booking.meetLink && booking.sessionAt && (
+                  <div className="pt-1">
+                    <RetryCalendarEventButton bookingId={booking.id} />
+                    <p className="text-[11px] text-neutral-500 mt-1">
+                      The calendar event failed. If Google Calendar is now connected, retry to create
+                      the event and Meet link. Or paste a link above.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Amount (USD)</Label>

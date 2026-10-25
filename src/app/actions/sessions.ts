@@ -13,6 +13,8 @@ import {
   type CalendarLocationType,
 } from "@/lib/google/calendar";
 import { createSessionBooking } from "@/lib/booking/finalize";
+import { buildSessionCalendar, buildIcs } from "@/lib/booking/calendar-links";
+import { signIcsToken } from "@/lib/crypto/sign";
 import { localCentralToUtcIso, formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { sendTemplated } from "@/lib/email/render";
 import { renderShell } from "@/lib/email/shell";
@@ -238,6 +240,32 @@ async function performReschedule(
 
   // Re-confirm to the client (non-idempotent — this is a deliberate re-send).
   if (notifyClient && client.email) {
+    const workspaceUrl = booking.client_id ? `${APP_URL}/dashboard/sessions/${bookingId}` : "";
+    const calendar = buildSessionCalendar({
+      serviceType: booking.service_type,
+      sessionAtIso: newSessionAt,
+      durationMinutes: booking.duration_minutes,
+      locationType: booking.location_type,
+      locationDetails: booking.location_details,
+      meetLink,
+      workspaceUrl: workspaceUrl || null,
+    });
+    const icsAttachment = {
+      filename: "thryve-session.ics",
+      content: Buffer.from(
+        buildIcs({
+          uid: `${bookingId}@thryvegrowth.co`,
+          title: calendar.title,
+          startIso: calendar.startIso,
+          endIso: calendar.endIso,
+          description: calendar.details,
+          location: calendar.location || undefined,
+          url: workspaceUrl || APP_URL,
+        }),
+        "utf8"
+      ).toString("base64"),
+      contentType: "text/calendar",
+    };
     await sendTemplated("session_confirmed", {
       to: client.email,
       bookingId,
@@ -253,8 +281,11 @@ async function performReschedule(
         meeting_type: meetingTypeLabel(booking.location_type),
         meeting_location: meetingLocationLine(booking.location_type, booking.location_details),
         meet_link: meetLink ?? "",
-        session_workspace_url: booking.client_id ? `${APP_URL}/dashboard/sessions/${bookingId}` : "",
+        session_workspace_url: workspaceUrl,
+        add_to_google_calendar_url: calendar.googleUrl,
+        ics_url: `${APP_URL}/api/sessions/${bookingId}/ics?t=${signIcsToken(bookingId)}`,
       },
+      attachments: [icsAttachment],
     });
   }
 
@@ -302,6 +333,61 @@ async function tryCreateEvent(
   } catch {
     return null;
   }
+}
+
+/**
+ * Admin: retry creating the Google Calendar event for a session whose automatic
+ * creation failed (shows as `meet_link_pending`, usually because Google Calendar
+ * was disconnected). Reconnect in Integrations first, then one click here creates
+ * the event + Meet link and clears the pending flag.
+ */
+export async function retryCalendarEvent(
+  bookingId: string
+): Promise<{ error?: string; success?: boolean; meetLink?: string | null }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking) return { error: "Session not found." };
+  if (booking.workflow_status === "cancelled") return { error: "This session was cancelled." };
+  if (!booking.session_at) return { error: "This session has no scheduled time yet." };
+  if (booking.calendar_event_id) {
+    return { error: "This session already has a calendar event." };
+  }
+
+  const client = await resolveClient(supabase, booking);
+  const endIso = new Date(
+    new Date(booking.session_at).getTime() + booking.duration_minutes * 60_000
+  ).toISOString();
+  const created = await tryCreateEvent(booking, client.email, client.name, booking.session_at, endIso);
+  if (!created) {
+    return {
+      error: "Still couldn't reach Google Calendar. Reconnect it in Integrations, then try again.",
+    };
+  }
+
+  await supabase
+    .from("bookings")
+    .update({
+      meet_link: created.meetLink,
+      calendar_event_id: created.eventId,
+      meet_link_pending: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", bookingId);
+  await supabase.from("automation_log").upsert(
+    {
+      event_key: "calendar_event_created",
+      booking_id: bookingId,
+      client_id: booking.client_id,
+      status: "success",
+      payload: { event_id: created.eventId, meet_link: created.meetLink, retried: true },
+    },
+    { onConflict: "event_key,booking_id" }
+  );
+
+  revalidateSession(booking.client_id);
+  return { success: true, meetLink: created.meetLink };
 }
 
 /** Manually send the client the "starting soon" reminder right now. */

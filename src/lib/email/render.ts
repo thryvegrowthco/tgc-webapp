@@ -88,6 +88,11 @@ export interface SendTemplatedOptions {
    * not the client one.
    */
   gateKey?: string;
+  /**
+   * Optional file attachments passed straight to Resend (e.g. a `.ics` calendar
+   * file on a confirmation). `content` is base64; omit for text-only sends.
+   */
+  attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }
 
 export interface SendTemplatedResult {
@@ -166,6 +171,9 @@ export async function sendTemplated(
       replyTo: REPLY_TO_EMAIL,
       subject,
       html,
+      ...(options.attachments && options.attachments.length > 0
+        ? { attachments: options.attachments }
+        : {}),
     });
 
     if ("error" in result && result.error) {

@@ -1,77 +1,52 @@
-# Run F — My Sessions + admin search (branch: fix/my-sessions-and-search)
+# Task 07 (run G): add-to-calendar links + visible Google Calendar failures
 
-Two commits off origin/main (4a1157f). No push/PR/deploy. Checks only:
-tsc, eslint changed files, check:og, generate:help. No em/en dashes or `--` in copy.
+Branch: `feat/add-to-calendar` (from origin/main b4edc03)
 
-## JOB 1 (commit 1) — admin Sessions cleanup
+## Plan
 
-- [x] 1a. Fix /admin/sessions search
-  - Root cause: search filter runs AFTER the status query, and the default
-    "active" view only loads intake_needed/intake_complete/session_scheduled.
-    So searching a client whose sessions are completed/cancelled returns nothing.
-  - page.tsx: when a search `q` is present and status is the default "active",
-    do NOT restrict to active statuses (search across all). Keep an explicit
-    status filter when one is chosen.
-  - SessionsFilters.tsx: debounce typing ~300ms, keep Enter, preserve status,
-    empty search restores list, add a clear "X" button.
-- [x] 1b. NewSessionDialog amount starts blank (not 125); fills on preset pick,
-      stays blank for Custom / other.
+### New files
+- [ ] `src/lib/crypto/sign.ts` — HMAC-SHA256 sign/verify for unauthenticated `.ics` links (reuses `INTEGRATIONS_ENCRYPTION_KEY`, domain-separated; no new env var).
+- [ ] `src/lib/booking/calendar-links.ts` — `googleCalendarTemplateUrl`, `buildIcs` (RFC 5545, CRLF, UTC Z, escaping, 75-octet folding, METHOD:PUBLISH, ORGANIZER), and a `buildSessionCalendar` helper shared by pages/route/email.
+- [ ] `src/app/api/sessions/[bookingId]/ics/route.ts` — owner-session OR `?t=` HMAC token; `text/calendar` attachment; 404 for cancelled / no session_at.
+- [ ] `src/components/booking/AddToCalendarLinks.tsx` — presentational two-link block + "already accepted Rachel's invite" note.
+- [ ] `src/components/admin/RetryCalendarEventButton.tsx` — admin "Create calendar event" retry.
+- [ ] `supabase/migrations/0036_session_email_calendar_links.sql` (+ `apply-0036.sql`) — append calendar paragraph + placeholders to `session_confirmed` and `session_reminder_24h` DB rows. File only.
 
-## JOB 2 (commits 2+) — client "My Sessions"
+### Modified
+- [ ] `src/lib/google/calendar.ts` — summary `${serviceType}: ${clientName}` (was em dash); record `google_calendar_auth_failed` + once/day admin bell on refresh/401 failures; set `connected_at` on reconnect; `getIntegrationStatus` returns `reconnectNeeded`.
+- [ ] `src/lib/booking/finalize.ts` — pass `add_to_google_calendar_url` + `ics_url` to `session_confirmed`; attach `.ics`.
+- [ ] `src/app/actions/sessions.ts` — `retryCalendarEvent(bookingId)` (requireAdmin); add calendar placeholders to reschedule re-send.
+- [ ] `src/lib/email/defaults.ts` — calendar paragraph + placeholders for `session_confirmed` and `session_reminder_24h`.
+- [ ] `src/lib/email/render.ts` — optional `attachments` passthrough (backward compatible).
+- [ ] confirmed page + dashboard session page — render AddToCalendarLinks when `session_at` is set.
+- [ ] `/admin/sessions` page + SessionEditorDrawer — inline + drawer retry button for `meet_link_pending` rows.
+- [ ] `/admin/integrations` page — red "Reconnect needed" state.
+- [ ] `src/app/api/cron/session-reminders/route.ts` — pass calendar placeholders to 24h reminder.
+- [ ] Docs: integrations.md, admin-email-reference.md, rachel-admin-guide.md, admin-faq.md, developer-architecture.md. Then `npm run generate:help`.
 
-- [x] 2.1 Safe post-login redirect
-  - New `src/lib/auth/safe-redirect.ts` → `safeRedirectPath(input): string | null`.
-  - Login: server wrapper reads `redirect` searchParam → client `LoginForm`
-    hidden field. `logIn` honors a valid redirect, else landingPathFor.
-  - Validate `next` in `src/app/auth/callback/route.ts` with the helper.
-  - `scripts/test-safe-redirect.mts` asserts (run with tsx if available).
-- [x] 2.2 Confirmed page: read the booking's own client_id; show
-      "View your session details" + muted sign-in note whenever booking has a
-      client; else keep "Back to Thryve Growth Co."
-- [x] 2.3 Workspace: admin who doesn't own the booking → redirect to
-      /admin/clients/<client_id>#booking-<id>, or /admin/sessions if no client.
-- [x] 2.4 Sessions list: add `/dashboard/sessions` list page, redirect
-      `/dashboard/bookings` to it. Rows link to the workspace, show session_at
-      (Central, slot fallback, then "Time to be confirmed"), status pill from
-      workflow_status (shared SESSION_STATUS_COPY in lib/booking/display.ts),
-      split Upcoming / Past. Nav label → "My Sessions". Update /book/success and
-      overview links + overview recent list (same date/link fix).
-- [x] 2.5 No em/en dashes in changed copy.
-- [x] 2.6 Docs: workflows.md, developer-architecture.md, rachel-admin-guide.md,
-      admin-faq.md; then generate:help.
+### Checks
+- [ ] `npx tsc --noEmit`, `npx eslint <changed>`, `npm run check:og`, `npm run generate:help`.
+- [ ] Paste a generated sample `.ics` (fake data), confirm CRLF + folding + UTC.
 
 ## Review
 
-Branch `fix/my-sessions-and-search` off origin/main (4a1157f). Two commits.
+Done. All items implemented against the current tree (re-checked every path; `session_rescheduled`
+is not a real template key, so the reschedule flow reuses `session_confirmed` and automatically
+carries the new placeholders).
 
-**Commit 1 - b5ab8ed `fix(sessions): live cross-status admin search, blank new-session amount`**
-- Root cause of the "Thomas" search miss: the search filter ran over rows already
-  narrowed by the default "active" status query (intake_needed / intake_complete /
-  session_scheduled), so a client whose sessions were completed or cancelled matched
-  nothing. Fix: when a search `q` is present the server page skips the active-only
-  restriction (an explicitly chosen status still scopes the search). The needle
-  already matched full_name, email, guest_name, guest_email, and service_type.
-- SessionsFilters: 300ms debounce + Enter + clear "X"; preserves the status param;
-  empty search restores the list.
-- NewSessionDialog Amount now starts blank; fills on a preset pick, blank for Custom.
-
-**Commit 2 - 4228857 `feat(sessions): client "My Sessions" + safe post-login redirect`**
-- safeRedirectPath helper + login server wrapper/LoginForm + logIn + auth callback.
-- Confirmed page uses the booking's own client_id; new button + sign-in note.
-- Workspace: admin not owning the booking redirects to the client record / Sessions.
-- New /dashboard/sessions list (Upcoming/Past); /dashboard/bookings redirects to it;
-  nav renamed "My Sessions"; overview recent list + /book/success + documents updated.
-- Shared SESSION_STATUS_COPY / sessionStatusInfo / sessionWhenLine in display.ts.
-
-**Checks:** `npx tsc --noEmit` clean; `npx eslint` on all changed files clean;
-`npm run check:og` passes; `npm run generate:help` regenerated (4 docs) and the new
-copy appears. `scripts/test-safe-redirect.mts` could not run locally (tsx not
-installed, Node 20 has no type-strip); the real compiled function was verified
-separately against 16 assertions, all passing.
-
-**Notes for Thomas:**
-- No migrations. No dashboard steps.
-- Invited clients without a password: the "View your session details" button leads
-  to /login. A client who has not activated their account yet (no password set)
-  still needs their activation / invite email (or a password reset) before they can
-  sign in. The ResendInviteButton on the client record covers this.
+- **Add-to-calendar:** `calendar-links.ts` (`googleCalendarTemplateUrl`, `buildIcs`, `buildSessionCalendar`),
+  HMAC `sign.ts`, `GET /api/sessions/[bookingId]/ics` (owner OR `?t=` token; 404 cancelled/unscheduled),
+  `AddToCalendarLinks` on confirmed + workspace pages, links + `.ics` attachment in `session_confirmed`
+  (confirm + reschedule) and `session_reminder_24h` (cron). Default copy in `defaults.ts`; prod DB copy via
+  migration `0036` (file only, `apply-0036.sql`).
+- **Failure visibility:** `calendar.ts` logs `google_calendar_auth_failed` (status + Google code, no tokens),
+  once-per-day admin bell (throttled by `google_calendar_auth_notified`), `getIntegrationStatus.reconnectNeeded`
+  (latest failure newer than `connected_at`; `persistInitialTokens` now stamps `connected_at` on reconnect),
+  red "Reconnect needed" on `/admin/integrations`. Per-session retry: `retryCalendarEvent` +
+  `RetryCalendarEventButton` on `/admin/sessions` rows and in `SessionEditorDrawer`. Event `summary` is now
+  `"{serviceType}: {clientName}"`.
+- **Checks:** `tsc --noEmit` clean, `eslint` clean on all changed files, `check:og` clean, `generate:help` wrote 4 docs.
+  Sample `.ics` validated: CRLF only, UTC `Z` times, DESCRIPTION folded at 75 octets, `METHOD:PUBLISH` + `ORGANIZER`.
+- **Notes:** admin bell reuses the existing `subscription_issue` type (prod-allowed, no schema change) so the
+  notification works before 0036 is even relevant; the red banner + retry do not depend on it. The two remaining
+  em dashes in edited docs are pre-existing table copy that was only appended to.

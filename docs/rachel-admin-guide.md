@@ -179,7 +179,7 @@ Every session has an **Edit** button, both on the Sessions page and on the clien
 
 - When you change the **date or time**, a checkbox appears: **"Email the client the new time."** It is **off by default**. Tick it to let the client know and move the calendar hold.
 - Changing anything else (payment, notes, status, and so on) **never emails the client**.
-- If a meeting link was not created automatically, you can paste one into the **Meeting link** box and it clears the "link needed" flag.
+- If a meeting link was not created automatically, the session shows a **"Meet link needed"** tag. Once Google Calendar is connected again, click **Create calendar event** (on the Sessions row, or in the Edit panel next to the Meeting link box) and the system creates the Google Calendar event and Meet link for you in one click. You can still paste a link into the **Meeting link** box by hand instead, which also clears the flag.
 
 ### Moving a session to a different client
 
@@ -234,8 +234,10 @@ Click **Send Booking Options** and the client gets a branded email with a "Choos
 - The session is created and shows up under **Sessions**.
 - A Google Calendar event is added (with a Meet link if you chose Google Meet).
 - You get an email and a bell notification.
-- The client gets a confirmation email.
-- If they have an account, the session also appears in their dashboard.
+- The client gets a confirmation email. It now includes **Add to calendar** buttons (Google Calendar and an Apple/Outlook ".ics" file, also attached) so they can save it to their own calendar in one tap, whether or not they have an account.
+- If they have an account, the session also appears in their dashboard, where the same **Add to calendar** buttons are shown.
+
+> **Keeping Google Calendar connected.** If Google Calendar disconnects (most often because the Google sign-in access expired), the **Integrations** page shows a red **"Reconnect needed"** box and you get an alert at most once a day. Until you reconnect, new sessions are created but don't get a Google Calendar event or Meet link, and show as **"Meet link needed"** on the Sessions page. Reconnect under **Integrations**, then click **Create calendar event** on each pending session. If this happens every week, ask your developer to publish the Google project so the access stops expiring.
 
 The time they chose is locked in, and the booking link stops working so it can't be used twice. On the Invitations page you can copy the link, re-send the email, or cancel an invitation that hasn't been used yet.
 

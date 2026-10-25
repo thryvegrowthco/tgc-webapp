@@ -302,6 +302,24 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 
 ---
 
+## Google Calendar
+
+**What it does:** When connected, a confirmed session creates an event on Rachel's primary Google Calendar with a Google Meet link (for `google_meet` sessions) and invites the client. Code lives in `src/lib/google/calendar.ts`; tokens are stored encrypted in `admin_integrations` (AES-256-GCM via `src/lib/crypto/aes.ts`, keyed by `INTEGRATIONS_ENCRYPTION_KEY`). OAuth env vars: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`.
+
+**OAuth consent-screen publishing status (important):** the Google Cloud project's OAuth consent screen must be set to **"In production"**, not **"Testing."** While an app is in Testing, Google expires its refresh tokens after **7 days**, after which every token refresh fails with `invalid_grant` and no events are created until someone reconnects. This is the most likely cause of a disconnected calendar in production. Publish the app (Google Cloud Console → APIs & Services → OAuth consent screen → "Publish app" → "In production") so refresh tokens stop expiring. Only the `calendar.events` scope is requested, which is non-sensitive, so verification is typically not required.
+
+**Reconnect steps (admin):** `/admin/integrations` → Google Calendar card → **Connect** / **Reconnect Google Calendar**. This runs the OAuth start route `src/app/api/integrations/google/oauth/start` with `access_type=offline` + `prompt=consent` (so a fresh refresh token is issued) and persists tokens via `persistInitialTokens`, which now stamps `connected_at = NOW()` on reconnect as well (the upsert previously left the old value, which would have kept the "Reconnect needed" state stuck on).
+
+**Failure visibility:** `getAccessToken()` catches a failed refresh and (together with a 401/403 on event creation) calls `recordAuthFailure(status, code)`, which:
+- inserts an `automation_log` row `event_key='google_calendar_auth_failed'` with `payload={ http_status, google_error }` and an `error_message` (**no tokens are ever logged**); and
+- creates an admin bell notification (`createAdminNotification`, type `subscription_issue`, reused because it is already allowed by the `admin_notifications` CHECK constraint) **at most once per 24h**, throttled by an `automation_log` `google_calendar_auth_notified` marker row. Both rows carry a NULL `booking_id`, so the `(event_key, booking_id)` unique index never dedups them.
+
+`getIntegrationStatus()` returns `reconnectNeeded = true` when the latest `google_calendar_auth_failed` row is newer than `connected_at`; `/admin/integrations` renders a red "Reconnect needed" state from it. Reconnecting refreshes `connected_at`, which clears the state. A failed Google Meet session is also flagged per-booking via `bookings.meet_link_pending = TRUE`; an admin can retry creation with the `retryCalendarEvent(bookingId)` server action (surfaced as the **Create calendar event** button on `/admin/sessions` rows and in `SessionEditorDrawer`).
+
+**Add-to-calendar links (no Google account needed):** separate from the server-side event above, confirmed sessions expose client-side "add to calendar" links so a client can save the session to any calendar. `src/lib/booking/calendar-links.ts` builds a Google Calendar template URL (`googleCalendarTemplateUrl`) and an RFC 5545 `.ics` (`buildIcs`: CRLF, UTC `Z` times, 75-octet folding, `METHOD:PUBLISH`, `ORGANIZER;CN=Rachel Dietz`). The `.ics` is served by `GET /api/sessions/[bookingId]/ics`, authorized either by the signed-in owner or by a `?t=` HMAC token (`src/lib/crypto/sign.ts`, keyed off `INTEGRATIONS_ENCRYPTION_KEY`, no new secret); it 404s for cancelled or not-yet-scheduled sessions. The links appear on the booking-confirmed page, the client session workspace, and in the `session_confirmed` + `session_reminder_24h` emails (which also attach the `.ics`).
+
+---
+
 ## Vercel
 
 **What it does:** Hosting, CI/CD, edge functions, and analytics. Scheduled jobs live on cron-job.org (see next section) to stay within Vercel Hobby limits.

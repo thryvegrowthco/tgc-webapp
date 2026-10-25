@@ -35,7 +35,13 @@ export default async function AdminIntegrationsPage({
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/dashboard");
 
   const { connected, error, detail } = await searchParams;
-  const status = await getIntegrationStatus().catch(() => ({ connected: false, accountEmail: null, connectedAt: null }));
+  const status = await getIntegrationStatus().catch(() => ({
+    connected: false,
+    accountEmail: null,
+    connectedAt: null,
+    reconnectNeeded: false,
+    lastFailureAt: null,
+  }));
 
   const { data: pixelsRaw } = await supabase
     .from("tracking_pixels")
@@ -87,11 +93,37 @@ export default async function AdminIntegrationsPage({
               link and invite the client. Without it, you&apos;ll need to send meeting links manually.
             </p>
 
+            {status.connected && status.reconnectNeeded && (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <p className="font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" /> Reconnect needed
+                </p>
+                <p className="mt-1 text-red-700">
+                  Google rejected the saved access recently, so new sessions aren&apos;t getting calendar
+                  invites or Meet links. Reconnect to fix it. (If your Google Cloud OAuth app is still in
+                  &ldquo;Testing,&rdquo; publish it to &ldquo;In production&rdquo; first, or access expires
+                  again within 7 days.)
+                </p>
+                <div className="mt-3">
+                  <Button asChild>
+                    <a href="/api/integrations/google/oauth/start">Reconnect Google Calendar</a>
+                  </Button>
+                </div>
+              </div>
+            )}
             {status.connected ? (
               <div className="mt-5 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="text-sm flex items-center gap-2 text-green-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4" /> Connected
+                  <p className={`text-sm flex items-center gap-2 font-medium ${status.reconnectNeeded ? "text-red-700" : "text-green-700"}`}>
+                    {status.reconnectNeeded ? (
+                      <>
+                        <AlertCircle className="h-4 w-4" /> Connected, but access expired
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" /> Connected
+                      </>
+                    )}
                   </p>
                   {status.accountEmail && (
                     <p className="text-xs text-neutral-500 mt-0.5">as {status.accountEmail}</p>

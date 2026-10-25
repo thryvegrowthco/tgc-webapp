@@ -4,6 +4,11 @@ import { CheckCircle2, Calendar, Video } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
+import { buildSessionCalendar } from "@/lib/booking/calendar-links";
+import { signIcsToken } from "@/lib/crypto/sign";
+import { AddToCalendarLinks } from "@/components/booking/AddToCalendarLinks";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 
 export const metadata: Metadata = {
   title: "Your Thryve Session is Confirmed",
@@ -56,6 +61,23 @@ export default async function ConfirmedPage({
 
   const whereLine = inv ? meetingLocationLine(inv.location_type, inv.location_details) : "";
 
+  // "Add to calendar" links appear only once the session has a confirmed time.
+  let googleUrl: string | null = null;
+  let icsUrl: string | null = null;
+  if (inv?.booking_id && sessionAt) {
+    const cal = buildSessionCalendar({
+      serviceType: inv.service_type,
+      sessionAtIso: sessionAt,
+      durationMinutes: inv.duration_minutes,
+      locationType: inv.location_type,
+      locationDetails: inv.location_details,
+      meetLink,
+      workspaceUrl: bookingClientId ? `${APP_URL}/dashboard/sessions/${inv.booking_id}` : null,
+    });
+    googleUrl = cal.googleUrl;
+    icsUrl = `${APP_URL}/api/sessions/${inv.booking_id}/ics?t=${signIcsToken(inv.booking_id)}`;
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 sm:p-8 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -106,6 +128,11 @@ export default async function ConfirmedPage({
               )}
             </div>
           </div>
+          {googleUrl && icsUrl && (
+            <div className="pt-2 border-t border-neutral-200">
+              <AddToCalendarLinks googleUrl={googleUrl} icsUrl={icsUrl} />
+            </div>
+          )}
         </div>
       )}
 

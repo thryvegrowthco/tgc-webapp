@@ -17,6 +17,8 @@ import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime, formatCentralDateTime } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine } from "@/lib/booking/display";
+import { buildSessionCalendar, buildIcs } from "@/lib/booking/calendar-links";
+import { signIcsToken } from "@/lib/crypto/sign";
 import { createAdminNotification } from "@/lib/notifications/admin";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
 
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   const { data: bookingsRaw } = await supabase
     .from("bookings")
-    .select("id, client_id, service_type, service_key, session_at, meet_link, workflow_status, session_reminder_sent_at, reminder_1h_sent_at, prep_summary_sent_at, client_notes, location_type, location_details")
+    .select("id, client_id, service_type, service_key, session_at, meet_link, workflow_status, session_reminder_sent_at, reminder_1h_sent_at, prep_summary_sent_at, client_notes, location_type, location_details, duration_minutes")
     .in("workflow_status", ["intake_needed", "intake_complete", "session_scheduled"])
     .gte("session_at", horizonStart)
     .lte("session_at", horizonEnd);
@@ -62,6 +64,7 @@ export async function GET(request: NextRequest) {
     client_notes: string | null;
     location_type: string;
     location_details: string | null;
+    duration_minutes: number;
   };
   const bookings = (bookingsRaw ?? []) as Row[];
 
@@ -100,6 +103,32 @@ export async function GET(request: NextRequest) {
 
     // T-24h client reminder
     if (hoursUntil <= 25 && hoursUntil >= 23 && !booking.session_reminder_sent_at) {
+      const workspaceUrl = `${APP_URL}/dashboard/sessions/${booking.id}`;
+      const calendar = buildSessionCalendar({
+        serviceType: booking.service_type,
+        sessionAtIso: booking.session_at,
+        durationMinutes: booking.duration_minutes,
+        locationType: booking.location_type,
+        locationDetails: booking.location_details,
+        meetLink: booking.meet_link,
+        workspaceUrl,
+      });
+      const icsAttachment = {
+        filename: "thryve-session.ics",
+        content: Buffer.from(
+          buildIcs({
+            uid: `${booking.id}@thryvegrowth.co`,
+            title: calendar.title,
+            startIso: calendar.startIso,
+            endIso: calendar.endIso,
+            description: calendar.details,
+            location: calendar.location || undefined,
+            url: workspaceUrl,
+          }),
+          "utf8"
+        ).toString("base64"),
+        contentType: "text/calendar",
+      };
       const result = await sendTemplated("session_reminder_24h", {
         to: profile.email,
         bookingId: booking.id,
@@ -110,8 +139,11 @@ export async function GET(request: NextRequest) {
           session_date: formatCentralDate(sessionAt),
           session_time: formatCentralTime(sessionAt),
           meet_link: booking.meet_link ?? "Rachel will share the link shortly.",
-          session_workspace_url: `${APP_URL}/dashboard/sessions/${booking.id}`,
+          session_workspace_url: workspaceUrl,
+          add_to_google_calendar_url: calendar.googleUrl,
+          ics_url: `${APP_URL}/api/sessions/${booking.id}/ics?t=${signIcsToken(booking.id)}`,
         },
+        attachments: [icsAttachment],
       });
       if (result.sent) {
         await supabase

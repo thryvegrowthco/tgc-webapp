@@ -15,7 +15,11 @@ import { getSchemaForService } from "@/lib/intake/schemas";
 import { IntakeFormRenderer, type IntakeResponses } from "@/components/intake/IntakeFormRenderer";
 import { formatCentralDate, formatCentralTime, CENTRAL_TIMEZONE_LABEL } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine, formatDuration, sessionStatusInfo } from "@/lib/booking/display";
+import { buildSessionCalendar } from "@/lib/booking/calendar-links";
 import { ClientSessionActions } from "@/components/dashboard/ClientSessionActions";
+import { AddToCalendarLinks } from "@/components/booking/AddToCalendarLinks";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
 
 export default async function SessionWorkspacePage({
   params,
@@ -93,6 +97,20 @@ export default async function SessionWorkspacePage({
   const canSelfModify = sessionAt != null && sessionAt > cutoff24;
 
   const initialResponses = (intake?.responses ?? {}) as IntakeResponses;
+
+  // "Add to calendar" links once the session has a confirmed time. The .ics
+  // route authorizes the signed-in owner, so no token is needed here.
+  const calendar = booking.session_at
+    ? buildSessionCalendar({
+        serviceType: booking.service_type,
+        sessionAtIso: booking.session_at,
+        durationMinutes: booking.duration_minutes,
+        locationType: booking.location_type,
+        locationDetails: booking.location_details,
+        meetLink: booking.meet_link,
+        workspaceUrl: `${APP_URL}/dashboard/sessions/${booking.id}`,
+      })
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -195,6 +213,13 @@ export default async function SessionWorkspacePage({
                 {formatCentralTime(sessionAt)} ({CENTRAL_TIMEZONE_LABEL})
               </p>
               <p className="text-xs text-neutral-400 mt-1">{formatDuration(booking.duration_minutes)}</p>
+              {calendar && (
+                <AddToCalendarLinks
+                  googleUrl={calendar.googleUrl}
+                  icsUrl={`/api/sessions/${booking.id}/ics`}
+                  className="mt-4 pt-4 border-t border-neutral-200"
+                />
+              )}
             </div>
           )}
 

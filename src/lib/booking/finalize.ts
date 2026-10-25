@@ -18,6 +18,8 @@ import { createAdminNotification } from "@/lib/notifications/admin";
 import { sendTemplated } from "@/lib/email/render";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
+import { buildSessionCalendar, buildIcs } from "@/lib/booking/calendar-links";
+import { signIcsToken } from "@/lib/crypto/sign";
 import type { LocationType, PaymentStatus, AdminNotificationType } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
@@ -251,6 +253,36 @@ export async function createSessionBooking(
     ? `${APP_URL}/admin/clients/${clientId}#booking-${booking.id}`
     : `${APP_URL}/admin/sessions`;
 
+  // "Add to calendar" links for the confirmation email: a Google Calendar
+  // template URL plus a tokenized .ics download that works without login. The
+  // .ics is also attached so a single tap adds the session on Apple/Outlook.
+  const calendar = buildSessionCalendar({
+    serviceType: args.serviceType,
+    sessionAtIso: args.sessionAtUtc,
+    durationMinutes: args.durationMinutes,
+    locationType: args.locationType,
+    locationDetails: args.locationDetails,
+    meetLink,
+    workspaceUrl: sessionWorkspaceUrl || null,
+  });
+  const icsUrl = `${APP_URL}/api/sessions/${booking.id}/ics?t=${signIcsToken(booking.id)}`;
+  const icsAttachment = {
+    filename: "thryve-session.ics",
+    content: Buffer.from(
+      buildIcs({
+        uid: `${booking.id}@thryvegrowth.co`,
+        title: calendar.title,
+        startIso: calendar.startIso,
+        endIso: calendar.endIso,
+        description: calendar.details,
+        location: calendar.location || undefined,
+        url: sessionWorkspaceUrl || APP_URL,
+      }),
+      "utf8"
+    ).toString("base64"),
+    contentType: "text/calendar",
+  };
+
   const sendAdminNotifications = args.sendAdminNotifications !== false;
   const sendClientEmail = args.sendClientEmail !== false;
 
@@ -283,7 +315,10 @@ export async function createSessionBooking(
           meeting_location: meetingLocation,
           meet_link: meetLink ?? "",
           session_workspace_url: sessionWorkspaceUrl,
+          add_to_google_calendar_url: calendar.googleUrl,
+          ics_url: icsUrl,
         },
+        attachments: [icsAttachment],
       })
     );
   }

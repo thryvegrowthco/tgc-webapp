@@ -113,7 +113,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 
   session_reminder_24h: {
     subject: "We're meeting tomorrow at {{session_time}}",
-    placeholders: ["client_name", "session_date", "session_time", "meet_link", "session_workspace_url"],
+    placeholders: ["client_name", "session_date", "session_time", "meet_link", "session_workspace_url", "add_to_google_calendar_url", "ics_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">Looking forward to our session tomorrow.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border-radius:8px;border:1px solid #e2e8f0;">
@@ -125,6 +125,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
   </td></tr>
 </table>
 <p style="margin:0 0 16px;color:#475569;">If something came up, reply to this email and we'll find a new time.</p>
+{{#if add_to_google_calendar_url}}<p style="margin:0 0 16px;color:#475569;"><a href="{{add_to_google_calendar_url}}" style="color:#203e35;">Add to Google Calendar</a> · <a href="{{ics_url}}" style="color:#203e35;">Apple or Outlook (.ics)</a></p>{{/if}}
 <p style="margin:0;color:#475569;">— Rachel</p>`,
   },
 
@@ -229,7 +230,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 
   session_confirmed: {
     subject: "Your Thryve Session is Confirmed",
-    placeholders: ["client_name", "service_type", "session_date", "session_time", "session_length", "meeting_type", "meeting_location", "meet_link", "session_workspace_url"],
+    placeholders: ["client_name", "service_type", "session_date", "session_time", "session_length", "meeting_type", "meeting_location", "meet_link", "session_workspace_url", "add_to_google_calendar_url", "ics_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">You're officially scheduled!</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;">
@@ -248,6 +249,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 </p>{{/if}}
 <p style="margin:0 0 16px;color:#475569;">Before your session, please complete any required intake forms or send over anything you'd like me to review in advance. You can also reply to this email if anything changes.</p>
 {{#if session_workspace_url}}<p style="margin:0 0 16px;color:#475569;">Your session workspace is <a href="{{session_workspace_url}}" style="color:#203e35;">here</a>.</p>{{/if}}
+{{#if add_to_google_calendar_url}}<p style="margin:0 0 16px;color:#475569;"><a href="{{add_to_google_calendar_url}}" style="color:#203e35;">Add to Google Calendar</a> · <a href="{{ics_url}}" style="color:#203e35;">Apple or Outlook (.ics)</a></p>{{/if}}
 <p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>— Rachel</p>`,
   },
 

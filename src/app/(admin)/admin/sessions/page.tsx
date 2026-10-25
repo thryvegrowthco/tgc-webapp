@@ -13,6 +13,7 @@ import { formatDuration, meetingTypeLabel } from "@/lib/booking/display";
 import { SessionsFilters } from "@/components/admin/SessionsFilters";
 import { NewSessionDialog } from "@/components/admin/NewSessionDialog";
 import { SessionEditorDrawer, type ClientOption } from "@/components/admin/SessionEditorDrawer";
+import { RetryCalendarEventButton } from "@/components/admin/RetryCalendarEventButton";
 import { SERVICES } from "@/lib/stripe/products";
 
 export const metadata: Metadata = {
@@ -258,6 +259,9 @@ export default async function AdminSessionsPage({
                 </p>
               )}
             </div>
+            {row.meet_link_pending && !row.meet_link && row.session_at && (
+              <RetryCalendarEventButton bookingId={row.id} />
+            )}
             <SessionEditorDrawer
               clients={clientOptions}
               booking={{
@@ -270,6 +274,7 @@ export default async function AdminSessionsPage({
                 locationType: row.location_type,
                 locationDetails: row.location_details,
                 meetLink: row.meet_link,
+                meetLinkPending: row.meet_link_pending,
                 paymentStatus: row.payment_status,
                 workflowStatus: row.workflow_status,
                 amountCents: row.amount_cents,

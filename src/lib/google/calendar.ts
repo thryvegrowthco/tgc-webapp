@@ -12,11 +12,69 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { encrypt, decrypt } from "@/lib/crypto/aes";
+import { createAdminNotification } from "@/lib/notifications/admin";
 import { CENTRAL_TIMEZONE } from "@/lib/time/central";
 
 export const GOOGLE_PROVIDER = "google_calendar";
 export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // refresh if expiring within 5 min
+
+// automation_log event keys for calendar auth health (no booking_id, so they
+// are never deduped by the (event_key, booking_id) unique index).
+const AUTH_FAILED_EVENT = "google_calendar_auth_failed";
+const AUTH_NOTIFIED_EVENT = "google_calendar_auth_notified";
+const NOTIFY_THROTTLE_MS = 24 * 60 * 60 * 1000; // bell at most once per day
+
+/** A Google auth/refresh error carrying the HTTP status + Google error code. */
+class GoogleAuthError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string | null
+  ) {
+    super(`Google token refresh failed (${status})${code ? `: ${code}` : ""}`);
+    this.name = "GoogleAuthError";
+  }
+}
+
+/**
+ * Record a Google Calendar auth failure so admins can see it, and nudge Rachel
+ * (at most once per day) to reconnect. Stores only the HTTP status and Google
+ * error code, never tokens. Best-effort: never throws into the caller.
+ */
+async function recordAuthFailure(status: number | null, code: string | null): Promise<void> {
+  try {
+    const service = createServiceClient();
+    await service.from("automation_log").insert({
+      event_key: AUTH_FAILED_EVENT,
+      status: "failed",
+      error_message: `Google Calendar auth failed${status ? ` (HTTP ${status})` : ""}${code ? ` [${code}]` : ""}`,
+      payload: { http_status: status, google_error: code },
+    });
+
+    // Throttle the admin bell: skip if we already notified within the window.
+    const since = new Date(Date.now() - NOTIFY_THROTTLE_MS).toISOString();
+    const { data: recent } = await service
+      .from("automation_log")
+      .select("id")
+      .eq("event_key", AUTH_NOTIFIED_EVENT)
+      .gte("created_at", since)
+      .limit(1)
+      .maybeSingle();
+    if (recent) return;
+
+    await createAdminNotification({
+      // Reuse an existing, prod-allowed "needs attention" type so the bell works
+      // without a schema change.
+      type: "subscription_issue",
+      title: "Google Calendar is disconnected",
+      body: "Reconnect it in Integrations so new sessions get calendar invites and Meet links.",
+      link: "/admin/integrations",
+    });
+    await service.from("automation_log").insert({ event_key: AUTH_NOTIFIED_EVENT, status: "success" });
+  } catch {
+    // Visibility is best-effort: a logging failure must not break calendar flow.
+  }
+}
 
 interface StoredIntegration {
   account_email: string | null;
@@ -97,7 +155,13 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> 
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Token refresh failed (${res.status}): ${text}`);
+    let code: string | null = null;
+    try {
+      code = (JSON.parse(text) as { error?: string }).error ?? null;
+    } catch {
+      // Non-JSON error body: keep the status, drop the code.
+    }
+    throw new GoogleAuthError(res.status, code);
   }
   return (await res.json()) as TokenResponse;
 }
@@ -136,6 +200,10 @@ export async function persistInitialTokens(args: {
       access_token_expires_at: expiresAt,
       scope: tokens.scope ?? GOOGLE_SCOPE,
       connected_by: args.adminUserId,
+      // Stamp connected_at on reconnect too (onConflict UPDATE keeps the old
+      // value otherwise) so the "Reconnect needed" state clears: any auth
+      // failure logged before this moment is now older than connected_at.
+      connected_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "provider" }
@@ -153,6 +221,9 @@ export async function getIntegrationStatus(): Promise<{
   connected: boolean;
   accountEmail: string | null;
   connectedAt: string | null;
+  /** True when the latest auth failure is newer than the last (re)connect. */
+  reconnectNeeded: boolean;
+  lastFailureAt: string | null;
 }> {
   const service = createServiceClient();
   const { data } = await service
@@ -160,10 +231,29 @@ export async function getIntegrationStatus(): Promise<{
     .select("account_email, connected_at")
     .eq("provider", GOOGLE_PROVIDER)
     .maybeSingle();
+  const connectedAt = data?.connected_at ?? null;
+
+  let lastFailureAt: string | null = null;
+  const { data: fail } = await service
+    .from("automation_log")
+    .select("created_at")
+    .eq("event_key", AUTH_FAILED_EVENT)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  lastFailureAt = (fail as { created_at: string } | null)?.created_at ?? null;
+
+  const reconnectNeeded =
+    !!data &&
+    !!lastFailureAt &&
+    (!connectedAt || new Date(lastFailureAt).getTime() > new Date(connectedAt).getTime());
+
   return {
     connected: !!data,
     accountEmail: data?.account_email ?? null,
-    connectedAt: data?.connected_at ?? null,
+    connectedAt,
+    reconnectNeeded,
+    lastFailureAt,
   };
 }
 
@@ -217,7 +307,14 @@ async function getAccessToken(): Promise<string | null> {
       })
       .eq("provider", GOOGLE_PROVIDER);
     return fresh.access_token;
-  } catch {
+  } catch (err) {
+    // Refresh failed (expired/revoked refresh token, or a transient Google
+    // error). Surface it so admins can reconnect; degrade to null either way.
+    if (err instanceof GoogleAuthError) {
+      await recordAuthFailure(err.status, err.code);
+    } else {
+      await recordAuthFailure(null, null);
+    }
     return null;
   }
 }
@@ -276,7 +373,7 @@ export async function createCalendarEvent(args: CalendarEventArgs): Promise<Cale
   const location = locationLabel(locationType, args.locationDetails);
 
   const body: Record<string, unknown> = {
-    summary: `${args.serviceType} — ${args.clientName}`,
+    summary: `${args.serviceType}: ${args.clientName}`,
     description: [
       `Service: ${args.serviceType}`,
       `Booking ID: ${args.bookingId}`,
@@ -319,7 +416,13 @@ export async function createCalendarEvent(args: CalendarEventArgs): Promise<Cale
       },
       body: JSON.stringify(body),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // A rejected token here (vs at refresh) also means Rachel must reconnect.
+      if (res.status === 401 || res.status === 403) {
+        await recordAuthFailure(res.status, "event_create_rejected");
+      }
+      return null;
+    }
     const json = (await res.json()) as { id: string; hangoutLink?: string; htmlLink?: string };
     return { eventId: json.id, meetLink: json.hangoutLink ?? null, htmlLink: json.htmlLink ?? null };
   } catch {
