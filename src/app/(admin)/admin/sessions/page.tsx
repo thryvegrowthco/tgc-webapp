@@ -60,6 +60,8 @@ type SessionRow = {
   amount_cents: number | null;
   admin_notes: string | null;
   client_id: string | null;
+  guest_name: string | null;
+  guest_email: string | null;
   created_at: string;
 };
 
@@ -91,7 +93,7 @@ export default async function AdminSessionsPage({
   let query = supabase
     .from("bookings")
     .select(
-      "id, service_type, service_key, session_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, duration_minutes, location_type, location_details, payment_status, amount_cents, admin_notes, client_id, created_at"
+      "id, service_type, service_key, session_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, duration_minutes, location_type, location_details, payment_status, amount_cents, admin_notes, client_id, guest_name, guest_email, created_at"
     )
     .order("session_at", { ascending: true, nullsFirst: false });
 
@@ -145,7 +147,9 @@ export default async function AdminSessionsPage({
       return (
         s.service_type.toLowerCase().includes(needle) ||
         (c?.full_name?.toLowerCase().includes(needle) ?? false) ||
-        (c?.email?.toLowerCase().includes(needle) ?? false)
+        (c?.email?.toLowerCase().includes(needle) ?? false) ||
+        (s.guest_name?.toLowerCase().includes(needle) ?? false) ||
+        (s.guest_email?.toLowerCase().includes(needle) ?? false)
       );
     });
   }
@@ -175,8 +179,13 @@ export default async function AdminSessionsPage({
       <>
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <p className="font-semibold text-neutral-900 text-sm truncate">
-            {client?.full_name || client?.email || "Unknown client"}
+            {client?.full_name || client?.email || row.guest_name || row.guest_email || "Unknown client"}
           </p>
+          {!row.client_id && (
+            <span className="text-[10px] uppercase tracking-wide bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded font-semibold">
+              No account
+            </span>
+          )}
           {row.workflow_status === "cancelled" && (
             <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">
               Cancelled
@@ -261,6 +270,8 @@ export default async function AdminSessionsPage({
                 workflowStatus: row.workflow_status,
                 amountCents: row.amount_cents,
                 adminNotes: row.admin_notes,
+                guestName: row.guest_name,
+                guestEmail: row.guest_email,
               }}
             />
           </div>

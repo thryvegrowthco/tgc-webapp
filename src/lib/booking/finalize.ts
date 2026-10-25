@@ -111,6 +111,10 @@ export async function createSessionBooking(
       location_type: args.locationType,
       location_details: args.locationDetails,
       admin_notes: args.adminNotes ?? null,
+      // No-account session: keep the typed name/email on the row so it doesn't
+      // show as "Unknown client". Account-linked rows read these from profiles.
+      guest_name: clientId ? null : args.clientName?.trim() || null,
+      guest_email: clientId ? null : args.clientEmail?.trim() || null,
       payment_status: args.paymentStatus,
       amount_cents: args.amountCents,
       stripe_session_id: args.stripeSessionId ?? null,

@@ -132,6 +132,8 @@ export type Database = {
             | "rescheduled";
           client_notes: string | null;
           admin_notes: string | null;
+          guest_name: string | null;
+          guest_email: string | null;
           stripe_payment_intent_id: string | null;
           stripe_session_id: string | null;
           amount_cents: number | null;
@@ -181,6 +183,8 @@ export type Database = {
             | "rescheduled";
           client_notes?: string | null;
           admin_notes?: string | null;
+          guest_name?: string | null;
+          guest_email?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_session_id?: string | null;
           amount_cents?: number | null;
@@ -230,6 +234,8 @@ export type Database = {
             | "rescheduled";
           client_notes?: string | null;
           admin_notes?: string | null;
+          guest_name?: string | null;
+          guest_email?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_session_id?: string | null;
           amount_cents?: number | null;

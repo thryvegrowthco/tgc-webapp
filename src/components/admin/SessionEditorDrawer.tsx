@@ -64,6 +64,9 @@ export interface SessionEditorBooking {
   workflowStatus: string;
   amountCents: number | null;
   adminNotes: string | null;
+  /** No-account session contact (client_id null). Omitted for account rows. */
+  guestName?: string | null;
+  guestEmail?: string | null;
 }
 
 /** Split a UTC ISO moment into Central `date` + `time` input values. */
@@ -150,6 +153,11 @@ export function SessionEditorDrawer({
   }, [booking.sessionAt]);
   const canReassign = !!clients && isFuture && booking.workflowStatus !== "cancelled";
   const reassignTargets = (clients ?? []).filter((c) => c.id !== booking.clientId);
+
+  // No-account session: no linked profile. Show the typed guest contact so the
+  // drawer doesn't read as an "Unknown client".
+  const noAccount = !booking.clientId;
+  const guestLabel = booking.guestName || booking.guestEmail || "Unknown client";
 
   const isCancelled = booking.workflowStatus === "cancelled";
   // Cancelling routes through the Cancel button, so "Cancelled" isn't a normal
@@ -277,6 +285,15 @@ export function SessionEditorDrawer({
           <Dialog.Description className="sr-only">
             Edit this session&apos;s details, reschedule, reassign, or cancel it.
           </Dialog.Description>
+
+          {noAccount && (
+            <div className="-mt-3 mb-4 flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-neutral-700 truncate">{guestLabel}</span>
+              <span className="text-[10px] uppercase tracking-wide bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded font-semibold">
+                No account
+              </span>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
