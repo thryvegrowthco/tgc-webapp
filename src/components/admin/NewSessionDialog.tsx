@@ -75,9 +75,9 @@ export function NewSessionDialog({ clients, servicePresets, defaultClientId }: P
   const [locationDetails, setLocationDetails] = React.useState("");
 
   const [paymentStatus, setPaymentStatus] = React.useState("not_required");
-  const [amount, setAmount] = React.useState(() =>
-    servicePresets[0] ? String(servicePresets[0].amountCents / 100) : ""
-  );
+  // Start blank. The amount only fills once a preset service is chosen
+  // (see pickService); it stays blank for "Custom / other".
+  const [amount, setAmount] = React.useState("");
   const [adminNotes, setAdminNotes] = React.useState("");
   const [sendConfirmation, setSendConfirmation] = React.useState(false);
 

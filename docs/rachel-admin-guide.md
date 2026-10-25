@@ -158,14 +158,14 @@ Recruitment is your one service that runs on a **custom quote** rather than a fi
 
 ## 3a. Managing Sessions
 
-The **Sessions** page (in the left sidebar) is your source of truth for every booked session. Sessions are grouped by where they are in your workflow (intake needed, scheduled, completed, and so on), and there is a filter and a search box at the top so you can find anyone quickly. The Bookings page now links straight here.
+The **Sessions** page (in the left sidebar) is your source of truth for every booked session. Sessions are grouped by where they are in your workflow (intake needed, scheduled, completed, and so on), and there is a status filter and a search box at the top so you can find anyone quickly. The search filters as you type (no need to press Enter) and matches a client's name or email, a no-account guest's name or email, and the service name. It looks across every status, so a client whose sessions are already completed or cancelled still turns up. Clear the box (the small X, or just delete the text) to bring back the full list. If you pick a specific status from the filter first, the search stays inside that status. The Bookings page now links straight here.
 
 ### Adding a session yourself
 
 Click **New session** at the top of the Sessions page. A form opens where you choose:
 
 - **The client.** Pick an existing client from the list, or choose "No account" and type a name and email for someone who does not have a portal login.
-- **The service**, either from your standard list (which fills in a suggested price) or a custom name you type in.
+- **The service**, either from your standard list or a custom name you type in. The **Amount** starts blank: picking one of your standard services fills in its usual price, while "Custom / other" leaves it blank for you to set.
 - **Date and time** (your Central time), **length**, and the **meeting type** (Google Meet, phone, in person, or custom) with any location details.
 - **Payment status and amount**, and any **private notes** only you see.
 

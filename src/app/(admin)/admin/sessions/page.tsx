@@ -100,7 +100,11 @@ export default async function AdminSessionsPage({
   // Cancelled rows are hidden only in the default "active" view (which already
   // restricts to ACTIVE_STATUSES). "All statuses" and "Cancelled" show them.
   if (status === "active") {
-    query = query.in("workflow_status", ACTIVE_STATUSES as WorkflowStatus[]);
+    // The default view is the active queue. A text search, however, should find
+    // a client's sessions in ANY status (completed, cancelled, etc.), so when
+    // the admin is searching we drop the active-only restriction. An explicitly
+    // chosen status below is always honored, search or not.
+    if (!q) query = query.in("workflow_status", ACTIVE_STATUSES as WorkflowStatus[]);
   } else if (status !== "all") {
     query = query.eq("workflow_status", status as WorkflowStatus);
   }
