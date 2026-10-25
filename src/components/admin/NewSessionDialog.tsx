@@ -83,8 +83,10 @@ export function NewSessionDialog({ clients, servicePresets, defaultClientId }: P
 
   function pickService(key: string) {
     setServiceKey(key);
+    // "Custom / other" (empty key) has no preset price — leave Amount blank for
+    // the admin to fill in rather than carrying over the last preset's price.
     const preset = servicePresets.find((p) => p.key === key);
-    if (preset) setAmount(String(preset.amountCents / 100));
+    setAmount(preset ? String(preset.amountCents / 100) : "");
   }
 
   async function create() {

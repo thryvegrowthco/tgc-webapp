@@ -171,11 +171,13 @@ Click **New session** at the top of the Sessions page. A form opens where you ch
 
 There is a checkbox, **"Email the client a confirmation,"** that is **turned off by default**. Leave it off to add the session quietly (useful for backfilling or test entries); tick it if you want the client to get the usual confirmation email.
 
+If you picked "No account," the session now shows the name you typed (or the email, if you left the name blank) with a small **"No account"** tag, both on the Sessions page and in the Edit panel. These used to show as "Unknown client."
+
 ### Editing a session
 
 Every session has an **Edit** button, both on the Sessions page and on the client's own detail page. Editing opens a panel where you can change the service, date and time, length, meeting type and location, meeting link, payment status, amount, the session's status, and your private notes. Click **Save changes** when you are done.
 
-- When you change the **date or time**, a checkbox appears: **"Email the client about the new time."** It is **off by default**. Tick it to let the client know and move the calendar hold.
+- When you change the **date or time**, a checkbox appears: **"Email the client the new time."** It is **off by default**. Tick it to let the client know and move the calendar hold.
 - Changing anything else (payment, notes, status, and so on) **never emails the client**.
 - If a meeting link was not created automatically, you can paste one into the **Meeting link** box and it clears the "link needed" flag.
 
@@ -187,12 +189,14 @@ If a session is still in the future, the Edit panel includes a **"Reassign to an
 
 Open the Edit panel and click **Cancel session**. There is an **"Email the client when cancelling"** checkbox that is **off by default**. Cancelling removes the calendar hold, and if the session was part of a package it returns the credit so the client can rebook.
 
+A cancelled session is not deleted. The default Sessions view hides cancelled sessions so your active list stays clean, but you can still find any of them by setting the status filter at the top to **"Cancelled"** (or **"All statuses"**); they appear with a red **"Cancelled"** tag. On a cancelled session the Edit panel no longer shows the Cancel button, but the Danger zone stays available so you can remove a test entry if you need to.
+
 ### When does the client get an email?
 
 By default, nothing is emailed, so you are always in control. A client is emailed only when you tick the matching box:
 
 - **Creating** a session: only if you tick "Email the client a confirmation."
-- **Rescheduling** (changing the date or time): only if you tick "Email the client about the new time."
+- **Rescheduling** (changing the date or time): only if you tick "Email the client the new time."
 - **Cancelling**: only if you tick "Email the client when cancelling."
 
 ### Deleting a session (test or duplicate rows only)

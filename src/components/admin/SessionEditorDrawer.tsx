@@ -158,6 +158,10 @@ export function SessionEditorDrawer({
   // drawer doesn't read as an "Unknown client".
   const noAccount = !booking.clientId;
   const guestLabel = booking.guestName || booking.guestEmail || "Unknown client";
+  // A linked account always has an email (profiles.email is NOT NULL); a
+  // no-account row only does when a guest email was captured. The reschedule
+  // notify option is pointless without somewhere to send.
+  const hasClientEmail = !!(booking.clientId || booking.guestEmail);
 
   const isCancelled = booking.workflowStatus === "cancelled";
   // Cancelling routes through the Cancel button, so "Cancelled" isn't a normal
@@ -339,7 +343,7 @@ export function SessionEditorDrawer({
               </div>
             </div>
 
-            {(rDate !== initialParts.date || rTime !== initialParts.time) && (
+            {(rDate !== initialParts.date || rTime !== initialParts.time) && hasClientEmail && (
               <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -347,7 +351,7 @@ export function SessionEditorDrawer({
                   onChange={(e) => setNotifyReschedule(e.target.checked)}
                   className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
                 />
-                <span className="text-sm text-neutral-700">Email the client about the new time</span>
+                <span className="text-sm text-neutral-700">Email the client the new time</span>
               </label>
             )}
 

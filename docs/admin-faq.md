@@ -77,8 +77,14 @@ The quickest way: on your **Overview** (admin home) page, click the **"Invite a 
 ### How do I add a session myself?
 Go to the **Sessions** page and click **New session**. Choose an existing client (or pick "No account" and type a name and email for someone without a login), the service, the date and time, the length, the meeting type, the payment status and amount, and any private notes. There is an **"Email the client a confirmation"** box that is **off by default**, so you can add a session quietly and only email the client if you tick it.
 
+### Will a session I add without an account show who it's for?
+Yes. When you choose "No account" and type a name and email, the session shows that name (or the email, if you left the name blank) on the Sessions page and in the Edit panel, with a small **"No account"** tag so you can tell it apart from clients who have a portal login. These used to show as "Unknown client."
+
 ### How do I reschedule or cancel a session?
 On the **Sessions** page (or on the client's record), click **Edit** on the session. Change the date and time and click **Save changes** to reschedule, or click **Cancel session**. Both show a checkbox to email the client, and both are **off by default** so the client is only contacted when you choose. Rescheduling moves the calendar hold; cancelling removes it and returns any package credit.
+
+### Where do cancelled sessions go?
+They are not deleted. The default Sessions view hides them so your active list stays clean, but you can still find any cancelled session by setting the status filter at the top to **"Cancelled"** (or **"All statuses"**). They appear with a red **"Cancelled"** tag. You can still open one to edit it; the Cancel button is hidden, but the Danger zone stays available if you need to delete a test entry.
 
 ### Can I move a session to a different client?
 Yes, as long as the session is still in the future. Open **Edit** on the session and use the **"Reassign to another client"** option.
