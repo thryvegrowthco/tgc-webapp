@@ -131,7 +131,9 @@ invitation (via `finalizeSession()`). There is no separate `sessions` table.
 | `updated_at` | `TIMESTAMPTZ` | `NOW()` | Stamped on session edits (added 0023) |
 | `created_at` | `TIMESTAMPTZ` | `NOW()` | — |
 
-**Key behavior:** Paid `/book` sessions start at `workflow_status = 'intake_needed'`. Invitation sessions are created by `finalizeSession()` at `session_scheduled` (they skip the intake-first bucket). Status edits flow through `updateSession()` (`src/app/actions/booking.ts`).
+**Key behavior:** Paid `/book` sessions start at `workflow_status = 'intake_needed'`. Invitation sessions are created by `finalizeSession()` at `session_scheduled` (they skip the intake-first bucket). Admin-created sessions come from `adminCreateSession()` (`src/app/actions/sessions.ts`). Status edits flow through `updateSession()` (`src/app/actions/booking.ts`) and the richer `adminUpdateSession()` (`src/app/actions/sessions.ts`), which also keeps the legacy `status` column in sync with `workflow_status`.
+
+**INSERT policy (migration 0034):** the original `bookings_insert_own` policy (`WITH CHECK (auth.uid() = client_id OR is_admin())`, from 0001) let a signed-in client insert their own booking rows directly. Nothing in the app used that path — every insert runs through the service client (which bypasses RLS) — so **0034 drops it and replaces it with `bookings_insert_admin` (`WITH CHECK (is_admin())`)**, matching `docs_insert_admin`. Webhook / admin-action inserts are unaffected (service role bypasses RLS).
 
 ---
 
@@ -827,7 +829,7 @@ Rachel's lightweight to-do list. Tasks can optionally be tied to a booking and/o
 |---|---|---|---|---|
 | `profiles` | None | SELECT own, UPDATE own, INSERT own | SELECT all | Full (bypasses RLS) |
 | `availability_slots` | None | SELECT all | ALL | Full |
-| `bookings` | None | SELECT own, INSERT own | SELECT all, UPDATE all | Full |
+| `bookings` | None | SELECT own (INSERT dropped in 0034) | SELECT all, INSERT, UPDATE all | Full (bypasses RLS) |
 | `payments` | None | SELECT own | ALL | Full |
 | `documents` | None | SELECT own | INSERT, DELETE, SELECT all | Full |
 | `watchlist_profiles` | None | SELECT own, INSERT own, UPDATE own — **criteria columns only**; privileged columns pinned by the 0033 guard trigger | SELECT all, INSERT, UPDATE (privileged columns still trigger-guarded via the cookie client — use the service client) | Full (bypasses RLS *and* the trigger) |

@@ -243,6 +243,51 @@ signature snapshot and just re-opens checkout.
 
 ---
 
+## 1e. Admin Session Management (create / edit / reschedule / cancel / reassign)
+
+Rachel's `/admin/sessions` page is the hub for every booked session. All of the
+actions below live in `src/app/actions/sessions.ts`, each gated by
+`requireAdmin()` and run through the service client. No client-dashboard behavior
+changes here.
+
+**Create** — the "New session" button opens `NewSessionDialog`, which calls
+**`adminCreateSession(input)`**. It validates the input, converts the Central
+date/time to UTC (`localCentralToUtcIso`), and reuses **`createSessionBooking`**
+(the same no-charge core the invitation/package flows use), with admin
+self-notifications turned off and the client confirmation email **opt-in**
+(`sendConfirmation`, unchecked by default). The client is either an existing
+profile (picked from the list) or a non-account person (name + email typed in);
+`createSessionBooking` still links by email to a portal account if one exists.
+The double-booking overlap guard applies.
+
+**Edit** — every session row (and every booking card on `/admin/clients/[id]`)
+has an "Edit" drawer (`SessionEditorDrawer`) that calls
+**`adminUpdateSession(id, patch)`**. It edits service, session type, duration,
+meeting type/details, manual meeting link (which clears the "link needed" flag),
+payment status, amount, admin notes, and workflow status. The legacy `status`
+column is kept in sync (`cancelled` → cancelled; `completed`/`follow_up_sent` →
+completed; otherwise confirmed). A **time change routes through
+`performReschedule`** (overlap guard, calendar move, reminder-flag reset) and
+only emails the client when the "email the client about the new time" box is
+checked (`patch.notifyClient`). Location/duration changes reconcile the Google
+Calendar event via `updateCalendarEvent`. For non-time edits other than a
+reschedule, no client email is sent.
+
+**Reassign** — when the drawer is given the client list and the session is
+upcoming and not cancelled, **`adminReassignClient(id, clientId)`** moves it to
+another client account.
+
+**Cancel** — **`cancelSession(id, { notifyClient })`** marks the session
+cancelled, removes the calendar event, and returns any package credit (same
+`performCancel` core as before). When "email the client when cancelling" is
+checked, it sends a plain branded cancellation email (`renderShell`).
+
+**Calendar degradation.** Google Calendar is currently disconnected in
+production, so every calendar call here degrades gracefully (no-op) and never
+blocks the database change.
+
+---
+
 ## 2. Job Alerts Subscription Flow
 
 **Service:** Job Alerts & Watchlists ($50/month)

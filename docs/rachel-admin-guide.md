@@ -9,6 +9,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 1. [Logging In](#1-logging-in)
 2. [The Dashboard Overview](#2-the-dashboard-overview)
 3. [Managing Your Availability](#3-managing-your-availability)
+3a. [Managing Sessions](#3a-managing-sessions)
 3b. [Sending a Booking Invitation](#3b-sending-a-booking-invitation)
 3c. [Sending a Proposal](#3c-sending-a-proposal)
 4. [Managing Clients](#4-managing-clients)
@@ -145,13 +146,54 @@ When a client books and pays:
 2. The client receives a confirmation email
 3. You receive an alert email with the client's name and service
 4. The client is synced to your GoHighLevel CRM
-5. The booking appears in your Upcoming Sessions list
+5. The booking appears on your Sessions page
 
 You do not need to do anything manually when a booking comes in.
 
 ### Recruitment & Candidate Screening leads
 
 Recruitment is your one service that runs on a **custom quote** rather than a fixed price, so it does not appear on the Book page. The "Get a quote" buttons on the recruitment marketing pages route to the free consultation form at `/consultation` instead. New recruitment leads will arrive in your inbox the same way any consultation request does — reply, scope the engagement together, and invoice however you and the client agree. When you're ready to move recruitment onto fixed pricing or hourly billing, the developer can wire up a Stripe product without any rework on the marketing side.
+
+---
+
+## 3a. Managing Sessions
+
+The **Sessions** page (in the left sidebar) is your source of truth for every booked session. Sessions are grouped by where they are in your workflow (intake needed, scheduled, completed, and so on), and there is a filter and a search box at the top so you can find anyone quickly. The Bookings page now links straight here.
+
+### Adding a session yourself
+
+Click **New session** at the top of the Sessions page. A form opens where you choose:
+
+- **The client.** Pick an existing client from the list, or choose "No account" and type a name and email for someone who does not have a portal login.
+- **The service**, either from your standard list (which fills in a suggested price) or a custom name you type in.
+- **Date and time** (your Central time), **length**, and the **meeting type** (Google Meet, phone, in person, or custom) with any location details.
+- **Payment status and amount**, and any **private notes** only you see.
+
+There is a checkbox, **"Email the client a confirmation,"** that is **turned off by default**. Leave it off to add the session quietly (useful for backfilling or test entries); tick it if you want the client to get the usual confirmation email.
+
+### Editing a session
+
+Every session has an **Edit** button, both on the Sessions page and on the client's own detail page. Editing opens a panel where you can change the service, date and time, length, meeting type and location, meeting link, payment status, amount, the session's status, and your private notes. Click **Save changes** when you are done.
+
+- When you change the **date or time**, a checkbox appears: **"Email the client about the new time."** It is **off by default**. Tick it to let the client know and move the calendar hold.
+- Changing anything else (payment, notes, status, and so on) **never emails the client**.
+- If a meeting link was not created automatically, you can paste one into the **Meeting link** box and it clears the "link needed" flag.
+
+### Moving a session to a different client
+
+If a session is still in the future, the Edit panel includes a **"Reassign to another client"** option. Pick the new client and click Reassign.
+
+### Cancelling a session
+
+Open the Edit panel and click **Cancel session**. There is an **"Email the client when cancelling"** checkbox that is **off by default**. Cancelling removes the calendar hold, and if the session was part of a package it returns the credit so the client can rebook.
+
+### When does the client get an email?
+
+By default, nothing is emailed, so you are always in control. A client is emailed only when you tick the matching box:
+
+- **Creating** a session: only if you tick "Email the client a confirmation."
+- **Rescheduling** (changing the date or time): only if you tick "Email the client about the new time."
+- **Cancelling**: only if you tick "Email the client when cancelling."
 
 ---
 

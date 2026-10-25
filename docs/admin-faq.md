@@ -74,8 +74,17 @@ No. Access is only ever granted by you or by a real payment. (This used to be po
 ### How do I send someone a few times to choose from?
 The quickest way: on your **Overview** (admin home) page, click the **"Invite a client to book"** button in the "Book a client in" box at the top. You can also get there from **Invite to Book → New invitation** in the sidebar, or the **Create booking invitation** button on a client's page. Pick the dates and times, choose the meeting type, and send. The client gets an email, picks one, and the session is created automatically — added to your Google Calendar and confirmed by email. See **Booking Flow Diagrams** for the full picture. (If a yellow "Google Calendar isn't connected" note appears on the Invite to Book page, connect it under Integrations so sessions land on your calendar.)
 
+### How do I add a session myself?
+Go to the **Sessions** page and click **New session**. Choose an existing client (or pick "No account" and type a name and email for someone without a login), the service, the date and time, the length, the meeting type, the payment status and amount, and any private notes. There is an **"Email the client a confirmation"** box that is **off by default**, so you can add a session quietly and only email the client if you tick it.
+
 ### How do I reschedule or cancel a session?
-Open the client's record, find the booking, and click **Manage**. From there you can **Reschedule** (this moves the calendar event and re-sends the client a confirmation) or **Cancel session** (this removes the calendar event).
+On the **Sessions** page (or on the client's record), click **Edit** on the session. Change the date and time and click **Save changes** to reschedule, or click **Cancel session**. Both show a checkbox to email the client, and both are **off by default** so the client is only contacted when you choose. Rescheduling moves the calendar hold; cancelling removes it and returns any package credit.
+
+### Can I move a session to a different client?
+Yes, as long as the session is still in the future. Open **Edit** on the session and use the **"Reassign to another client"** option.
+
+### When does a client get an email about a session?
+Only when you ask for it. Creating, rescheduling, and cancelling each have their own "email the client" checkbox, and all three start **unchecked**. If you leave them unchecked, the client is not emailed, so you are always in control of what they hear and when.
 
 ### Can clients reschedule or cancel their own sessions?
 Yes — but only when the session is **more than 24 hours away**. On their dashboard, a client can open one of their sessions and reschedule it to another time or cancel it. Inside 24 hours the buttons stop working and they're told to reply to your email so you can help. Either way, you get a notification (email and bell) when a client changes a session. If the cancelled session was part of a package, the credit goes back automatically so they can rebook it.
