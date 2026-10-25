@@ -54,6 +54,7 @@ type SessionRow = {
   intake_due_at: string | null;
   meet_link_pending: boolean;
   meet_link: string | null;
+  calendar_event_id: string | null;
   duration_minutes: number;
   location_type: string;
   location_details: string | null;
@@ -94,7 +95,7 @@ export default async function AdminSessionsPage({
   let query = supabase
     .from("bookings")
     .select(
-      "id, service_type, service_key, session_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, duration_minutes, location_type, location_details, payment_status, amount_cents, admin_notes, client_id, guest_name, guest_email, created_at"
+      "id, service_type, service_key, session_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, calendar_event_id, duration_minutes, location_type, location_details, payment_status, amount_cents, admin_notes, client_id, guest_name, guest_email, created_at"
     )
     .order("session_at", { ascending: true, nullsFirst: false });
 
@@ -259,8 +260,13 @@ export default async function AdminSessionsPage({
                 </p>
               )}
             </div>
-            {row.meet_link_pending && !row.meet_link && row.session_at && (
+            {row.meet_link_pending && !row.meet_link && row.session_at && !row.calendar_event_id && (
               <RetryCalendarEventButton bookingId={row.id} />
+            )}
+            {row.meet_link_pending && !row.meet_link && row.calendar_event_id && (
+              <span className="text-[11px] text-neutral-500 whitespace-nowrap">
+                Calendar event created, Meet link pending
+              </span>
             )}
             <SessionEditorDrawer
               clients={clientOptions}
@@ -275,6 +281,7 @@ export default async function AdminSessionsPage({
                 locationDetails: row.location_details,
                 meetLink: row.meet_link,
                 meetLinkPending: row.meet_link_pending,
+                calendarEventId: row.calendar_event_id,
                 paymentStatus: row.payment_status,
                 workflowStatus: row.workflow_status,
                 amountCents: row.amount_cents,

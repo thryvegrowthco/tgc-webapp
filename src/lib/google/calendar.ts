@@ -103,10 +103,15 @@ async function recordAuthFailure(status: number | null, code: string | null): Pr
 
     // Write the throttle marker BEFORE sending the bell so a near-concurrent
     // failure is more likely to see it and skip — the closest we can get to a
-    // race-safe once-per-day dedupe without a schema change.
-    await service.from("automation_log").insert({ event_key: AUTH_NOTIFIED_EVENT, status: "success" });
+    // race-safe once-per-day dedupe without a schema change. If the bell insert
+    // then fails, delete the marker so the next attempt isn't wrongly suppressed.
+    const { data: marker } = await service
+      .from("automation_log")
+      .insert({ event_key: AUTH_NOTIFIED_EVENT, status: "success" })
+      .select("id")
+      .maybeSingle();
 
-    await createAdminNotification({
+    const notified = await createAdminNotification({
       // Dedicated type (not subscription_issue) so a disconnected calendar is
       // never silenced by the subscription notification preference, and reads
       // correctly in the bell.
@@ -115,6 +120,10 @@ async function recordAuthFailure(status: number | null, code: string | null): Pr
       body: "Reconnect it in Integrations so new sessions get calendar invites and Meet links.",
       link: "/admin/integrations",
     });
+
+    if (!notified && marker?.id) {
+      await service.from("automation_log").delete().eq("id", marker.id);
+    }
   } catch {
     // Visibility is best-effort: a logging failure must not break calendar flow.
   }

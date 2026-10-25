@@ -93,7 +93,7 @@ export default async function AdminClientDetailPage({
   ] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, service_type, service_key, session_type, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, created_at, slot_id, duration_minutes, location_type, location_details, payment_status, follow_up_needed, session_summary, next_steps, client_notes, admin_notes")
+      .select("id, service_type, service_key, session_type, status, workflow_status, amount_cents, session_at, intake_due_at, meet_link, meet_link_pending, calendar_event_id, created_at, slot_id, duration_minutes, location_type, location_details, payment_status, follow_up_needed, session_summary, next_steps, client_notes, admin_notes")
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -158,6 +158,7 @@ export default async function AdminClientDetailPage({
     intake_due_at: string | null;
     meet_link: string | null;
     meet_link_pending: boolean;
+    calendar_event_id: string | null;
     created_at: string;
     slot_id: string | null;
     duration_minutes: number;
@@ -550,6 +551,7 @@ export default async function AdminClientDetailPage({
                               locationType: b.location_type,
                               locationDetails: b.location_details,
                               meetLink: b.meet_link,
+                              calendarEventId: b.calendar_event_id,
                               paymentStatus: b.payment_status,
                               workflowStatus: b.workflow_status,
                               amountCents: b.amount_cents,

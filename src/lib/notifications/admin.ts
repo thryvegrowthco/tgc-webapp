@@ -24,11 +24,16 @@ export interface CreateAdminNotificationArgs {
   clientId?: string | null;
 }
 
-export async function createAdminNotification(args: CreateAdminNotificationArgs): Promise<void> {
-  if (await isNotificationDisabled(`admin_bell:${args.type}`)) return;
+// Returns true when the bell was recorded (or intentionally gated off), false
+// when the insert failed. Callers that throttle re-notification (e.g. the
+// Google Calendar once-per-day marker) rely on this to avoid suppressing the
+// next attempt after a failed insert. Never throws.
+export async function createAdminNotification(args: CreateAdminNotificationArgs): Promise<boolean> {
+  // A disabled bell is an intentional no-op, not a failure.
+  if (await isNotificationDisabled(`admin_bell:${args.type}`)) return true;
   try {
     const supabase = createServiceClient();
-    await supabase.from("admin_notifications").insert({
+    const { error } = await supabase.from("admin_notifications").insert({
       type: args.type,
       title: args.title,
       body: args.body ?? null,
@@ -36,8 +41,18 @@ export async function createAdminNotification(args: CreateAdminNotificationArgs)
       related_booking_id: args.bookingId ?? null,
       related_client_id: args.clientId ?? null,
     });
+    if (error) {
+      // Message + code only, never details/hint/payload, which can carry PII.
+      console.error("[admin notifications] insert failed:", error.message, error.code);
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.error("[admin notifications] insert failed:", err);
+    console.error(
+      "[admin notifications] insert threw:",
+      err instanceof Error ? err.message : String(err)
+    );
+    return false;
   }
 }
 
