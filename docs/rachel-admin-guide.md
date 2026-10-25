@@ -195,6 +195,10 @@ By default, nothing is emailed, so you are always in control. A client is emaile
 - **Rescheduling** (changing the date or time): only if you tick "Email the client about the new time."
 - **Cancelling**: only if you tick "Email the client when cancelling."
 
+### Deleting a session (test or duplicate rows only)
+
+At the bottom of the Edit panel there is a **Danger zone** that permanently deletes a session. Use this only to clean up a test entry or an accidental duplicate, never for a real session you want to call off (cancel those instead, which keeps the record). To delete, type the word DELETE in the box and click **Delete session**. If the session has a payment attached, it will not let you delete it and will ask you to cancel it instead. Deleting cannot be undone.
+
 ---
 
 ## 3b. Sending a Booking Invitation

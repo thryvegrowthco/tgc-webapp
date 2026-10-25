@@ -684,6 +684,50 @@ export async function adminReassignClient(
   return { success: true };
 }
 
+/**
+ * Admin: permanently delete a session. For test or duplicate rows only — real
+ * sessions should be cancelled (keeps the record). Requires a typed "DELETE"
+ * confirmation and refuses when a payment is on record.
+ */
+export async function adminDeleteSession(
+  bookingId: string,
+  confirmText: string
+): Promise<{ error?: string; success?: boolean }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  if (confirmText !== "DELETE") return { error: "Type DELETE to confirm." };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking) return { error: "Session not found." };
+
+  // Refuse when money is on record — those should be cancelled/refunded, not erased.
+  const { data: pay } = await supabase
+    .from("payments")
+    .select("id")
+    .eq("booking_id", bookingId)
+    .limit(1)
+    .maybeSingle();
+  if (pay) return { error: "This session has a payment on record. Cancel it instead of deleting." };
+
+  // Remove the calendar event + return any package credit.
+  if (booking.calendar_event_id) await deleteCalendarEvent(booking.calendar_event_id);
+  await returnPackageCredit(supabase, booking.session_package_id);
+
+  // Clear dependent rows that FK to bookings. intake_responses + automation_log
+  // are ON DELETE CASCADE, but delete them explicitly so behavior doesn't rely
+  // silently on the constraint. Rows that SET NULL on delete (client_messages,
+  // testimonials, admin_tasks, admin_notifications, booking_invitations) are
+  // left intact and simply unlink.
+  await supabase.from("intake_responses").delete().eq("booking_id", bookingId);
+  await supabase.from("automation_log").delete().eq("booking_id", bookingId);
+
+  const { error } = await supabase.from("bookings").delete().eq("id", bookingId);
+  if (error) return { error: error.message };
+
+  revalidateSession(booking.client_id);
+  return { success: true };
+}
+
 // ─── Client self-service (ownership + >24h notice) ──────────────────────────
 
 async function notifyClientChange(

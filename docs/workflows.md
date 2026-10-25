@@ -282,6 +282,14 @@ cancelled, removes the calendar event, and returns any package credit (same
 `performCancel` core as before). When "email the client when cancelling" is
 checked, it sends a plain branded cancellation email (`renderShell`).
 
+**Delete** — **`adminDeleteSession(id, confirmText)`** permanently removes a
+session, but only after a typed `DELETE` confirmation. It refuses when a payment
+is on record (cancel those instead), removes the calendar event, returns any
+package credit, deletes the `intake_responses` + `automation_log` rows that FK
+to the booking, and deletes the booking (rows that SET NULL on delete, such as
+`client_messages`, `testimonials`, and `booking_invitations`, simply unlink).
+This is for test or duplicate rows, not for real cancellations.
+
 **Calendar degradation.** Google Calendar is currently disconnected in
 production, so every calendar call here degrades gracefully (no-op) and never
 blocks the database change.

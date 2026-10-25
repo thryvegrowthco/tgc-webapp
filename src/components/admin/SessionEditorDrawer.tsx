@@ -4,13 +4,18 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Save, CalendarClock, UserCog, X } from "lucide-react";
+import { Pencil, Save, CalendarClock, UserCog, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LOCATION_TYPE_LABELS } from "@/lib/booking/display";
-import { adminUpdateSession, adminReassignClient, cancelSession } from "@/app/actions/sessions";
+import {
+  adminUpdateSession,
+  adminReassignClient,
+  cancelSession,
+  adminDeleteSession,
+} from "@/app/actions/sessions";
 
 const SELECT_CLASS =
   "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500";
@@ -106,8 +111,6 @@ interface Props {
   clients?: ClientOption[];
   triggerLabel?: string;
   triggerClassName?: string;
-  /** Slot for a Delete section (wired in a later commit). */
-  renderDelete?: (close: () => void) => React.ReactNode;
 }
 
 export function SessionEditorDrawer({
@@ -115,7 +118,6 @@ export function SessionEditorDrawer({
   clients,
   triggerLabel = "Edit",
   triggerClassName,
-  renderDelete,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
@@ -139,6 +141,7 @@ export function SessionEditorDrawer({
 
   const [reassignTo, setReassignTo] = React.useState("");
   const [notifyCancel, setNotifyCancel] = React.useState(false);
+  const [deleteText, setDeleteText] = React.useState("");
 
   // Computed after mount (reading the clock during render is impure).
   const [isFuture, setIsFuture] = React.useState(false);
@@ -148,8 +151,14 @@ export function SessionEditorDrawer({
   const canReassign = !!clients && isFuture && booking.workflowStatus !== "cancelled";
   const reassignTargets = (clients ?? []).filter((c) => c.id !== booking.clientId);
 
-  function close() {
+  async function del() {
+    setBusy(true);
+    const res = await adminDeleteSession(booking.id, deleteText);
+    setBusy(false);
+    if (res.error) return toast.error(res.error);
+    toast.success("Session deleted.");
     setOpen(false);
+    router.refresh();
   }
 
   async function save() {
@@ -401,7 +410,30 @@ export function SessionEditorDrawer({
             </div>
           </div>
 
-          {renderDelete && <div className="mt-5 pt-4 border-t border-neutral-200">{renderDelete(close)}</div>}
+          {/* Danger zone — permanent delete (test/duplicate rows only) */}
+          <div className="mt-5 pt-4 border-t border-neutral-200 space-y-2">
+            <p className="text-xs font-semibold text-red-700">Danger zone</p>
+            <p className="text-xs text-neutral-500">
+              Permanently delete this session. For test or duplicate rows only. This can&apos;t be
+              undone. Type DELETE to confirm.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                value={deleteText}
+                onChange={(e) => setDeleteText(e.target.value)}
+                className="h-9 w-40"
+                placeholder="DELETE"
+              />
+              <button
+                type="button"
+                onClick={del}
+                disabled={busy || deleteText !== "DELETE"}
+                className="inline-flex items-center h-9 px-3 rounded-md bg-red-600 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 flex-shrink-0"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Delete session
+              </button>
+            </div>
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

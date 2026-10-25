@@ -83,6 +83,9 @@ On the **Sessions** page (or on the client's record), click **Edit** on the sess
 ### Can I move a session to a different client?
 Yes, as long as the session is still in the future. Open **Edit** on the session and use the **"Reassign to another client"** option.
 
+### Can I permanently delete a session?
+Yes, but only for test entries or accidental duplicates, not for real sessions you want to call off (cancel those instead, which keeps the record). In the **Danger zone** at the bottom of the Edit panel, type DELETE and click **Delete session**. If a payment is attached, it will refuse and ask you to cancel instead. Deleting cannot be undone.
+
 ### When does a client get an email about a session?
 Only when you ask for it. Creating, rescheduling, and cancelling each have their own "email the client" checkbox, and all three start **unchecked**. If you leave them unchecked, the client is not emailed, so you are always in control of what they hear and when.
 
