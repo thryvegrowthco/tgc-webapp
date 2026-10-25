@@ -43,8 +43,15 @@ export interface CreateSessionBookingArgs {
   sessionPackageId?: string | null;
   stripeSessionId?: string | null;
   stripePaymentIntentId?: string | null;
+  /** Private admin note stored on the session row. */
+  adminNotes?: string | null;
   /** Admin bell type. Defaults to "session_booked_via_invite". */
   adminNotifyType?: AdminNotificationType;
+  /** When false, skip the client-facing `session_confirmed` email. Defaults to true. */
+  sendClientEmail?: boolean;
+  /** When false, skip the admin bell + admin "new session booked" email (e.g. an
+   * admin creating the session doesn't need to notify herself). Defaults to true. */
+  sendAdminNotifications?: boolean;
 }
 
 export type CreateSessionBookingResult =
@@ -103,6 +110,7 @@ export async function createSessionBooking(
       duration_minutes: args.durationMinutes,
       location_type: args.locationType,
       location_details: args.locationDetails,
+      admin_notes: args.adminNotes ?? null,
       payment_status: args.paymentStatus,
       amount_cents: args.amountCents,
       stripe_session_id: args.stripeSessionId ?? null,
@@ -239,55 +247,68 @@ export async function createSessionBooking(
     ? `${APP_URL}/admin/clients/${clientId}#booking-${booking.id}`
     : `${APP_URL}/admin/sessions`;
 
-  await createAdminNotification({
-    type: args.adminNotifyType ?? "session_booked_via_invite",
-    title: `Session booked: ${args.clientName || args.clientEmail || "Unknown client"}`,
-    body: `${args.serviceType} · ${sessionDate} at ${sessionTime}`,
-    link: clientId ? `/admin/clients/${clientId}#booking-${booking.id}` : `/admin/sessions`,
-    bookingId: booking.id,
-    clientId,
-  });
+  const sendAdminNotifications = args.sendAdminNotifications !== false;
+  const sendClientEmail = args.sendClientEmail !== false;
 
-  await Promise.allSettled([
-    sendTemplated("session_confirmed", {
-      to: args.clientEmail,
+  if (sendAdminNotifications) {
+    await createAdminNotification({
+      type: args.adminNotifyType ?? "session_booked_via_invite",
+      title: `Session booked: ${args.clientName || args.clientEmail || "Unknown client"}`,
+      body: `${args.serviceType} · ${sessionDate} at ${sessionTime}`,
+      link: clientId ? `/admin/clients/${clientId}#booking-${booking.id}` : `/admin/sessions`,
       bookingId: booking.id,
-      clientId: clientId ?? undefined,
-      idempotent: true,
-      data: {
-        client_name: args.clientName || "there",
-        service_type: args.serviceType,
-        session_date: sessionDate,
-        session_time: sessionTime,
-        session_length: sessionLength,
-        meeting_type: meetingType,
-        meeting_location: meetingLocation,
-        meet_link: meetLink ?? "",
-        session_workspace_url: sessionWorkspaceUrl,
-      },
-    }),
-    sendTemplated("new_session_booked", {
-      to: ADMIN_EMAIL,
-      bookingId: booking.id,
-      clientId: clientId ?? undefined,
-      idempotent: true,
-      eventKey: "new_session_booked_admin_sent",
-      gateKey: "admin_email:new_session_booked",
-      data: {
-        client_name: args.clientName || args.clientEmail,
-        client_email: args.clientEmail,
-        service_type: args.serviceType,
-        session_type: args.sessionType ?? "",
-        session_date: sessionDate,
-        session_time: sessionTime,
-        session_length: sessionLength,
-        meeting_type: meetingType,
-        client_notes: "",
-        admin_session_url: adminSessionUrl,
-        calendar_link: calendarLink ?? "",
-      },
-    }),
-  ]);
+      clientId,
+    });
+  }
+
+  const sends: Array<Promise<unknown>> = [];
+  if (sendClientEmail) {
+    sends.push(
+      sendTemplated("session_confirmed", {
+        to: args.clientEmail,
+        bookingId: booking.id,
+        clientId: clientId ?? undefined,
+        idempotent: true,
+        data: {
+          client_name: args.clientName || "there",
+          service_type: args.serviceType,
+          session_date: sessionDate,
+          session_time: sessionTime,
+          session_length: sessionLength,
+          meeting_type: meetingType,
+          meeting_location: meetingLocation,
+          meet_link: meetLink ?? "",
+          session_workspace_url: sessionWorkspaceUrl,
+        },
+      })
+    );
+  }
+  if (sendAdminNotifications) {
+    sends.push(
+      sendTemplated("new_session_booked", {
+        to: ADMIN_EMAIL,
+        bookingId: booking.id,
+        clientId: clientId ?? undefined,
+        idempotent: true,
+        eventKey: "new_session_booked_admin_sent",
+        gateKey: "admin_email:new_session_booked",
+        data: {
+          client_name: args.clientName || args.clientEmail,
+          client_email: args.clientEmail,
+          service_type: args.serviceType,
+          session_type: args.sessionType ?? "",
+          session_date: sessionDate,
+          session_time: sessionTime,
+          session_length: sessionLength,
+          meeting_type: meetingType,
+          client_notes: "",
+          admin_session_url: adminSessionUrl,
+          calendar_link: calendarLink ?? "",
+        },
+      })
+    );
+  }
+  if (sends.length > 0) await Promise.allSettled(sends);
 
   return { bookingId: booking.id, clientId };
 }

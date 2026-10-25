@@ -241,7 +241,7 @@ export interface CalendarEventArgs {
 }
 
 // Human label for the event `location` field on non-Meet sessions.
-function locationLabel(type: CalendarLocationType, details: string | null | undefined): string | null {
+export function locationLabel(type: CalendarLocationType, details: string | null | undefined): string | null {
   switch (type) {
     case "phone":
       return details ? `Phone: ${details}` : "Phone call";
@@ -328,16 +328,34 @@ export async function createCalendarEvent(args: CalendarEventArgs): Promise<Cale
 }
 
 /**
- * Move an existing calendar event to a new time (used by reschedule). PATCHes
- * only start/end; the Meet link and attendees are preserved. Returns true on
- * success — callers treat false as "fall back to creating a fresh event".
+ * Patch an existing calendar event. Every field is optional — only the ones
+ * provided are sent, so this covers both a reschedule (start/end) and a
+ * logistics edit (location/summary/description). The Meet link and attendees
+ * are preserved. Returns true on success — callers treat false as "fall back
+ * to creating a fresh event" (reschedule) or "best-effort, ignore" (edit).
  */
 export async function updateCalendarEvent(
   eventId: string,
-  args: { startIso: string; endIso: string }
+  args: {
+    startIso?: string;
+    endIso?: string;
+    /** Event `location` text. Pass "" to clear (e.g. switching to Google Meet). */
+    location?: string | null;
+    summary?: string;
+    description?: string;
+  }
 ): Promise<boolean> {
   const accessToken = await getAccessToken();
   if (!accessToken) return false;
+
+  const body: Record<string, unknown> = {};
+  if (args.startIso) body.start = { dateTime: args.startIso, timeZone: CALENDAR_TIMEZONE };
+  if (args.endIso) body.end = { dateTime: args.endIso, timeZone: CALENDAR_TIMEZONE };
+  if (args.location !== undefined) body.location = args.location ?? "";
+  if (args.summary !== undefined) body.summary = args.summary;
+  if (args.description !== undefined) body.description = args.description;
+  if (Object.keys(body).length === 0) return true;
+
   try {
     const res = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
@@ -347,10 +365,7 @@ export async function updateCalendarEvent(
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          start: { dateTime: args.startIso, timeZone: CALENDAR_TIMEZONE },
-          end: { dateTime: args.endIso, timeZone: CALENDAR_TIMEZONE },
-        }),
+        body: JSON.stringify(body),
       }
     );
     return res.ok;
