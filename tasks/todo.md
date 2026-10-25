@@ -157,3 +157,41 @@ Plan: `~/.claude/plans/thryve-growth-co-recieved-async-hippo.md`. Branch `fix/jo
 - [x] Docs: integrations (30 s vs 300 s, schedule `0 13 * * *`, adapter bounds, setup/verification), developer-architecture, workflows §2d, environment-variables, testing-guide, CLAUDE.md, rachel-admin-guide, admin-faq, admin-email-reference; `npm run generate:help`.
 - [x] Verify: tsc 0, eslint clean, `next build` 0; offline `AbortSignal.timeout` → `TimeoutError`; local dev with `JOB_FEED_BATCH=0 RAPIDAPI_KEY=`: no header → 401, bad token → 401, authenticated → `202 {accepted:true,…,clients:0}` in 0.87 s, `[job-feed cron] {…durationMs:0}` logged 2 s later and the `job_feed_run` row landed in prod.
 - [ ] After deploy: unauthenticated prod probe → 401; next 13:00 UTC run is green on cron-job.org and logs a normal `success` row (fetched ~40, matched 5–10, plausible `durationMs`).
+
+---
+
+## 06 — Admin session CRUD (branch `feat/admin-session-crud`)
+
+Build admin-side (Rachel's portal) session create/edit/cancel/reassign/delete. Q6 resolved (admin only). Hard delete = last, droppable commit. Client emails on edits = opt-in (unchecked).
+
+### Commit 1 — shared helpers
+- [ ] `finalize.ts`: `createSessionBooking` gains `adminNotes?`, `sendClientEmail?` (default true), `sendAdminNotifications?` (default true); insert `admin_notes`; gate client/admin emails.
+- [ ] `calendar.ts`: `updateCalendarEvent` accepts optional `startIso/endIso/location/summary/description` (build PATCH body from provided fields); export `locationLabel`.
+
+### Commit 2 — server actions (`sessions.ts`)
+- [ ] `performReschedule` gains `notifyClient` opt (default true).
+- [ ] `adminCreateSession(input)` — requireAdmin, validate, resolve client (id or email+name), Central→UTC, reuse `createSessionBooking` (suppress admin self-notify; client email = sendConfirmation).
+- [ ] `adminUpdateSession(id, patch)` — service/sessionType/duration/location/meetLink/payment/amount/adminNotes/workflowStatus; time change → `performReschedule`; location/service/duration → calendar patch; legacy `status` sync; `notifyClient` for time changes only.
+- [ ] `adminReassignClient(id, clientId)` — future + not cancelled.
+- [ ] `cancelSession(id, {notifyClient})` — plain branded `renderShell` cancellation email, no em dashes.
+
+### Commit 3 — UI
+- [ ] `NewSessionDialog.tsx` (New session button + create form).
+- [ ] `SessionEditorDrawer.tsx` (edit/cancel/reassign; Radix Dialog).
+- [ ] Wire into `/admin/sessions` (hub) + `/admin/clients/[id]` booking cards.
+- [ ] Replace read-only "Upcoming Sessions" on `/admin/bookings` with a link card.
+
+### Commit 4 — migration (file only)
+- [ ] `supabase/migrations/0034_bookings_drop_client_insert.sql` + `apply-0034.sql` (drop `bookings_insert_own`, add admin-only insert).
+
+### Commit 5 — docs
+- [ ] `database-schema.md`, `developer-architecture.md`, `workflows.md`, `rachel-admin-guide.md`, `admin-faq.md`; run `npm run generate:help`.
+
+### Commit 6 — hard delete (LAST, droppable)
+- [ ] `adminDeleteSession(id, confirmText)` (confirm==="DELETE"; refuse if payments; delete cal event; return credit; clear CASCADE deps; delete row).
+- [ ] Delete section in drawer (typed DELETE confirm) + docs note + regenerate help.
+
+### Checks (per Thomas): `npx tsc --noEmit`, `npx eslint <changed>`, `npm run check:og`, `npm run generate:help`. Do NOT run full `npm run build`.
+
+### Review (complete)
+All six commits landed on `feat/admin-session-crud`. Checks: `npx tsc --noEmit` ✅, `npx eslint <changed>` ✅ (exit 0), `npm run check:og` ✅, `npm run generate:help` ✅ (4 docs). Full `npm run build` intentionally not run (hangs on dummy DB per Thomas); Vercel is the final gate. No production writes; migration 0034 is a file only. Hard delete is the last commit (6b0465e) and can be reverted on its own.
