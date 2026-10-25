@@ -11,6 +11,9 @@ import type { WorkflowStatus } from "@/types/database";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { formatDuration, meetingTypeLabel } from "@/lib/booking/display";
 import { SessionsFilters } from "@/components/admin/SessionsFilters";
+import { NewSessionDialog } from "@/components/admin/NewSessionDialog";
+import { SessionEditorDrawer, type ClientOption } from "@/components/admin/SessionEditorDrawer";
+import { SERVICES } from "@/lib/stripe/products";
 
 export const metadata: Metadata = {
   title: "Sessions — Admin",
@@ -43,6 +46,8 @@ const PAYMENT_BADGE: Record<string, string> = {
 type SessionRow = {
   id: string;
   service_type: string;
+  service_key: string | null;
+  session_type: string | null;
   workflow_status: string;
   session_at: string | null;
   intake_due_at: string | null;
@@ -50,7 +55,10 @@ type SessionRow = {
   meet_link: string | null;
   duration_minutes: number;
   location_type: string;
+  location_details: string | null;
   payment_status: string;
+  amount_cents: number | null;
+  admin_notes: string | null;
   client_id: string | null;
   created_at: string;
 };
@@ -83,7 +91,7 @@ export default async function AdminSessionsPage({
   let query = supabase
     .from("bookings")
     .select(
-      "id, service_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, duration_minutes, location_type, payment_status, client_id, created_at"
+      "id, service_type, service_key, session_type, workflow_status, session_at, intake_due_at, meet_link_pending, meet_link, duration_minutes, location_type, location_details, payment_status, amount_cents, admin_notes, client_id, created_at"
     )
     .neq("workflow_status", "cancelled")
     .order("session_at", { ascending: true, nullsFirst: false });
@@ -105,6 +113,28 @@ export default async function AdminSessionsPage({
     profiles = (data ?? []) as ProfileRow[];
   }
   const clientMap = new Map(profiles.map((p) => [p.id, p]));
+
+  // All client accounts — for the "New session" picker and per-row reassign.
+  const { data: allClientsRaw } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role")
+    .order("full_name", { ascending: true });
+  const allClients = (allClientsRaw ?? []) as Array<{
+    id: string;
+    full_name: string | null;
+    email: string;
+    role: string;
+  }>;
+  const clientOptions: ClientOption[] = allClients
+    .filter((p) => p.role === "client")
+    .map((p) => ({ id: p.id, name: p.full_name ?? "", email: p.email }));
+
+  const servicePresets = Object.entries(SERVICES).map(([key, s]) => ({
+    key,
+    label: s.name,
+    serviceType: s.serviceType,
+    amountCents: s.amountCents,
+  }));
 
   // Free-text search on client name/email + service type.
   if (q) {
@@ -139,66 +169,97 @@ export default async function AdminSessionsPage({
       row.workflow_status === "intake_needed" &&
       row.intake_due_at &&
       new Date(row.intake_due_at) < new Date();
+
+    const info = (
+      <>
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className="font-semibold text-neutral-900 text-sm truncate">
+            {client?.full_name || client?.email || "Unknown client"}
+          </p>
+          {intakeOverdue && (
+            <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">
+              Overdue
+            </span>
+          )}
+          {row.meet_link_pending && !row.meet_link && (
+            <span className="text-[10px] uppercase tracking-wide bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-semibold">
+              Meet link needed
+            </span>
+          )}
+          <span
+            className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded font-semibold ${
+              PAYMENT_BADGE[row.payment_status] ?? PAYMENT_BADGE.not_required
+            }`}
+          >
+            {row.payment_status === "not_required" ? "unpaid" : row.payment_status}
+          </span>
+        </div>
+        <p className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
+          <span>{row.service_type}</span>
+          <span className="text-neutral-300">·</span>
+          <span className="inline-flex items-center gap-1">
+            <LocationIcon type={row.location_type} />
+            {meetingTypeLabel(row.location_type)}
+          </span>
+          <span className="text-neutral-300">·</span>
+          <span>{formatDuration(row.duration_minutes)}</span>
+        </p>
+      </>
+    );
+
     return (
-      <Link
+      <div
         key={row.id}
-        href={`/admin/clients/${row.client_id}#booking-${row.id}`}
-        className="block bg-white border border-neutral-200 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all"
+        id={`booking-${row.id}`}
+        className="bg-white border border-neutral-200 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all"
       >
         <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <p className="font-semibold text-neutral-900 text-sm truncate">
-                {client?.full_name || client?.email || "Unknown client"}
-              </p>
-              {intakeOverdue && (
-                <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">
-                  Overdue
-                </span>
+          {row.client_id ? (
+            <Link href={`/admin/clients/${row.client_id}#booking-${row.id}`} className="block min-w-0 flex-1">
+              {info}
+            </Link>
+          ) : (
+            <div className="min-w-0 flex-1">{info}</div>
+          )}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            <div className="text-right">
+              {sessionAt ? (
+                <p className="text-xs font-medium text-neutral-700 flex items-center justify-end gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {formatCentralDate(sessionAt, { month: "short", day: "numeric" })}
+                  {" · "}
+                  {formatCentralTime(sessionAt)}
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-400">No session date</p>
               )}
-              {row.meet_link_pending && !row.meet_link && (
-                <span className="text-[10px] uppercase tracking-wide bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-semibold">
-                  Meet link needed
-                </span>
+              {row.workflow_status === "intake_complete" && (
+                <p className="text-[10px] text-blue-700 mt-0.5 flex items-center justify-end gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> Ready to review
+                </p>
               )}
-              <span
-                className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded font-semibold ${
-                  PAYMENT_BADGE[row.payment_status] ?? PAYMENT_BADGE.not_required
-                }`}
-              >
-                {row.payment_status === "not_required" ? "unpaid" : row.payment_status}
-              </span>
             </div>
-            <p className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
-              <span>{row.service_type}</span>
-              <span className="text-neutral-300">·</span>
-              <span className="inline-flex items-center gap-1">
-                <LocationIcon type={row.location_type} />
-                {meetingTypeLabel(row.location_type)}
-              </span>
-              <span className="text-neutral-300">·</span>
-              <span>{formatDuration(row.duration_minutes)}</span>
-            </p>
-          </div>
-          <div className="text-right flex-shrink-0">
-            {sessionAt ? (
-              <p className="text-xs font-medium text-neutral-700 flex items-center justify-end gap-1">
-                <Calendar className="h-3 w-3" />
-                {formatCentralDate(sessionAt, { month: "short", day: "numeric" })}
-                {" · "}
-                {formatCentralTime(sessionAt)}
-              </p>
-            ) : (
-              <p className="text-xs text-neutral-400">No session date</p>
-            )}
-            {row.workflow_status === "intake_complete" && (
-              <p className="text-[10px] text-blue-700 mt-0.5 flex items-center justify-end gap-1">
-                <CheckCircle2 className="h-3 w-3" /> Ready to review
-              </p>
-            )}
+            <SessionEditorDrawer
+              clients={clientOptions}
+              booking={{
+                id: row.id,
+                clientId: row.client_id,
+                serviceType: row.service_type,
+                sessionType: row.session_type,
+                sessionAt: row.session_at,
+                durationMinutes: row.duration_minutes,
+                locationType: row.location_type,
+                locationDetails: row.location_details,
+                meetLink: row.meet_link,
+                paymentStatus: row.payment_status,
+                workflowStatus: row.workflow_status,
+                amountCents: row.amount_cents,
+                adminNotes: row.admin_notes,
+              }}
+            />
           </div>
         </div>
-      </Link>
+      </div>
     );
   }
 
@@ -211,7 +272,10 @@ export default async function AdminSessionsPage({
             Your source of truth for every booked session.
           </p>
         </div>
-        <SessionsFilters status={status} q={q} />
+        <div className="flex items-center gap-3 flex-wrap">
+          <SessionsFilters status={status} q={q} />
+          <NewSessionDialog clients={clientOptions} servicePresets={servicePresets} />
+        </div>
       </div>
 
       {/* Banners */}

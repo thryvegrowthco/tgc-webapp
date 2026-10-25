@@ -10,6 +10,7 @@ import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { DeleteDocumentButton } from "@/components/admin/DeleteDocumentButton";
 import { UpdateBookingStatusSelect } from "@/components/admin/UpdateBookingStatusSelect";
 import { SessionRecordEditor } from "@/components/admin/SessionRecordEditor";
+import { SessionEditorDrawer } from "@/components/admin/SessionEditorDrawer";
 import { ResumeReviewAssist } from "@/components/admin/ResumeReviewAssist";
 import { IntakeFormView } from "@/components/intake/IntakeFormView";
 import { TaskList, type TaskListItem } from "@/components/admin/TaskList";
@@ -538,6 +539,23 @@ export default async function AdminClientDetailPage({
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
+                          <SessionEditorDrawer
+                            booking={{
+                              id: b.id,
+                              clientId: id,
+                              serviceType: b.service_type,
+                              sessionType: b.session_type,
+                              sessionAt: b.session_at,
+                              durationMinutes: b.duration_minutes,
+                              locationType: b.location_type,
+                              locationDetails: b.location_details,
+                              meetLink: b.meet_link,
+                              paymentStatus: b.payment_status,
+                              workflowStatus: b.workflow_status,
+                              amountCents: b.amount_cents,
+                              adminNotes: b.admin_notes,
+                            }}
+                          />
                           <UpdateBookingStatusSelect
                             bookingId={b.id}
                             currentStatus={b.status ?? "pending"}

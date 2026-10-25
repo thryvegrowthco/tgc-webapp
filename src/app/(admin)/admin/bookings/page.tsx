@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Calendar } from "lucide-react";
-import { EmptyState } from "@/components/ui/empty-state";
+import Link from "next/link";
+import { CalendarCheck, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BulkSlotForm } from "@/components/admin/BulkSlotForm";
 import { SlotList } from "@/components/admin/SlotList";
@@ -9,29 +9,10 @@ import { BlackoutManager } from "@/components/admin/BlackoutManager";
 import { UpcomingAvailabilityGrid } from "@/components/admin/UpcomingAvailabilityGrid";
 import { getScheduleSnapshot } from "@/app/actions/availability";
 
-interface BookingRow {
-  id: string;
-  service_type: string;
-  status: string | null;
-  amount_cents: number | null;
-  client_notes: string | null;
-  client_id: string | null;
-  slot_id: string | null;
-  created_at: string;
-}
-
 export const metadata: Metadata = {
   title: "Bookings — Admin",
   robots: { index: false, follow: false },
 };
-
-function formatTimeShort(time: string): string {
-  const [hourStr, minute] = time.split(":");
-  const hour = parseInt(hourStr, 10);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${displayHour}:${minute} ${ampm}`;
-}
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
@@ -50,49 +31,31 @@ export default async function AdminBookingsPage() {
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
 
-  // Recent confirmed/pending bookings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: bookingsRaw } = await (supabase as any)
-    .from("bookings")
-    .select("id, service_type, status, amount_cents, client_notes, client_id, slot_id, created_at")
-    .in("status", ["confirmed", "pending"])
-    .order("created_at", { ascending: false })
-    .limit(50);
-  const bookings = bookingsRaw as BookingRow[] | null;
-
-  // Fetch related profiles and slots for those bookings
-  const clientIds = [...new Set((bookings ?? []).map((b) => b.client_id).filter(Boolean))] as string[];
-  const slotIds = [...new Set((bookings ?? []).map((b) => b.slot_id).filter(Boolean))] as string[];
-
-  type ProfileRow = { id: string; full_name: string | null; email: string };
-  type SlotRow = { id: string; slot_date: string; start_time: string };
-
-  let profiles: ProfileRow[] = [];
-  let slots: SlotRow[] = [];
-
-  if (clientIds.length > 0) {
-    const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", clientIds);
-    profiles = (data ?? []) as ProfileRow[];
-  }
-  if (slotIds.length > 0) {
-    const { data } = await supabase.from("availability_slots").select("id, slot_date, start_time").in("id", slotIds);
-    slots = (data ?? []) as SlotRow[];
-  }
-
-  const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
-  const slotMap = Object.fromEntries(slots.map((s) => [s.id, s]));
-
-  const statusColors: Record<string, string> = {
-    confirmed: "bg-green-100 text-green-700",
-    pending: "bg-amber-100 text-amber-700",
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-10">
       <div>
         <h1 className="font-display text-2xl font-bold text-neutral-900">Bookings</h1>
-        <p className="text-sm text-neutral-500 mt-1">Manage availability and view incoming bookings.</p>
+        <p className="text-sm text-neutral-500 mt-1">Manage your availability here.</p>
       </div>
+
+      {/* Sessions hub link — every booked session lives on the Sessions page now */}
+      <Link
+        href="/admin/sessions"
+        className="group flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-all"
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-brand-50 rounded-lg">
+            <CalendarCheck className="h-5 w-5 text-brand-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-neutral-900">Sessions</h2>
+            <p className="text-sm text-neutral-500 mt-0.5">
+              View, add, edit, reschedule, or cancel every booked session.
+            </p>
+          </div>
+        </div>
+        <ArrowRight className="h-5 w-5 text-neutral-400 group-hover:text-brand-600 transition-colors flex-shrink-0" />
+      </Link>
 
       {/* Recurring weekly schedule (primary) */}
       <section className="space-y-3">
@@ -110,7 +73,7 @@ export default async function AdminBookingsPage() {
         <div className="mb-4">
           <h2 className="font-semibold text-neutral-900">Blackout dates</h2>
           <p className="text-xs text-neutral-400 mt-0.5">
-            Days off &mdash; vacation, holidays, conferences. No slots are generated inside these ranges.
+            Days off: vacation, holidays, conferences. No slots are generated inside these ranges.
           </p>
         </div>
         <BlackoutManager initialBlackouts={blackouts} />
@@ -119,7 +82,7 @@ export default async function AdminBookingsPage() {
       {/* Read-only 4-week preview of what clients will see */}
       <section className="bg-white rounded-xl border border-neutral-200 p-6">
         <div className="mb-4">
-          <h2 className="font-semibold text-neutral-900">Next 4 weeks — what clients see</h2>
+          <h2 className="font-semibold text-neutral-900">Next 4 weeks: what clients see</h2>
           <p className="text-xs text-neutral-400 mt-0.5">
             A glanceable preview of the public booking calendar. Open slots in green, already booked in gray.
           </p>
@@ -151,61 +114,6 @@ export default async function AdminBookingsPage() {
           </p>
         </div>
         <SlotList slots={openSlots ?? []} />
-      </section>
-
-      {/* Booked sessions */}
-      <section className="bg-white rounded-xl border border-neutral-200">
-        <div className="px-6 py-4 border-b border-neutral-100">
-          <h2 className="font-semibold text-neutral-900">Upcoming Sessions</h2>
-          <p className="text-xs text-neutral-400 mt-0.5">Confirmed and pending bookings.</p>
-        </div>
-
-        {!bookings || bookings.length === 0 ? (
-          <EmptyState icon={Calendar} title="No upcoming sessions." description="Confirmed and pending bookings will appear here." />
-        ) : (
-          <div className="divide-y divide-neutral-100">
-            {bookings.map((booking) => {
-              const profile = booking.client_id ? profileMap[booking.client_id] : null;
-              const slot = booking.slot_id ? slotMap[booking.slot_id] : null;
-              const statusClass = statusColors[booking.status ?? ""] ?? "bg-neutral-100 text-neutral-600";
-
-              return (
-                <div key={booking.id} className="px-6 py-4 space-y-1">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-neutral-900">
-                        {profile?.full_name ?? profile?.email ?? "Unknown client"}
-                      </p>
-                      <p className="text-xs text-neutral-500">{profile?.email}</p>
-                    </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${statusClass}`}>
-                      {booking.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-500">
-                    <span>{booking.service_type}</span>
-                    {slot?.slot_date && (
-                      <span>
-                        {new Date(`${slot.slot_date}T00:00:00`).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        })}{" "}
-                        · {formatTimeShort(slot.start_time)}
-                      </span>
-                    )}
-                    <span>${((booking.amount_cents ?? 0) / 100).toFixed(0)}</span>
-                  </div>
-                  {booking.client_notes && (
-                    <p className="text-xs text-neutral-400 italic">
-                      &ldquo;{booking.client_notes}&rdquo;
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </section>
     </div>
   );
