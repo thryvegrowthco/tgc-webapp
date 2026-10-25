@@ -78,9 +78,9 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button asChild>
-            <Link href="/dashboard/bookings">
+            <Link href="/dashboard/sessions">
               <Calendar className="h-4 w-4" />
-              View My Bookings
+              View My Sessions
             </Link>
           </Button>
           <Button asChild variant="outline">

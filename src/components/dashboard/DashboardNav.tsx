@@ -25,7 +25,7 @@ const navItems = [
   { label: "Application Tracker", href: "/dashboard/applications", icon: Briefcase, exact: false },
   { label: "Messages", href: "/dashboard/messages", icon: MessageCircle, exact: false },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, exact: false },
-  { label: "Bookings", href: "/dashboard/bookings", icon: Calendar, exact: false },
+  { label: "My Sessions", href: "/dashboard/sessions", icon: Calendar, exact: false },
   { label: "My Packages", href: "/dashboard/packages", icon: Package, exact: false },
   { label: "Progress", href: "/dashboard/progress", icon: Target, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: CreditCard, exact: false },

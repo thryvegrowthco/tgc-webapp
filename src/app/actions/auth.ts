@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type AuthActionState = {
@@ -95,7 +96,10 @@ export async function logIn(
     return { error: "Invalid email or password." };
   }
 
-  redirect(await landingPathFor(supabase, data.user.id));
+  // Honor a valid same-origin `redirect` (e.g. the session the user was trying
+  // to reach before being bounced to /login); otherwise use their landing page.
+  const target = safeRedirectPath(formData.get("redirect") as string | null);
+  redirect(target ?? (await landingPathFor(supabase, data.user.id)));
 }
 
 // ─── Log Out ─────────────────────────────────────────────────────────────────

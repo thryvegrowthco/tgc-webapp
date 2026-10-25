@@ -95,6 +95,12 @@ Yes, but only for test entries or accidental duplicates, not for real sessions y
 ### When does a client get an email about a session?
 Only when you ask for it. Creating, rescheduling, and cancelling each have their own "email the client" checkbox, and all three start **unchecked**. If you leave them unchecked, the client is not emailed, so you are always in control of what they hear and when.
 
+### Where do clients see their sessions?
+In their own portal, under **"My Sessions"** in the sidebar (this used to be labelled "Bookings"). It lists their sessions split into Upcoming and Past, with the date and time in Central time and a status label, and each one opens that session's page with prep steps, the meeting link, and messages. Old links and emails that pointed at the former "Bookings" page still work; they send the client to the same place.
+
+### I clicked a client's session link and expected a "page not found." What happens now?
+Nothing bad. If you follow one of a client's session links (for example from a confirmation email) while you are signed in as the admin, you are taken to that client's record on your side, or to the Sessions page if the session has no account, instead of a "page not found." So those links are safe to click.
+
 ### Can clients reschedule or cancel their own sessions?
 Yes — but only when the session is **more than 24 hours away**. On their dashboard, a client can open one of their sessions and reschedule it to another time or cancel it. Inside 24 hours the buttons stop working and they're told to reply to your email so you can help. Either way, you get a notification (email and bell) when a client changes a session. If the cancelled session was part of a package, the credit goes back automatically so they can rebook it.
 

@@ -34,14 +34,24 @@ export default async function ConfirmedPage({
 
   let sessionAt: string | null = null;
   let meetLink: string | null = null;
+  // The booking resolves its own client by email, which can differ from the
+  // invitation's client_id (createSessionBooking). Trust the booking's value
+  // when deciding whether a portal account exists.
+  let bookingClientId: string | null = null;
   if (inv?.booking_id) {
     const { data: booking } = await supabase
       .from("bookings")
-      .select("session_at, meet_link")
+      .select("session_at, meet_link, client_id")
       .eq("id", inv.booking_id)
       .maybeSingle();
-    sessionAt = (booking as { session_at: string | null } | null)?.session_at ?? null;
-    meetLink = (booking as { meet_link: string | null } | null)?.meet_link ?? null;
+    const b = booking as {
+      session_at: string | null;
+      meet_link: string | null;
+      client_id: string | null;
+    } | null;
+    sessionAt = b?.session_at ?? null;
+    meetLink = b?.meet_link ?? null;
+    bookingClientId = b?.client_id ?? null;
   }
 
   const whereLine = inv ? meetingLocationLine(inv.location_type, inv.location_details) : "";
@@ -100,13 +110,18 @@ export default async function ConfirmedPage({
       )}
 
       <div className="mt-6">
-        {inv?.client_id && inv.booking_id ? (
-          <Link
-            href={`/dashboard/sessions/${inv.booking_id}`}
-            className="inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
-          >
-            Open your session workspace
-          </Link>
+        {inv?.booking_id && bookingClientId ? (
+          <div className="space-y-2">
+            <Link
+              href={`/dashboard/sessions/${inv.booking_id}`}
+              className="inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+            >
+              View your session details
+            </Link>
+            <p className="text-xs text-neutral-500">
+              You&apos;ll sign in to see your prep steps, meeting link, and messages.
+            </p>
+          </div>
         ) : (
           <Link
             href="/"

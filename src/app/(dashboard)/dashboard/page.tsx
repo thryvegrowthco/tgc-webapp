@@ -4,6 +4,7 @@ import { Calendar, FileText, Bell, ArrowRight, BookOpen, Sparkles } from "lucide
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { sessionStatusInfo, sessionWhenLine } from "@/lib/booking/display";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,12 +20,32 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
-  const { data: bookings } = await supabase
+  const { data: bookingsRaw } = await supabase
     .from("bookings")
-    .select("id, service_type, status, created_at")
+    .select("id, service_type, workflow_status, session_at, slot_id, created_at")
     .eq("client_id", user.id)
     .order("created_at", { ascending: false })
     .limit(3);
+  const bookings = (bookingsRaw ?? []) as Array<{
+    id: string;
+    service_type: string;
+    workflow_status: string;
+    session_at: string | null;
+    slot_id: string | null;
+    created_at: string;
+  }>;
+
+  // Slots for any recent session that is date-only (no concrete session_at).
+  const bookingSlotIds = [...new Set(bookings.map((b) => b.slot_id).filter(Boolean))] as string[];
+  let bookingSlots: Array<{ id: string; slot_date: string; start_time: string }> = [];
+  if (bookingSlotIds.length > 0) {
+    const { data } = await supabase
+      .from("availability_slots")
+      .select("id, slot_date, start_time")
+      .in("id", bookingSlotIds);
+    bookingSlots = (data ?? []) as Array<{ id: string; slot_date: string; start_time: string }>;
+  }
+  const bookingSlotMap = Object.fromEntries(bookingSlots.map((s) => [s.id, s]));
 
   const { data: documents } = await supabase
     .from("documents")
@@ -46,10 +67,10 @@ export default async function DashboardPage() {
   const quickLinks = [
     {
       icon: Calendar,
-      label: "Bookings",
+      label: "My Sessions",
       description: "View and manage your sessions",
-      href: "/dashboard/bookings",
-      count: bookings?.length ?? 0,
+      href: "/dashboard/sessions",
+      count: bookings.length,
     },
     {
       icon: FileText,
@@ -129,39 +150,40 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Recent bookings */}
+      {/* Recent sessions */}
       <div className="bg-white border border-neutral-200 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-neutral-900">Recent Bookings</h2>
-          <Link href="/dashboard/bookings" className="text-xs text-brand-700 font-medium hover:text-brand-800 flex items-center gap-1">
+          <h2 className="font-display font-bold text-neutral-900">Recent Sessions</h2>
+          <Link href="/dashboard/sessions" className="text-xs text-brand-700 font-medium hover:text-brand-800 flex items-center gap-1">
             View all <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-        {bookings && bookings.length > 0 ? (
+        {bookings.length > 0 ? (
           <div className="space-y-3">
-            {bookings.map((b) => (
-              <div key={b.id} className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0">
-                <div>
-                  <p className="text-sm font-medium text-neutral-800">{b.service_type}</p>
-                  <p className="text-xs text-neutral-400 mt-0.5">
-                    {new Date(b.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </p>
-                </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
-                  b.status === "confirmed" ? "bg-green-100 text-green-700"
-                  : b.status === "pending" ? "bg-yellow-100 text-yellow-700"
-                  : b.status === "completed" ? "bg-neutral-100 text-neutral-600"
-                  : "bg-red-100 text-red-700"
-                }`}>
-                  {b.status}
-                </span>
-              </div>
-            ))}
+            {bookings.map((b) => {
+              const statusInfo = sessionStatusInfo(b.workflow_status);
+              const slot = b.slot_id ? bookingSlotMap[b.slot_id] ?? null : null;
+              return (
+                <Link
+                  key={b.id}
+                  href={`/dashboard/sessions/${b.id}`}
+                  className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0 -mx-2 px-2 rounded hover:bg-neutral-50 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-neutral-800">{b.service_type}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">{sessionWhenLine(b.session_at, slot)}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusInfo.className}`}>
+                    {statusInfo.label}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <EmptyState
             icon={Calendar}
-            title="No bookings yet."
+            title="No sessions yet."
             description="Ready to get started?"
             action={<Button asChild size="sm"><Link href="/book">Book a Call</Link></Button>}
           />

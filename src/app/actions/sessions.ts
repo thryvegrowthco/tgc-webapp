@@ -781,6 +781,7 @@ export async function clientRescheduleSession(
   const res = await performReschedule(ctx.supabase, ctx.booking, dateCentral, timeCentral);
   if (res.success) {
     revalidatePath(`/dashboard/sessions/${bookingId}`);
+    revalidatePath("/dashboard/sessions");
     await notifyClientChange(ctx.supabase, ctx.booking, "rescheduled", `${dateCentral} ${timeCentral} CT`);
   }
   return res;
@@ -795,7 +796,7 @@ export async function clientCancelSession(
   const res = await performCancel(ctx.supabase, ctx.booking);
   if (res.success) {
     revalidatePath(`/dashboard/sessions/${bookingId}`);
-    revalidatePath("/dashboard/bookings");
+    revalidatePath("/dashboard/sessions");
     await notifyClientChange(ctx.supabase, ctx.booking, "cancelled");
   }
   return res;

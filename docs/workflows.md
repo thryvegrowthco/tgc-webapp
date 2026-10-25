@@ -140,6 +140,14 @@ Client → /book-session/[token]/confirmed.   Session appears in /admin/sessions
 if the email matches an account, /dashboard/sessions/[bookingId].
 ```
 
+**Confirmed page CTA:** `src/app/(booking)/book-session/[token]/confirmed/page.tsx`
+reads the **booking's own `client_id`** (not the invitation's; `createSessionBooking`
+resolves the client by email and may land on a different account) alongside
+`session_at`/`meet_link`. When the booking has a client account it shows a "View
+your session details" button to `/dashboard/sessions/[bookingId]` plus a muted
+"You'll sign in to see your prep steps, meeting link, and messages" note; with no
+account it falls back to a "Back to Thryve Growth Co." link.
+
 **Double-booking prevention (defense in depth):** (1) the atomic option reserve
 (`open→reserved`) is the per-option guarantee — the loser gets "That time was
 just taken"; (2) a partial **UNIQUE index on `bookings(booking_invitation_id)`**
@@ -689,13 +697,27 @@ handle_new_user() Postgres trigger fires on auth.users INSERT
 **Login:**
 
 ```
-Client visits /login → fills email + password
+Client visits /login?redirect=<path>   (src/proxy.ts adds ?redirect=<pathname>
+  when it bounces an unauthenticated user off a protected page, e.g. a session
+  workspace link they followed while signed out)
         │
+  /login is a server component: it awaits searchParams, runs the value through
+  safeRedirectPath(), and passes the validated same-origin path to the client
+  <LoginForm> (src/app/(auth)/login/LoginForm.tsx) as a hidden "redirect" field.
         ▼
-logIn server action
+logIn server action (src/app/actions/auth.ts) → fills email + password
   supabase.auth.signInWithPassword({ email, password })
-  redirect('/dashboard')
+  redirect(safeRedirectPath(formData.redirect) ?? landingPathFor(user))
+    landingPathFor → '/admin' for admins, '/dashboard' for clients
 ```
+
+> **Open-redirect guard.** `safeRedirectPath` (`src/lib/auth/safe-redirect.ts`)
+> only accepts same-origin absolute paths. It rejects anything with a scheme
+> (`https://evil.com`), protocol-relative (`//evil.com`), backslash tricks
+> (`/\evil.com`), control characters, or over 512 chars, returning `null` so the
+> caller falls back to a safe default. It is validated twice (server page +
+> `logIn`) and also guards the `next` param in `src/app/auth/callback/route.ts`.
+> Sanity assertions live in `scripts/test-safe-redirect.mts`.
 
 **Password reset:**
 

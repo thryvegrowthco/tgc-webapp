@@ -102,10 +102,10 @@ export default async function DocumentsPage() {
             </p>
           </div>
           <Link
-            href="/dashboard/bookings"
+            href="/dashboard/sessions"
             className="flex-shrink-0 text-sm font-medium text-brand-700 hover:text-brand-800 inline-flex items-center gap-1"
           >
-            Bookings <ArrowRight className="h-3.5 w-3.5" />
+            My Sessions <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       )}

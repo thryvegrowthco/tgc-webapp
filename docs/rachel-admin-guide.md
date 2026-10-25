@@ -203,6 +203,12 @@ By default, nothing is emailed, so you are always in control. A client is emaile
 
 At the bottom of the Edit panel there is a **Danger zone** that permanently deletes a session. Use this only to clean up a test entry or an accidental duplicate, never for a real session you want to call off (cancel those instead, which keeps the record). To delete, type the word DELETE in the box and click **Delete session**. If the session has a payment attached, it will not let you delete it and will ask you to cancel it instead. Deleting cannot be undone.
 
+### What the client sees
+
+In their own portal, clients now find their sessions under **"My Sessions"** in the sidebar (this used to be called "Bookings"). It lists their sessions split into **Upcoming** and **Past**, each showing the date and time in Central time and a status label, and each one opens that session's page with prep steps, the meeting link, and messages.
+
+If you ever click one of these client session links yourself (for example from a confirmation email) while signed in as the admin, you are taken to that client's record on your side (or to the Sessions page if the session has no account) instead of a "page not found." So you can safely follow those links.
+
 ---
 
 ## 3b. Sending a Booking Invitation

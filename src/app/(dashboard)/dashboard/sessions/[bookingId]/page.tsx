@@ -14,18 +14,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSchemaForService } from "@/lib/intake/schemas";
 import { IntakeFormRenderer, type IntakeResponses } from "@/components/intake/IntakeFormRenderer";
 import { formatCentralDate, formatCentralTime, CENTRAL_TIMEZONE_LABEL } from "@/lib/time/central";
-import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
+import { meetingTypeLabel, meetingLocationLine, formatDuration, sessionStatusInfo } from "@/lib/booking/display";
 import { ClientSessionActions } from "@/components/dashboard/ClientSessionActions";
-
-const STATUS_COPY: Record<string, { label: string; className: string }> = {
-  booked: { label: "Booked", className: "bg-yellow-100 text-yellow-700" },
-  intake_needed: { label: "Intake needed", className: "bg-yellow-100 text-yellow-700" },
-  intake_complete: { label: "Intake complete", className: "bg-blue-100 text-blue-700" },
-  session_scheduled: { label: "Session scheduled", className: "bg-blue-100 text-blue-700" },
-  completed: { label: "Completed", className: "bg-green-100 text-green-700" },
-  follow_up_sent: { label: "Wrapped up", className: "bg-neutral-100 text-neutral-700" },
-  cancelled: { label: "Cancelled", className: "bg-red-100 text-red-700" },
-};
 
 export default async function SessionWorkspacePage({
   params,
@@ -48,7 +38,27 @@ export default async function SessionWorkspacePage({
     .eq("id", bookingId)
     .maybeSingle();
 
-  if (!booking || booking.client_id !== user.id) {
+  if (!booking) {
+    notFound();
+  }
+
+  if (booking.client_id !== user.id) {
+    // An admin who doesn't own this booking followed a client workspace link
+    // (e.g. from an email or the confirmed page). Send them to the admin record
+    // instead of a 404: the client detail page when there's an account, or the
+    // Sessions hub for a no-account session. Everyone else gets a 404.
+    const { data: viewerProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if ((viewerProfile as { role: string } | null)?.role === "admin") {
+      redirect(
+        booking.client_id
+          ? `/admin/clients/${booking.client_id}#booking-${booking.id}`
+          : "/admin/sessions"
+      );
+    }
     notFound();
   }
 
@@ -70,7 +80,7 @@ export default async function SessionWorkspacePage({
         .maybeSingle()
     : { data: null };
 
-  const statusInfo = STATUS_COPY[booking.workflow_status] ?? STATUS_COPY.booked;
+  const statusInfo = sessionStatusInfo(booking.workflow_status);
   const sessionAt = booking.session_at ? new Date(booking.session_at) : null;
   const intakeDueAt = booking.intake_due_at ? new Date(booking.intake_due_at) : null;
 
@@ -86,8 +96,8 @@ export default async function SessionWorkspacePage({
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Link href="/dashboard/bookings" className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-6">
-        <ArrowLeft className="h-4 w-4" /> All bookings
+      <Link href="/dashboard/sessions" className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-6">
+        <ArrowLeft className="h-4 w-4" /> All sessions
       </Link>
 
       {/* Header */}
