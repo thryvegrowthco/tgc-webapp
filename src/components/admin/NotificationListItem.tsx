@@ -26,6 +26,7 @@ const TYPE_LABEL: Record<AdminNotification["type"], string> = {
   session_booked_via_invite: "Session booked",
   proposal_accepted: "Proposal accepted",
   proposal_paid: "Proposal paid",
+  calendar_issue: "Calendar issue",
 };
 
 const TYPE_CLASS: Record<AdminNotification["type"], string> = {
@@ -45,6 +46,7 @@ const TYPE_CLASS: Record<AdminNotification["type"], string> = {
   session_booked_via_invite: "bg-green-50 text-green-700",
   proposal_accepted: "bg-amber-50 text-amber-700",
   proposal_paid: "bg-green-50 text-green-700",
+  calendar_issue: "bg-red-50 text-red-700",
 };
 
 export function NotificationListItem({ notification }: { notification: AdminNotification }) {

@@ -80,11 +80,14 @@ export interface BuildIcsArgs {
   url?: string;
   /** DTSTAMP override (ISO). Defaults to now. Pass for deterministic output. */
   stampIso?: string;
+  /** LAST-MODIFIED override (ISO), e.g. the booking's updated_at. Defaults to stampIso / now. */
+  lastModifiedIso?: string;
 }
 
 /** Build a single-event RFC 5545 VCALENDAR string (CRLF, UTC, folded). */
 export function buildIcs(args: BuildIcsArgs): string {
   const stamp = toIcsUtc(args.stampIso ?? new Date().toISOString());
+  const lastModified = toIcsUtc(args.lastModifiedIso ?? args.stampIso ?? new Date().toISOString());
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -94,13 +97,17 @@ export function buildIcs(args: BuildIcsArgs): string {
     "BEGIN:VEVENT",
     `UID:${escapeText(args.uid)}`,
     `DTSTAMP:${stamp}`,
+    `LAST-MODIFIED:${lastModified}`,
+    "SEQUENCE:0",
     `DTSTART:${toIcsUtc(args.startIso)}`,
     `DTEND:${toIcsUtc(args.endIso)}`,
     `SUMMARY:${escapeText(args.title)}`,
     `ORGANIZER;CN=${ORGANIZER_NAME}:mailto:${ORGANIZER_EMAIL}`,
     ...(args.description ? [`DESCRIPTION:${escapeText(args.description)}`] : []),
     ...(args.location ? [`LOCATION:${escapeText(args.location)}`] : []),
-    ...(args.url ? [`URL:${escapeText(args.url)}`] : []),
+    // URL is a URI value, not TEXT — it must not be backslash-escaped (that
+    // would corrupt query strings like `?t=...`). Only line folding applies.
+    ...(args.url ? [`URL:${args.url}`] : []),
     "END:VEVENT",
     "END:VCALENDAR",
   ];

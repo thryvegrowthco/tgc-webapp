@@ -23,28 +23,34 @@ export function RetryCalendarEventButton({
   label?: string;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = React.useState(false);
+  // useTransition keeps the button disabled across the server action AND the
+  // router.refresh() that follows, so a second click can't fire a duplicate
+  // retry during the refresh window.
+  const [pending, startTransition] = React.useTransition();
 
-  async function run() {
-    setBusy(true);
-    const res = await retryCalendarEvent(bookingId);
-    setBusy(false);
-    if (res.error) return toast.error(res.error);
-    toast.success(res.meetLink ? "Calendar event created with a Meet link." : "Calendar event created.");
-    router.refresh();
+  function run() {
+    startTransition(async () => {
+      const res = await retryCalendarEvent(bookingId);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.meetLink ? "Calendar event created with a Meet link." : "Calendar event created.");
+      router.refresh();
+    });
   }
 
   return (
     <button
       type="button"
       onClick={run}
-      disabled={busy}
+      disabled={pending}
       className={cn(
         "inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:text-brand-800 disabled:opacity-40",
         className
       )}
     >
-      <CalendarPlus className="h-3.5 w-3.5" /> {busy ? "Creating…" : label}
+      <CalendarPlus className="h-3.5 w-3.5" /> {pending ? "Creating…" : label}
     </button>
   );
 }

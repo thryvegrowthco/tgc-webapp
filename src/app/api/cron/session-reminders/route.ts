@@ -18,7 +18,7 @@ import { getSchemaForService } from "@/lib/intake/schemas";
 import { formatCentralDate, formatCentralTime, formatCentralDateTime } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine } from "@/lib/booking/display";
 import { buildSessionCalendar, buildIcs } from "@/lib/booking/calendar-links";
-import { signIcsToken } from "@/lib/crypto/sign";
+import { trySignIcsToken } from "@/lib/crypto/sign";
 import { createAdminNotification } from "@/lib/notifications/admin";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
 
@@ -129,6 +129,11 @@ export async function GET(request: NextRequest) {
         ).toString("base64"),
         contentType: "text/calendar",
       };
+      // Omit both calendar links when the signing key is unavailable so the
+      // email's {{#if}} block hides them instead of rendering a broken .ics
+      // link; the .ics stays attached. A signing failure never skips the
+      // reminder itself.
+      const icsToken = trySignIcsToken(booking.id);
       const result = await sendTemplated("session_reminder_24h", {
         to: profile.email,
         bookingId: booking.id,
@@ -140,8 +145,8 @@ export async function GET(request: NextRequest) {
           session_time: formatCentralTime(sessionAt),
           meet_link: booking.meet_link ?? "Rachel will share the link shortly.",
           session_workspace_url: workspaceUrl,
-          add_to_google_calendar_url: calendar.googleUrl,
-          ics_url: `${APP_URL}/api/sessions/${booking.id}/ics?t=${signIcsToken(booking.id)}`,
+          add_to_google_calendar_url: icsToken ? calendar.googleUrl : "",
+          ics_url: icsToken ? `${APP_URL}/api/sessions/${booking.id}/ics?t=${icsToken}` : "",
         },
         attachments: [icsAttachment],
       });

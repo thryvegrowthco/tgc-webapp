@@ -14,7 +14,7 @@ import {
 } from "@/lib/google/calendar";
 import { createSessionBooking } from "@/lib/booking/finalize";
 import { buildSessionCalendar, buildIcs } from "@/lib/booking/calendar-links";
-import { signIcsToken } from "@/lib/crypto/sign";
+import { trySignIcsToken } from "@/lib/crypto/sign";
 import { localCentralToUtcIso, formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { sendTemplated } from "@/lib/email/render";
 import { renderShell } from "@/lib/email/shell";
@@ -266,6 +266,10 @@ async function performReschedule(
       ).toString("base64"),
       contentType: "text/calendar",
     };
+    // Omit both calendar links if signing is unavailable so the email's {{#if}}
+    // block hides them (not a broken .ics link); the .ics stays attached. A
+    // signing failure never blocks the reschedule re-send.
+    const icsToken = trySignIcsToken(bookingId);
     await sendTemplated("session_confirmed", {
       to: client.email,
       bookingId,
@@ -282,8 +286,8 @@ async function performReschedule(
         meeting_location: meetingLocationLine(booking.location_type, booking.location_details),
         meet_link: meetLink ?? "",
         session_workspace_url: workspaceUrl,
-        add_to_google_calendar_url: calendar.googleUrl,
-        ics_url: `${APP_URL}/api/sessions/${bookingId}/ics?t=${signIcsToken(bookingId)}`,
+        add_to_google_calendar_url: icsToken ? calendar.googleUrl : "",
+        ics_url: icsToken ? `${APP_URL}/api/sessions/${bookingId}/ics?t=${icsToken}` : "",
       },
       attachments: [icsAttachment],
     });
@@ -359,22 +363,56 @@ export async function retryCalendarEvent(
   const endIso = new Date(
     new Date(booking.session_at).getTime() + booking.duration_minutes * 60_000
   ).toISOString();
-  const created = await tryCreateEvent(booking, client.email, client.name, booking.session_at, endIso);
+
+  // (a) Re-read the row immediately before calling Google and abort if a
+  // concurrent retry already created the event — the narrowest window we can
+  // get without a DB-level claim. The final write below also guards on
+  // calendar_event_id IS NULL so a true race is still a no-op.
+  const fresh = (await loadBooking(supabase, bookingId)) ?? booking;
+  if (fresh.calendar_event_id) {
+    return { error: "This session already has a calendar event." };
+  }
+
+  const created = await tryCreateEvent(fresh, client.email, client.name, booking.session_at, endIso);
   if (!created) {
     return {
       error: "Still couldn't reach Google Calendar. Reconnect it in Integrations, then try again.",
     };
   }
 
-  await supabase
+  // (c) Only clear meet_link_pending once a Meet link actually came back;
+  // otherwise leave it set so the hub keeps surfacing the session.
+  const bookingUpdate: Database["public"]["Tables"]["bookings"]["Update"] = {
+    meet_link: created.meetLink,
+    calendar_event_id: created.eventId,
+    updated_at: new Date().toISOString(),
+  };
+  if (created.meetLink) bookingUpdate.meet_link_pending = false;
+
+  // (b) Conditional write: claim the row only if it's still unclaimed. A second
+  // concurrent retry that already stored an event id makes this match 0 rows.
+  const { data: claimed, error: writeError } = await supabase
     .from("bookings")
-    .update({
-      meet_link: created.meetLink,
-      calendar_event_id: created.eventId,
-      meet_link_pending: false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", bookingId);
+    .update(bookingUpdate)
+    .eq("id", bookingId)
+    .is("calendar_event_id", null)
+    .select("id")
+    .maybeSingle();
+
+  if (writeError || !claimed) {
+    // The event WAS created in Google but we couldn't record it (write error or
+    // another retry won the race). Do NOT report success: a blind re-retry
+    // would create a duplicate event. Point the admin at Google Calendar.
+    console.error("[retryCalendarEvent] created Google event but DB write failed", {
+      bookingId,
+      eventId: created.eventId,
+      error: writeError?.message,
+    });
+    return {
+      error: `A calendar event was created in Google (id ${created.eventId}), but saving it here failed. Check Google Calendar before retrying so you don't create a duplicate.`,
+    };
+  }
+
   await supabase.from("automation_log").upsert(
     {
       event_key: "calendar_event_created",
@@ -385,6 +423,12 @@ export async function retryCalendarEvent(
     },
     { onConflict: "event_key,booking_id" }
   );
+  // (d) Resolve the stale per-booking failure row so the hub stops flagging it.
+  await supabase
+    .from("automation_log")
+    .delete()
+    .eq("event_key", "calendar_event_failed")
+    .eq("booking_id", bookingId);
 
   revalidateSession(booking.client_id);
   return { success: true, meetLink: created.meetLink };

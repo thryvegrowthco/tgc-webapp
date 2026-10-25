@@ -29,7 +29,7 @@ export async function GET(
   const { data: booking } = await service
     .from("bookings")
     .select(
-      "id, client_id, service_type, session_at, duration_minutes, location_type, location_details, meet_link, workflow_status"
+      "id, client_id, service_type, session_at, duration_minutes, location_type, location_details, meet_link, workflow_status, updated_at"
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -44,6 +44,7 @@ export async function GET(
     location_details: string | null;
     meet_link: string | null;
     workflow_status: string;
+    updated_at: string | null;
   } | null;
 
   if (!b || b.workflow_status === "cancelled" || !b.session_at) {
@@ -82,6 +83,7 @@ export async function GET(
     description: cal.details,
     location: cal.location || undefined,
     url: workspaceUrl ?? APP_URL,
+    lastModifiedIso: b.updated_at ?? undefined,
   });
 
   return new Response(ics, {

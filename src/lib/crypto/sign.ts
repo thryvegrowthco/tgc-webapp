@@ -29,6 +29,25 @@ export function signIcsToken(bookingId: string): string {
   return createHmac("sha256", getKey()).update(ICS_CONTEXT + bookingId).digest("base64url");
 }
 
+/**
+ * Non-throwing variant of `signIcsToken`. Returns `null` (and logs a warning,
+ * never the key) when `INTEGRATIONS_ENCRYPTION_KEY` is missing or malformed, so
+ * a signing-key misconfiguration degrades the "add to calendar" link instead of
+ * breaking the surrounding flow (confirmation/reminder emails, the confirmed
+ * page, the reschedule re-send). Callers omit the `.ics` link when this is null.
+ */
+export function trySignIcsToken(bookingId: string): string | null {
+  try {
+    return signIcsToken(bookingId);
+  } catch (err) {
+    console.warn(
+      "[ics] could not sign calendar link (check INTEGRATIONS_ENCRYPTION_KEY):",
+      err instanceof Error ? err.message : String(err)
+    );
+    return null;
+  }
+}
+
 /** Constant-time check that `token` is a valid signature for `bookingId`. */
 export function verifyIcsToken(bookingId: string, token: string | null | undefined): boolean {
   if (!token) return false;

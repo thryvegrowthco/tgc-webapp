@@ -19,10 +19,14 @@ export const GOOGLE_PROVIDER = "google_calendar";
 export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // refresh if expiring within 5 min
 
-// automation_log event keys for calendar auth health (no booking_id, so they
-// are never deduped by the (event_key, booking_id) unique index).
+// automation_log event keys for calendar health (no booking_id, so they are
+// never deduped by the (event_key, booking_id) unique index).
 const AUTH_FAILED_EVENT = "google_calendar_auth_failed";
 const AUTH_NOTIFIED_EVENT = "google_calendar_auth_notified";
+const TRANSIENT_EVENT = "google_calendar_transient_error";
+// A successful calendar event (created on booking or via retry) proves the
+// connection works again — used by getIntegrationStatus to clear a stale state.
+const EVENT_CREATED_EVENT = "calendar_event_created";
 const NOTIFY_THROTTLE_MS = 24 * 60 * 60 * 1000; // bell at most once per day
 
 /** A Google auth/refresh error carrying the HTTP status + Google error code. */
@@ -34,6 +38,41 @@ class GoogleAuthError extends Error {
     super(`Google token refresh failed (${status})${code ? `: ${code}` : ""}`);
     this.name = "GoogleAuthError";
   }
+}
+
+// Google OAuth error codes that mean the stored grant is dead and Rachel must
+// re-consent. Anything else (5xx, 429, 403 quota, network) is transient.
+const REAUTH_ERROR_CODES = new Set(["invalid_grant", "invalid_client", "unauthorized_client"]);
+
+export type GoogleErrorClass = "auth" | "transient";
+
+/**
+ * Classify a Google token-refresh / Calendar API failure. Pure + exported so it
+ * can be unit-tested. Only genuine auth failures should drive the "Reconnect
+ * needed" state; transient errors (network, timeout, Google 5xx, 403/429
+ * rate-limit/quota) must not.
+ *
+ *   - token_refresh: a dead grant only when the HTTP status is 400/401 AND the
+ *     body carries an invalid_grant / invalid_client / unauthorized_client code.
+ *   - calendar_api: only a 401 (token rejected) is an auth failure; 403/429/5xx
+ *     are transient.
+ *   - a null status (network error / timeout) is always transient.
+ */
+export function classifyGoogleError(args: {
+  source: "token_refresh" | "calendar_api";
+  status: number | null;
+  code: string | null;
+}): GoogleErrorClass {
+  const { source, status, code } = args;
+  if (status === null) return "transient";
+  if (source === "token_refresh") {
+    if ((status === 400 || status === 401) && code !== null && REAUTH_ERROR_CODES.has(code)) {
+      return "auth";
+    }
+    return "transient";
+  }
+  // calendar_api
+  return status === 401 ? "auth" : "transient";
 }
 
 /**
@@ -62,17 +101,42 @@ async function recordAuthFailure(status: number | null, code: string | null): Pr
       .maybeSingle();
     if (recent) return;
 
+    // Write the throttle marker BEFORE sending the bell so a near-concurrent
+    // failure is more likely to see it and skip — the closest we can get to a
+    // race-safe once-per-day dedupe without a schema change.
+    await service.from("automation_log").insert({ event_key: AUTH_NOTIFIED_EVENT, status: "success" });
+
     await createAdminNotification({
-      // Reuse an existing, prod-allowed "needs attention" type so the bell works
-      // without a schema change.
-      type: "subscription_issue",
+      // Dedicated type (not subscription_issue) so a disconnected calendar is
+      // never silenced by the subscription notification preference, and reads
+      // correctly in the bell.
+      type: "calendar_issue",
       title: "Google Calendar is disconnected",
       body: "Reconnect it in Integrations so new sessions get calendar invites and Meet links.",
       link: "/admin/integrations",
     });
-    await service.from("automation_log").insert({ event_key: AUTH_NOTIFIED_EVENT, status: "success" });
   } catch {
     // Visibility is best-effort: a logging failure must not break calendar flow.
+  }
+}
+
+/**
+ * Record a transient Google Calendar error (network, timeout, 5xx, 403/429
+ * rate-limit/quota). Logged for visibility but deliberately does NOT trigger
+ * the admin bell or the "Reconnect needed" state — these recover on their own.
+ * Best-effort: never throws into the caller.
+ */
+async function recordTransientError(status: number | null, code: string | null): Promise<void> {
+  try {
+    const service = createServiceClient();
+    await service.from("automation_log").insert({
+      event_key: TRANSIENT_EVENT,
+      status: "failed",
+      error_message: `Google Calendar transient error${status ? ` (HTTP ${status})` : ""}${code ? ` [${code}]` : ""}`,
+      payload: { http_status: status, google_error: code },
+    });
+  } catch {
+    // Visibility is best-effort.
   }
 }
 
@@ -228,10 +292,13 @@ export async function getIntegrationStatus(): Promise<{
   const service = createServiceClient();
   const { data } = await service
     .from("admin_integrations")
-    .select("account_email, connected_at")
+    .select("account_email, connected_at, updated_at")
     .eq("provider", GOOGLE_PROVIDER)
     .maybeSingle();
   const connectedAt = data?.connected_at ?? null;
+  // updated_at advances on every successful token refresh (and on reconnect),
+  // so it marks the last time the connection provably worked.
+  const lastRefreshAt = (data as { updated_at?: string | null } | null)?.updated_at ?? null;
 
   let lastFailureAt: string | null = null;
   const { data: fail } = await service
@@ -243,10 +310,30 @@ export async function getIntegrationStatus(): Promise<{
     .maybeSingle();
   lastFailureAt = (fail as { created_at: string } | null)?.created_at ?? null;
 
+  // A calendar event that succeeded after a failure (e.g. a retry) also proves
+  // the connection recovered.
+  const { data: ok } = await service
+    .from("automation_log")
+    .select("created_at")
+    .eq("event_key", EVENT_CREATED_EVENT)
+    .eq("status", "success")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const lastSuccessAt = (ok as { created_at: string } | null)?.created_at ?? null;
+
+  // The most recent moment the connection is known to have worked: a reconnect,
+  // a successful token refresh, or a successful calendar event. "Reconnect
+  // needed" only when the latest auth failure is newer than ALL of these.
+  const goodTimes = [connectedAt, lastRefreshAt, lastSuccessAt]
+    .filter((t): t is string => !!t)
+    .map((t) => new Date(t).getTime());
+  const lastGoodAt = goodTimes.length ? Math.max(...goodTimes) : null;
+
   const reconnectNeeded =
     !!data &&
     !!lastFailureAt &&
-    (!connectedAt || new Date(lastFailureAt).getTime() > new Date(connectedAt).getTime());
+    (lastGoodAt === null || new Date(lastFailureAt).getTime() > lastGoodAt);
 
   return {
     connected: !!data,
@@ -308,12 +395,16 @@ async function getAccessToken(): Promise<string | null> {
       .eq("provider", GOOGLE_PROVIDER);
     return fresh.access_token;
   } catch (err) {
-    // Refresh failed (expired/revoked refresh token, or a transient Google
-    // error). Surface it so admins can reconnect; degrade to null either way.
+    // Refresh failed. Only a dead grant (invalid_grant/_client, 400/401) is a
+    // real auth failure that should nudge Rachel to reconnect; a network error
+    // or a transient Google error must not. Degrade to null either way.
     if (err instanceof GoogleAuthError) {
-      await recordAuthFailure(err.status, err.code);
+      const cls = classifyGoogleError({ source: "token_refresh", status: err.status, code: err.code });
+      if (cls === "auth") await recordAuthFailure(err.status, err.code);
+      else await recordTransientError(err.status, err.code);
     } else {
-      await recordAuthFailure(null, null);
+      // Network error, timeout, or a malformed response — transient.
+      await recordTransientError(null, null);
     }
     return null;
   }
@@ -417,15 +508,20 @@ export async function createCalendarEvent(args: CalendarEventArgs): Promise<Cale
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      // A rejected token here (vs at refresh) also means Rachel must reconnect.
-      if (res.status === 401 || res.status === 403) {
+      // A 401 here (vs at refresh) also means Rachel must reconnect. A 403/429
+      // (rate-limit/quota) or 5xx is transient and must NOT flag a reconnect.
+      if (classifyGoogleError({ source: "calendar_api", status: res.status, code: null }) === "auth") {
         await recordAuthFailure(res.status, "event_create_rejected");
+      } else {
+        await recordTransientError(res.status, "event_create_failed");
       }
       return null;
     }
     const json = (await res.json()) as { id: string; hangoutLink?: string; htmlLink?: string };
     return { eventId: json.id, meetLink: json.hangoutLink ?? null, htmlLink: json.htmlLink ?? null };
   } catch {
+    // Network error / timeout / malformed response — transient, not a reconnect.
+    await recordTransientError(null, null);
     return null;
   }
 }

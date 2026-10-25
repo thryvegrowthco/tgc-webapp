@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
 import { buildSessionCalendar } from "@/lib/booking/calendar-links";
-import { signIcsToken } from "@/lib/crypto/sign";
+import { trySignIcsToken } from "@/lib/crypto/sign";
 import { AddToCalendarLinks } from "@/components/booking/AddToCalendarLinks";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
@@ -74,8 +74,13 @@ export default async function ConfirmedPage({
       meetLink,
       workspaceUrl: bookingClientId ? `${APP_URL}/dashboard/sessions/${inv.booking_id}` : null,
     });
-    googleUrl = cal.googleUrl;
-    icsUrl = `${APP_URL}/api/sessions/${inv.booking_id}/ics?t=${signIcsToken(inv.booking_id)}`;
+    // If signing is unavailable (missing/malformed key), leave icsUrl null so
+    // the links block below hides (it renders only when googleUrl && icsUrl).
+    const icsToken = trySignIcsToken(inv.booking_id);
+    if (icsToken) {
+      googleUrl = cal.googleUrl;
+      icsUrl = `${APP_URL}/api/sessions/${inv.booking_id}/ics?t=${icsToken}`;
+    }
   }
 
   return (

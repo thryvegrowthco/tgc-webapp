@@ -19,7 +19,7 @@ import { sendTemplated } from "@/lib/email/render";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { meetingTypeLabel, meetingLocationLine, formatDuration } from "@/lib/booking/display";
 import { buildSessionCalendar, buildIcs } from "@/lib/booking/calendar-links";
-import { signIcsToken } from "@/lib/crypto/sign";
+import { trySignIcsToken } from "@/lib/crypto/sign";
 import type { LocationType, PaymentStatus, AdminNotificationType } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
@@ -265,7 +265,13 @@ export async function createSessionBooking(
     meetLink,
     workspaceUrl: sessionWorkspaceUrl || null,
   });
-  const icsUrl = `${APP_URL}/api/sessions/${booking.id}/ics?t=${signIcsToken(booking.id)}`;
+  // If the signing key is missing/malformed, omit both calendar links so the
+  // email's {{#if add_to_google_calendar_url}} block hides them (rather than
+  // rendering a broken .ics href). The .ics is still attached below, so the
+  // session can still be added with one tap.
+  const icsToken = trySignIcsToken(booking.id);
+  const icsUrl = icsToken ? `${APP_URL}/api/sessions/${booking.id}/ics?t=${icsToken}` : "";
+  const googleCalendarUrl = icsToken ? calendar.googleUrl : "";
   const icsAttachment = {
     filename: "thryve-session.ics",
     content: Buffer.from(
@@ -315,7 +321,7 @@ export async function createSessionBooking(
           meeting_location: meetingLocation,
           meet_link: meetLink ?? "",
           session_workspace_url: sessionWorkspaceUrl,
-          add_to_google_calendar_url: calendar.googleUrl,
+          add_to_google_calendar_url: googleCalendarUrl,
           ics_url: icsUrl,
         },
         attachments: [icsAttachment],
