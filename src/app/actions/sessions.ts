@@ -9,15 +9,45 @@ import {
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
+  locationLabel,
+  type CalendarLocationType,
 } from "@/lib/google/calendar";
+import { createSessionBooking } from "@/lib/booking/finalize";
 import { localCentralToUtcIso, formatCentralDate, formatCentralTime } from "@/lib/time/central";
 import { sendTemplated } from "@/lib/email/render";
+import { renderShell } from "@/lib/email/shell";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
 import { meetingTypeLabel, meetingLocationLine, formatDuration, type LocationType } from "@/lib/booking/display";
-import type { WorkflowStatus } from "@/types/database";
+import type { WorkflowStatus, PaymentStatus, Database } from "@/types/database";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Duration bounds for admin-entered sessions (5 min … 8 hours).
+const MIN_DURATION = 5;
+const MAX_DURATION = 8 * 60;
+
+const ALLOWED_LOCATION_TYPES = ["google_meet", "phone", "in_person", "custom"] as const;
+const ALLOWED_WORKFLOW_STATUSES = [
+  "intake_needed",
+  "intake_complete",
+  "session_scheduled",
+  "completed",
+  "follow_up_sent",
+  "cancelled",
+  "no_show",
+  "rescheduled",
+] as const;
+const ALLOWED_PAYMENT_STATUSES = ["not_required", "pending", "paid", "refunded", "waived"] as const;
+
+/** Legacy `status` column kept in sync with `workflow_status` on every edit. */
+function legacyStatusFor(workflow: string): "pending" | "confirmed" | "completed" | "cancelled" {
+  if (workflow === "cancelled") return "cancelled";
+  if (workflow === "completed" || workflow === "follow_up_sent") return "completed";
+  return "confirmed";
+}
 
 type Svc = ReturnType<typeof createServiceClient>;
 
@@ -116,8 +146,10 @@ async function performReschedule(
   supabase: Svc,
   booking: SessionBooking,
   dateCentral: string,
-  timeCentral: string
+  timeCentral: string,
+  opts: { notifyClient?: boolean } = {}
 ): Promise<{ error?: string; success?: boolean }> {
+  const notifyClient = opts.notifyClient !== false;
   if (!DATE_RE.test(dateCentral) || !TIME_RE.test(timeCentral)) {
     return { error: "Pick a valid date and time." };
   }
@@ -205,7 +237,7 @@ async function performReschedule(
     .in("event_key", ["session_reminder_24h_sent", "session_reminder_1h_sent", "prep_summary_sent"]);
 
   // Re-confirm to the client (non-idempotent — this is a deliberate re-send).
-  if (client.email) {
+  if (notifyClient && client.email) {
     await sendTemplated("session_confirmed", {
       to: client.email,
       bookingId,
@@ -335,16 +367,321 @@ async function performCancel(
   return { success: true };
 }
 
-/** Admin: cancel any session. */
+/** Send the client a plain branded "your session was cancelled" email. */
+async function sendCancellationEmail(supabase: Svc, booking: SessionBooking): Promise<void> {
+  const client = await resolveClient(supabase, booking);
+  if (!client.email) return;
+  const firstName = client.name ? client.name.split(" ")[0] : "";
+  const greeting = firstName ? `Hi ${firstName},` : "Hi there,";
+  const when = booking.session_at
+    ? ` on ${formatCentralDate(booking.session_at)} at ${formatCentralTime(booking.session_at)} CT`
+    : "";
+  const inner = `
+    <p style="margin:0 0 16px;">${greeting}</p>
+    <p style="margin:0 0 16px;">Your session${when} has been cancelled. Reply to this email if you'd like to find a new time.</p>
+    <p style="margin:0;">Thank you,<br>Rachel</p>`;
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: client.email,
+      replyTo: REPLY_TO_EMAIL,
+      subject: "Your session has been cancelled",
+      html: renderShell(inner),
+    });
+  } catch (err) {
+    console.error("[cancelSession] cancellation email failed:", err);
+  }
+}
+
+/** Admin: cancel any session. Optionally email the client. */
 export async function cancelSession(
-  bookingId: string
+  bookingId: string,
+  opts: { notifyClient?: boolean } = {}
 ): Promise<{ error?: string; success?: boolean }> {
   const auth = await requireAdmin();
   if (!auth.ok) return { error: auth.error };
   const supabase = createServiceClient();
   const booking = await loadBooking(supabase, bookingId);
   if (!booking) return { error: "Session not found." };
-  return performCancel(supabase, booking);
+  const res = await performCancel(supabase, booking);
+  if (res.success && opts.notifyClient) {
+    await sendCancellationEmail(supabase, booking);
+  }
+  return res;
+}
+
+// ─── Admin create / edit / reassign ─────────────────────────────────────────
+
+export interface AdminCreateSessionInput {
+  /** Existing client profile id. Omit for a non-account client (use email+name). */
+  clientId?: string | null;
+  clientEmail?: string;
+  clientName?: string;
+  /** Display label, e.g. "Career & Leadership Coaching". */
+  serviceType: string;
+  /** Optional known ServiceKey (from products.ts) or null for free text. */
+  serviceKey?: string | null;
+  sessionType?: string | null;
+  dateCentral: string;
+  timeCentral: string;
+  durationMinutes: number;
+  locationType: string;
+  locationDetails?: string | null;
+  paymentStatus: string;
+  amountCents?: number | null;
+  adminNotes?: string | null;
+  /** Email the client the confirmation. Opt-in — unchecked by default in the UI. */
+  sendConfirmation: boolean;
+}
+
+/** Admin: create a session (a bookings row) directly, without a Stripe charge. */
+export async function adminCreateSession(
+  input: AdminCreateSessionInput
+): Promise<{ error?: string; success?: boolean; bookingId?: string; clientId?: string | null }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const supabase = createServiceClient();
+
+  const serviceType = (input.serviceType ?? "").trim();
+  if (!serviceType) return { error: "Pick or enter a service." };
+  if (!DATE_RE.test(input.dateCentral) || !TIME_RE.test(input.timeCentral)) {
+    return { error: "Pick a valid date and time." };
+  }
+  const duration = Number(input.durationMinutes);
+  if (!Number.isInteger(duration) || duration < MIN_DURATION || duration > MAX_DURATION) {
+    return { error: "Enter a duration between 5 minutes and 8 hours." };
+  }
+  if (!(ALLOWED_LOCATION_TYPES as readonly string[]).includes(input.locationType)) {
+    return { error: "Pick a valid meeting type." };
+  }
+  if (!(ALLOWED_PAYMENT_STATUSES as readonly string[]).includes(input.paymentStatus)) {
+    return { error: "Pick a valid payment status." };
+  }
+  const amountCents = input.amountCents ?? null;
+  if (amountCents !== null && (!Number.isInteger(amountCents) || amountCents < 0)) {
+    return { error: "Enter a valid amount." };
+  }
+
+  // Resolve the client: an existing profile (name/email from the profile) or a
+  // non-account client (name/email typed in).
+  const clientId = input.clientId?.trim() || null;
+  let clientEmail = (input.clientEmail ?? "").trim();
+  let clientName = (input.clientName ?? "").trim();
+  if (clientId) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", clientId)
+      .maybeSingle();
+    const p = data as { email: string; full_name: string | null } | null;
+    if (!p) return { error: "That client account was not found." };
+    clientEmail = p.email;
+    clientName = p.full_name ?? "";
+  } else {
+    if (!EMAIL_RE.test(clientEmail)) return { error: "Enter the client's email." };
+    if (!clientName) return { error: "Enter the client's name." };
+  }
+
+  const sessionAtUtc = localCentralToUtcIso(input.dateCentral, input.timeCentral);
+
+  const result = await createSessionBooking({
+    serviceType,
+    serviceKey: input.serviceKey?.trim() || null,
+    sessionType: input.sessionType?.trim() || null,
+    sessionAtUtc,
+    durationMinutes: duration,
+    locationType: input.locationType as LocationType,
+    locationDetails: input.locationDetails?.trim() || null,
+    clientId,
+    clientEmail,
+    clientName,
+    paymentStatus: input.paymentStatus as PaymentStatus,
+    amountCents,
+    adminNotes: input.adminNotes?.trim() || null,
+    // Rachel is creating this herself — no need to bell/email herself.
+    sendAdminNotifications: false,
+    // Client confirmation is opt-in.
+    sendClientEmail: input.sendConfirmation === true,
+  });
+  if ("error" in result) return { error: result.error };
+
+  revalidateSession(result.clientId);
+  return { success: true, bookingId: result.bookingId, clientId: result.clientId };
+}
+
+export interface AdminUpdateSessionPatch {
+  serviceType?: string;
+  serviceKey?: string | null;
+  sessionType?: string | null;
+  dateCentral?: string;
+  timeCentral?: string;
+  durationMinutes?: number;
+  locationType?: string;
+  locationDetails?: string | null;
+  /** Manual Meet/link override — clears the "link needed" flag. */
+  meetLink?: string | null;
+  paymentStatus?: string;
+  workflowStatus?: string;
+  amountCents?: number | null;
+  adminNotes?: string | null;
+  /** Only honored when the time changes: send the client a reschedule email. */
+  notifyClient?: boolean;
+}
+
+/** Admin: edit any field on a session. Time changes route through the shared
+ * reschedule path; location/duration changes reconcile the calendar event. */
+export async function adminUpdateSession(
+  bookingId: string,
+  patch: AdminUpdateSessionPatch
+): Promise<{ error?: string; success?: boolean }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking) return { error: "Session not found." };
+
+  // ── Column changes (everything except the time move) ──
+  const update: Record<string, unknown> = {};
+
+  if (patch.serviceType !== undefined) {
+    const s = patch.serviceType.trim();
+    if (!s) return { error: "Service can't be empty." };
+    update.service_type = s;
+  }
+  if (patch.serviceKey !== undefined) update.service_key = patch.serviceKey?.trim() || null;
+  if (patch.sessionType !== undefined) update.session_type = patch.sessionType?.trim() || null;
+
+  if (patch.durationMinutes !== undefined) {
+    const d = Number(patch.durationMinutes);
+    if (!Number.isInteger(d) || d < MIN_DURATION || d > MAX_DURATION) {
+      return { error: "Enter a duration between 5 minutes and 8 hours." };
+    }
+    update.duration_minutes = d;
+  }
+  if (patch.locationType !== undefined) {
+    if (!(ALLOWED_LOCATION_TYPES as readonly string[]).includes(patch.locationType)) {
+      return { error: "Pick a valid meeting type." };
+    }
+    update.location_type = patch.locationType;
+  }
+  if (patch.locationDetails !== undefined) {
+    update.location_details = patch.locationDetails?.trim() || null;
+  }
+  if (patch.meetLink !== undefined) {
+    update.meet_link = patch.meetLink?.trim() || null;
+    update.meet_link_pending = false; // a manual link resolves the pending state
+  }
+  if (patch.paymentStatus !== undefined) {
+    if (!(ALLOWED_PAYMENT_STATUSES as readonly string[]).includes(patch.paymentStatus)) {
+      return { error: "Pick a valid payment status." };
+    }
+    update.payment_status = patch.paymentStatus;
+  }
+  if (patch.amountCents !== undefined) {
+    if (patch.amountCents !== null && (!Number.isInteger(patch.amountCents) || patch.amountCents < 0)) {
+      return { error: "Enter a valid amount." };
+    }
+    update.amount_cents = patch.amountCents;
+  }
+  if (patch.adminNotes !== undefined) update.admin_notes = patch.adminNotes?.trim() || null;
+
+  if (patch.workflowStatus !== undefined) {
+    if (!(ALLOWED_WORKFLOW_STATUSES as readonly string[]).includes(patch.workflowStatus)) {
+      return { error: "Pick a valid status." };
+    }
+    update.workflow_status = patch.workflowStatus;
+    if (patch.workflowStatus === "completed") update.completed_at = new Date().toISOString();
+    update.status = legacyStatusFor(patch.workflowStatus); // keep legacy column in sync
+  }
+
+  const hasColumnChanges = Object.keys(update).length > 0;
+  if (hasColumnChanges) {
+    update.updated_at = new Date().toISOString();
+    const { error } = await supabase
+      .from("bookings")
+      .update(update as Database["public"]["Tables"]["bookings"]["Update"])
+      .eq("id", bookingId);
+    if (error) return { error: error.message };
+  }
+
+  // ── Time change → reschedule (moves the calendar event, resets reminders) ──
+  const timeChange = patch.dateCentral !== undefined && patch.timeCentral !== undefined;
+  if (timeChange) {
+    if (!DATE_RE.test(patch.dateCentral as string) || !TIME_RE.test(patch.timeCentral as string)) {
+      return { error: "Pick a valid date and time." };
+    }
+    // Reload so the reschedule sees the just-saved duration/location/service.
+    const fresh = (await loadBooking(supabase, bookingId)) ?? booking;
+    const res = await performReschedule(
+      supabase,
+      fresh,
+      patch.dateCentral as string,
+      patch.timeCentral as string,
+      { notifyClient: patch.notifyClient === true }
+    );
+    if (res.error) return res;
+  }
+
+  // ── Reconcile the calendar event for logistics performReschedule skips:
+  // location (always), and the end time when only the duration changed. ──
+  const locationChanged = patch.locationType !== undefined || patch.locationDetails !== undefined;
+  const durationChanged = patch.durationMinutes !== undefined;
+  if (locationChanged || (durationChanged && !timeChange)) {
+    const fresh = await loadBooking(supabase, bookingId);
+    if (fresh?.calendar_event_id) {
+      const calPatch: { location?: string; endIso?: string } = {};
+      if (locationChanged) {
+        calPatch.location =
+          locationLabel(fresh.location_type as CalendarLocationType, fresh.location_details) ?? "";
+      }
+      if (durationChanged && !timeChange && fresh.session_at) {
+        calPatch.endIso = new Date(
+          new Date(fresh.session_at).getTime() + fresh.duration_minutes * 60_000
+        ).toISOString();
+      }
+      if (Object.keys(calPatch).length > 0) {
+        await updateCalendarEvent(fresh.calendar_event_id, calPatch);
+      }
+    }
+  }
+
+  revalidateSession(booking.client_id);
+  return { success: true };
+}
+
+/** Admin: move a session to a different client. Upcoming, non-cancelled only. */
+export async function adminReassignClient(
+  bookingId: string,
+  clientId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const supabase = createServiceClient();
+  const booking = await loadBooking(supabase, bookingId);
+  if (!booking) return { error: "Session not found." };
+  if (booking.workflow_status === "cancelled") return { error: "This session was cancelled." };
+  if (!booking.session_at || new Date(booking.session_at).getTime() <= Date.now()) {
+    return { error: "Only upcoming sessions can be reassigned." };
+  }
+  const targetId = clientId?.trim();
+  if (!targetId) return { error: "Pick a client." };
+  if (targetId === booking.client_id) return { error: "That's already the client on this session." };
+
+  const { data } = await supabase.from("profiles").select("id, role").eq("id", targetId).maybeSingle();
+  const p = data as { id: string; role: string } | null;
+  if (!p || p.role !== "client") return { error: "Pick a valid client account." };
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ client_id: targetId, updated_at: new Date().toISOString() })
+    .eq("id", bookingId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/sessions");
+  revalidatePath("/admin");
+  if (booking.client_id) revalidatePath(`/admin/clients/${booking.client_id}`);
+  revalidatePath(`/admin/clients/${targetId}`);
+  return { success: true };
 }
 
 // ─── Client self-service (ownership + >24h notice) ──────────────────────────
