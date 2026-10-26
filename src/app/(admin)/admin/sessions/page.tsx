@@ -5,7 +5,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Calendar, AlertCircle, CheckCircle2, Clock, Video, Phone, MapPin } from "lucide-react";
+import { Calendar, AlertCircle, CheckCircle2, Clock, Video, Phone, MapPin, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkflowStatus } from "@/types/database";
 import { formatCentralDate, formatCentralTime } from "@/lib/time/central";
@@ -260,6 +260,19 @@ export default async function AdminSessionsPage({
                 </p>
               )}
             </div>
+            {row.meet_link &&
+              row.workflow_status !== "cancelled" &&
+              row.meet_link.startsWith("https://") && (
+                <a
+                  href={row.meet_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Join the meeting"
+                  className="inline-flex items-center gap-1 rounded-md border border-brand-200 bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors whitespace-nowrap"
+                >
+                  <ExternalLink className="h-3 w-3" /> Join
+                </a>
+              )}
             {row.meet_link_pending && !row.meet_link && row.session_at && !row.calendar_event_id && (
               <RetryCalendarEventButton bookingId={row.id} />
             )}

@@ -263,8 +263,9 @@ export function SessionEditorDrawer({
       <Dialog.Trigger asChild>
         <button
           type="button"
+          aria-label="Edit session"
           className={cn(
-            "inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 hover:text-brand-700",
+            "inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 hover:border-brand-300 hover:text-brand-700 transition-colors",
             triggerClassName
           )}
         >

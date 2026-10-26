@@ -164,6 +164,11 @@ export function NewSessionDialog({ clients, servicePresets, defaultClientId }: P
             Create a session for a client without taking a payment.
           </Dialog.Description>
 
+          <p className="-mt-3 mb-4 text-xs text-neutral-500">
+            New sessions are saved as confirmed and scheduled.
+            {locationType === "google_meet" && " A Google Meet link is added automatically."}
+          </p>
+
           <div className="space-y-4">
             {/* Client */}
             <div className="space-y-2">

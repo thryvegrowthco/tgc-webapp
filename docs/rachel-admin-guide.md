@@ -169,9 +169,11 @@ Click **New session** at the top of the Sessions page. A form opens where you ch
 - **Date and time** (your Central time), **length**, and the **meeting type** (Google Meet, phone, in person, or custom) with any location details.
 - **Payment status and amount**, and any **private notes** only you see.
 
+A short note on the form reminds you that new sessions are saved as confirmed and scheduled, and that a Google Meet link is added automatically when the meeting type is Google Meet.
+
 There is a checkbox, **"Email the client a confirmation,"** that is **turned off by default**. Leave it off to add the session quietly (useful for backfilling or test entries); tick it if you want the client to get the usual confirmation email.
 
-If you picked "No account," the session now shows the name you typed (or the email, if you left the name blank) with a small **"No account"** tag, both on the Sessions page and in the Edit panel. These used to show as "Unknown client."
+If you picked "No account," the session now shows the name you typed (or the email, if you left the name blank) with a small **"No account"** tag, both on the Sessions page and in the Edit panel. These used to show as "Unknown client." A no-account row is not clickable the way a client's row is, so use the clearly labelled **Edit** button on that row to open it.
 
 ### Editing a session
 
@@ -180,6 +182,7 @@ Every session has an **Edit** button, both on the Sessions page and on the clien
 - When you change the **date or time**, a checkbox appears: **"Email the client the new time."** It is **off by default**. Tick it to let the client know and move the calendar hold.
 - Changing anything else (payment, notes, status, and so on) **never emails the client**.
 - If a meeting link was not created automatically, the session shows a **"Meet link needed"** tag. Once Google Calendar is connected again, click **Create calendar event** (on the Sessions row, or in the Edit panel next to the Meeting link box) and the system creates the Google Calendar event and Meet link for you in one click. You can still paste a link into the **Meeting link** box by hand instead, which also clears the flag.
+- When a session already has a meeting link, its row shows a small **"Join"** button next to the date. Click it to open the meeting in a new tab without opening the editor.
 
 ### Moving a session to a different client
 
