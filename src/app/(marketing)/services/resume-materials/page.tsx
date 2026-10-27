@@ -22,7 +22,7 @@ const options = [
     title: "Full Resume Rewrite",
     price: "$150",
     description: "Starting from your existing resume and a 30-minute intake call, I rewrite your resume from scratch: clean, clear, and positioned for where you want to go.",
-    includes: ["30-minute intake call", "Complete rewrite (1-2 page)", "ATS-optimized format", "Two rounds of revisions", "Final file in Word + PDF"],
+    includes: ["30-minute intake call", "Complete rewrite (1-2 page)", "ATS-optimized format", "Two rounds of revisions", "Final file in Word + PDF", "Delivered within 5 business days of the intake call"],
   },
 ];
 

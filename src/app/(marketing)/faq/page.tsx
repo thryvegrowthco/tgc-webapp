@@ -16,17 +16,37 @@ export const metadata: Metadata = pageMeta("/faq", {
     "Frequently asked questions about Thryve Growth Co. services, pricing, how coaching works, and what to expect.",
 });
 
-const faqCategories = [
+// Single source of truth for the FAQ content. Exported so the page can build
+// FAQPage JSON-LD (see the JsonLd block below) from the same questions and
+// answers the accordion renders. All answers are plain text (no JSX) so the
+// visible answer and the schema `acceptedAnswer.text` stay identical.
+export const faqCategories = [
   {
     heading: "Getting Started",
     items: [
+      {
+        q: "What is Thryve Growth Co.?",
+        a: "Thryve Growth Co. is an HR consulting and career coaching practice founded by Rachel Dietz, PHR, and based in Sun Prairie, Wisconsin. Rachel helps professionals with coaching, interview prep, and resumes, and helps small businesses with HR, hiring, and culture. Everything is delivered virtually, so clients can be anywhere in the U.S.",
+      },
+      {
+        q: "Who is Rachel Dietz?",
+        a: "Rachel is the founder of Thryve Growth Co. and a PHR-certified HR professional with more than 10 years of experience, including years in public-sector HR. She started in assistant-level HR roles and worked her way into senior HR leadership, so she has seen hiring, performance, and culture from the inside.",
+      },
       {
         q: "How do I know if Thryve Growth Co. is the right fit for me?",
         a: "The best way to find out is to book a call. We'll talk about what's going on, what you're looking to get out of working together, and whether I'm the right person to help. I'll be honest if I don't think I'm the right fit. I'd rather tell you that upfront than take your money and underdeliver.",
       },
       {
+        q: "Is the first call really free?",
+        a: "Yes. The first call is a free 30-minute video conversation with Rachel, with no payment information required. You'll get an honest read on whether she can help and what your next step should be.",
+      },
+      {
+        q: "How do I book a paid session?",
+        a: "New clients start with a free 30-minute consultation. After the call, Rachel emails you a personal booking link with times that work.",
+      },
+      {
         q: "What happens after I book a call?",
-        a: "Once you submit your inquiry, I'll review it personally and reach out within 1–2 business days to confirm your call and send a calendar invite. Our first conversation is about understanding your situation, not a sales pitch.",
+        a: "Once you submit your inquiry, I'll review it personally and reach out within 1 to 2 business days to confirm your call and send a calendar invite. Our first conversation is about understanding your situation, not a sales pitch.",
       },
       {
         q: "Do you work with individuals and businesses?",
@@ -35,6 +55,10 @@ const faqCategories = [
       {
         q: "Do you work with clients virtually?",
         a: "All sessions are conducted virtually, which means I work with clients nationwide. You don't need to be in any particular location.",
+      },
+      {
+        q: "Do you work with clients outside Wisconsin?",
+        a: "Yes. Rachel is based in Sun Prairie, Wisconsin, and works with clients nationwide. All sessions happen over video.",
       },
     ],
   },
@@ -51,7 +75,11 @@ const faqCategories = [
       },
       {
         q: "What's the difference between coaching and HR consulting?",
-        a: "Coaching is 1:1 work focused on your individual goals: career, leadership, professional development. HR consulting is organizational. I work with companies to build HR infrastructure, develop managers, improve culture, and solve people-related business challenges. Some clients use both.",
+        a: "Coaching is 1:1 work on your own career or leadership goals. HR consulting is work with a business on its people systems, such as roles, hiring, performance, onboarding, and culture. Some clients use both.",
+      },
+      {
+        q: "Can a small business hire Thryve Growth Co. instead of a full-time HR person?",
+        a: "Yes. Many small businesses don't need a full-time HR hire yet. Rachel offers hourly HR support at $125 an hour and scoped projects starting at $500.",
       },
       {
         q: "Do you offer ongoing retainer relationships for businesses?",
@@ -67,6 +95,10 @@ const faqCategories = [
         a: "Because you deserve to know what you're getting into before we ever talk. No one should have to sit through a discovery call just to find out if they can afford the service. Transparency is part of how I operate.",
       },
       {
+        q: "How much does career coaching cost?",
+        a: "A single 60-minute coaching session is $125. The 4-Session Coaching Plan is $425.",
+      },
+      {
         q: "Do you offer payment plans?",
         a: "For packages and larger organizational engagements, I'm open to discussing payment arrangements that make sense. Reach out and let's talk.",
       },
@@ -76,7 +108,7 @@ const faqCategories = [
       },
       {
         q: "Can I use my employer's professional development budget?",
-        a: "Absolutely. Many clients use professional development funds for coaching services. I can provide receipts and documentation as needed.",
+        a: "Often, yes. Coaching and interview prep usually qualify for professional development funds. I can provide an invoice and receipt for your employer.",
       },
     ],
   },
@@ -84,8 +116,12 @@ const faqCategories = [
     heading: "Resume & Interview Services",
     items: [
       {
+        q: "How much does a resume rewrite cost?",
+        a: "A full resume rewrite is $150. It includes a 30-minute intake call, a complete rewrite in an ATS-friendly format, two rounds of revisions, and final Word and PDF files. If you only need feedback, Resume Review and Edits is $75.",
+      },
+      {
         q: "How long does a resume rewrite take?",
-        a: "Typically 5–7 business days from our intake call, plus time for your review and one additional revision round. I'll give you a timeline at the start of the project.",
+        a: "Full resume rewrites are delivered within 5 business days of our intake call. Revisions are included as listed on the Resume and Career Materials page, and I'll confirm your timeline when we start.",
       },
       {
         q: "Do you write resumes for all industries?",
@@ -157,7 +193,12 @@ export default function FAQPage() {
                 {cat.items.map((item, i) => (
                   <AccordionItem key={i} value={`${cat.heading}-${i}`}>
                     <AccordionTrigger>{item.q}</AccordionTrigger>
-                    <AccordionContent>{item.a}</AccordionContent>
+                    {/* forceMount keeps every answer in the server HTML (for SEO and
+                        no-JS readers); closed panels are hidden via CSS on the
+                        data-state element. */}
+                    <AccordionContent forceMount wrapperClassName="data-[state=closed]:hidden">
+                      {item.a}
+                    </AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
