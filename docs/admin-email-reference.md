@@ -91,6 +91,7 @@ These keep accounts secure and are **managed in code** (not editable in Template
 
 - **Signup confirmation** — confirms a new account's email.
 - **Client invite** — *"Your Thryve Growth Co. account is ready."* Sent when **you** create the account from Clients → New client (with "Email them an invite now" checked), and again whenever you press **Resend invite**. It says you set the account up for them and gives them a link to choose a password. Different from Signup confirmation, which is for people who signed themselves up. The link expires after 24 hours.
+- **Checkout welcome** — *"Your Thryve Growth Co. account is ready."* Sent automatically when someone pays without having an account (a paid booking invitation, or an accepted-and-paid proposal) and the system creates one for them. It is a single warm welcome that shows what they bought and the amount, and a button to set a password and open their dashboard. A separate receipt is also sent. If the link stops working, the client uses Forgot password on the sign-in page to get a fresh one.
 - **Password reset** — the "reset your password" link. Now lands the client on their profile page, where the password field is.
 - **Email change confirmation** — confirms a new email address.
 - **Magic link sign-in** — a one-click sign-in link. Also used by **Resend invite** for someone who was invited more than 24 hours ago.

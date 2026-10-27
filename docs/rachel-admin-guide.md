@@ -38,7 +38,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 
 Log in with your admin email and password. If you forget your password, go to `https://thryvegrowth.co/reset-password` and follow the email link.
 
-**Getting admin access for the first time:** Public signup is closed. Admin access is granted by setting your profile role to admin in Supabase (service role). Client accounts are created from Admin, Clients, New client.
+**Getting admin access for the first time:** Public signup is closed. Admin access is granted by setting your profile role to admin in Supabase (service role). Client accounts are created from Admin, Clients, New client, and are now also created automatically the first time someone pays for something without an account (see "What happens when someone pays and has no account?" in the FAQ).
 
 **If your login keeps failing:** Your account has a special "admin" role that must be attached to your specific email address. If you are being redirected away from the admin panel after logging in, contact your developer — they can verify your role is correctly set in the database.
 
@@ -223,7 +223,7 @@ Use this when you want to hand-pick a few times for a specific person and let th
 > **Heads up:** the sidebar item used to be called "Invitations" — it's now **Invite to Book**. If a yellow "Google Calendar isn't connected" banner shows on that page, connect your calendar under **Integrations** first, otherwise booked sessions won't be added to your calendar (the session and emails still happen).
 
 **What you fill in:**
-- **Client email and name** — who it's for. They do not need an account.
+- **Client email and name** — who it's for. They do not need an account to choose a time. If you require payment and they pay, an account is created for them automatically (see the outcomes below).
 - **Service and session type** — picking a service fills in the name shown to the client; you can edit it.
 - **Session length** — how long the meeting runs.
 - **Meeting type** — Google Meet (a link is created automatically), Phone Call, In Person, or Custom. For anything other than Google Meet, add the location details (phone number, address, or instructions).
@@ -239,6 +239,7 @@ Click **Send Booking Options** and the client gets a branded email with a "Choos
 - You get an email and a bell notification.
 - The client gets a confirmation email. It now includes **Add to calendar** buttons (Google Calendar and an Apple/Outlook ".ics" file, also attached) so they can save it to their own calendar in one tap, whether or not they have an account.
 - If they have an account, the session also appears in their dashboard, where the same **Add to calendar** buttons are shown.
+- If payment was required and they paid without already having an account, one is created for them automatically. They get a warm welcome email with their receipt and a link to set a password, so the session shows in their dashboard too.
 
 > **Keeping Google Calendar connected.** If Google Calendar disconnects (most often because the Google sign-in access expired), the **Integrations** page shows a red **"Reconnect needed"** box and you get a "Calendar issue" alert at most once a day. A brief Google hiccup (a timeout or a short outage) won't trigger this, and the warning clears on its own once the connection is working again, so it only stays up when a real reconnect is needed. The "Calendar issue" alert is separate from your subscription alerts, so turning those off won't hide it. Until you reconnect a real one, new sessions are created but don't get a Google Calendar event or Meet link, and show as **"Meet link needed"** on the Sessions page. Reconnect under **Integrations**, then click **Create calendar event** on each pending session. If this happens every week, ask your developer to publish the Google project so the access stops expiring.
 
