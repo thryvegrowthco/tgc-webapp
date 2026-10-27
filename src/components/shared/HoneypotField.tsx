@@ -1,3 +1,5 @@
+import * as React from "react";
+
 /**
  * Honeypot field for public forms. Real users never see or focus it (the wrapper
  * is screen-reader hidden via `aria-hidden` and positioned off-screen with
@@ -10,15 +12,16 @@
  * `visibility:hidden`, which many bots skip.
  */
 export function HoneypotField() {
+  const id = React.useId();
   return (
     <div className="sr-only" aria-hidden="true">
-      <label htmlFor="company_website">Leave this field empty</label>
+      <label htmlFor={id}>Leave this field empty</label>
       <input
-        id="company_website"
+        id={id}
         name="company_website"
         type="text"
         tabIndex={-1}
-        autoComplete="off"
+        autoComplete="new-password"
         defaultValue=""
       />
     </div>

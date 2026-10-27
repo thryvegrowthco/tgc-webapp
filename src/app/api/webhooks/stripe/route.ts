@@ -666,7 +666,7 @@ async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session)
     notifyAdmin({
       type: "proposal_paid",
       subject: `Proposal paid: ${prop.client_name || prop.client_email}`,
-      title: `Payment received — ${prop.title}`,
+      title: `Payment received: ${prop.title}`,
       body: "The client paid their proposal. Time to kick off the engagement.",
       fields: [
         { label: "Client", value: prop.client_name || prop.client_email },

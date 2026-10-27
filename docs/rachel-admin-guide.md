@@ -38,7 +38,7 @@ This guide covers everything you need to use the admin panel day-to-day. It is w
 
 Log in with your admin email and password. If you forget your password, go to `https://thryvegrowth.co/reset-password` and follow the email link.
 
-**Getting admin access for the first time:** Sign up at `/signup` with your designated admin email address. Your account will automatically be set to admin on signup (the system is pre-configured to recognize your email). You do not need to do anything extra.
+**Getting admin access for the first time:** Public signup is closed. Admin access is granted by setting your profile role to admin in Supabase (service role). Client accounts are created from Admin, Clients, New client.
 
 **If your login keeps failing:** Your account has a special "admin" role that must be attached to your specific email address. If you are being redirected away from the admin panel after logging in, contact your developer — they can verify your role is correctly set in the database.
 
