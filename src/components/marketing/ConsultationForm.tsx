@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { HoneypotField } from "@/components/shared/HoneypotField";
 import type { EntryToken } from "@/lib/leads/source";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ export function ConsultationForm({ entry = null }: { entry?: EntryToken | null }
       phone: String(formData.get("phone") ?? ""),
       timing: String(formData.get("timing") ?? ""),
       message: String(formData.get("message") ?? ""),
+      company_website: String(formData.get("company_website") ?? ""),
       // Where this request started. The server accepts only tokens it published,
       // so this is a hint, never a value we trust.
       ...(from ? { from } : {}),
@@ -83,6 +85,7 @@ export function ConsultationForm({ entry = null }: { entry?: EntryToken | null }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <HoneypotField />
       {/* Where this request started, e.g. the business card. A hidden field rather
           than a closure, so the whole client half is provable with curl and a
           read-only console line, without ever submitting the form. */}

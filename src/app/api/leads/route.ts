@@ -2,6 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+
+export const runtime = "nodejs";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_FIELD_LENGTH = 200;
@@ -15,6 +19,26 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Bots that auto-fill the hidden honeypot get a silent 200 — no lead, no email.
+  if (isHoneypotTripped(body)) {
+    console.warn("[leads] honeypot tripped");
+    return NextResponse.json({ ok: true });
+  }
+
+  // Per-IP rate limit before any work.
+  const { limited } = await checkRateLimit({
+    bucket: "leads",
+    key: getClientIp(request),
+    limit: 5,
+    windowSeconds: 600,
+  });
+  if (limited) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
+      { status: 429 }
+    );
   }
 
   const raw = (body ?? {}) as Record<string, unknown>;

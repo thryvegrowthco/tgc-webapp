@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { NEWSLETTER_INTERESTS } from "@/lib/newsletter/interests";
+import { HoneypotField } from "@/components/shared/HoneypotField";
 
 interface NewsletterFormProps {
   /**
@@ -24,9 +25,12 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!email) return;
+    // Read the hidden honeypot before any await (currentTarget is only valid
+    // synchronously). Real users leave it empty; bots fill it.
+    const companyWebsite = String(new FormData(e.currentTarget).get("company_website") ?? "");
     setStatus("loading");
     try {
       const res = await fetch("/api/newsletter", {
@@ -37,6 +41,7 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
           firstName: firstName || undefined,
           source,
           interests: selectedInterests,
+          company_website: companyWebsite,
         }),
       });
       if (!res.ok) {
@@ -66,6 +71,7 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
   if (variant === "inline") {
     return (
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
+        <HoneypotField />
         <input
           type="email"
           placeholder="your@email.com"
@@ -91,6 +97,7 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
   // Full variant
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <HoneypotField />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <input
           type="text"

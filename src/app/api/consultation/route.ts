@@ -11,6 +11,10 @@ import {
   leadSourceLabel,
 } from "@/lib/leads/source";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+
+export const runtime = "nodejs";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_MESSAGE_LENGTH = 5000;
@@ -29,6 +33,26 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Bots that auto-fill the hidden honeypot get a silent 200 — no lead, no email.
+  if (isHoneypotTripped(body)) {
+    console.warn("[consultation] honeypot tripped");
+    return NextResponse.json({ ok: true });
+  }
+
+  // Per-IP rate limit before any work.
+  const { limited } = await checkRateLimit({
+    bucket: "consultation",
+    key: getClientIp(request),
+    limit: 5,
+    windowSeconds: 600,
+  });
+  if (limited) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
+      { status: 429 }
+    );
   }
 
   const { firstName, lastName, email, phone, timing, message, from } = (body ?? {}) as {
@@ -145,11 +169,23 @@ export async function POST(request: NextRequest) {
   }
 
   // Auto-reply and CRM sync are best-effort — don't fail the request if they error.
+  // Guard the auto-reply by email so it can't be used to spam a stranger's inbox
+  // (max 2 per 24h per address); the lead + admin alert above still happen.
   if (!(await isNotificationDisabled("client_email:consultation_autoreply"))) {
-    try {
-      await sendConsultationRequestAutoReply(payload);
-    } catch (err) {
-      console.error("[consultation] Auto-reply failed:", err);
+    const autoReplyGuard = await checkRateLimit({
+      bucket: "consultation_autoreply",
+      key: data.email,
+      limit: 2,
+      windowSeconds: 86400,
+    });
+    if (autoReplyGuard.limited) {
+      console.warn("[consultation] auto-reply rate limited; skipping");
+    } else {
+      try {
+        await sendConsultationRequestAutoReply(payload);
+      } catch (err) {
+        console.error("[consultation] Auto-reply failed:", err);
+      }
     }
   }
 

@@ -5,6 +5,10 @@ import { sanitizeInterests } from "@/lib/newsletter/interests";
 import { sendWelcomeEmail } from "@/lib/email/newsletter-welcome";
 import { notifyAdmin } from "@/lib/notifications/admin";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+
+export const runtime = "nodejs";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,6 +28,26 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Bots that auto-fill the hidden honeypot get a silent 200 — no subscribe.
+  if (isHoneypotTripped(body)) {
+    console.warn("[newsletter] honeypot tripped");
+    return NextResponse.json({ ok: true });
+  }
+
+  // Per-IP rate limit before any work.
+  const { limited } = await checkRateLimit({
+    bucket: "newsletter",
+    key: getClientIp(request),
+    limit: 10,
+    windowSeconds: 600,
+  });
+  if (limited) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
+      { status: 429 }
+    );
   }
 
   const { email, firstName, source, interests } = (body ?? {}) as {
@@ -105,19 +129,31 @@ export async function POST(request: NextRequest) {
   }).catch((err) => console.error("[newsletter] GHL sync failed:", err));
 
   // Welcome email — only first time. Stamp welcome_sent_at to make this idempotent.
+  // Also guard by email (max 2 per 24h) so the welcome can't be used to spam a
+  // stranger's inbox; the subscription itself still succeeds.
   if (!subscriber.welcome_sent_at && !(await isNotificationDisabled("client_email:newsletter_welcome"))) {
-    try {
-      await sendWelcomeEmail({
-        email: subscriber.email,
-        firstName: subscriber.first_name,
-        unsubscribeToken: subscriber.unsubscribe_token,
-      });
-      await supabase
-        .from("newsletter_subscribers")
-        .update({ welcome_sent_at: new Date().toISOString() })
-        .eq("id", subscriber.id);
-    } catch (err) {
-      console.error("[newsletter] welcome email failed:", err);
+    const welcomeGuard = await checkRateLimit({
+      bucket: "newsletter_welcome",
+      key: subscriber.email,
+      limit: 2,
+      windowSeconds: 86400,
+    });
+    if (welcomeGuard.limited) {
+      console.warn("[newsletter] welcome email rate limited; skipping");
+    } else {
+      try {
+        await sendWelcomeEmail({
+          email: subscriber.email,
+          firstName: subscriber.first_name,
+          unsubscribeToken: subscriber.unsubscribe_token,
+        });
+        await supabase
+          .from("newsletter_subscribers")
+          .update({ welcome_sent_at: new Date().toISOString() })
+          .eq("id", subscriber.id);
+      } catch (err) {
+        console.error("[newsletter] welcome email failed:", err);
+      }
     }
   }
 

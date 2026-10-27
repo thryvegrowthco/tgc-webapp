@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
+import { HoneypotField } from "@/components/shared/HoneypotField";
 
 const serviceLinks = [
   { label: "HR Consulting & Team Development", href: "/services/hr-consulting" },
@@ -35,12 +36,15 @@ export function Footer() {
   async function handleNewsletterSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!email) return;
+    // Read the hidden honeypot before any await (currentTarget is only valid
+    // synchronously). Real users leave it empty; bots fill it.
+    const companyWebsite = String(new FormData(e.currentTarget).get("company_website") ?? "");
     setStatus("loading");
     try {
       const res = await fetch("/api/newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, firstName, source: "footer" }),
+        body: JSON.stringify({ email, firstName, source: "footer", company_website: companyWebsite }),
       });
       if (!res.ok) {
         setStatus("error");
@@ -159,6 +163,7 @@ export function Footer() {
               </p>
             ) : (
               <form className="space-y-2" onSubmit={handleNewsletterSubmit}>
+                <HoneypotField />
                 <input
                   type="text"
                   placeholder="First name"

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { HoneypotField } from "@/components/shared/HoneypotField";
 
 export function ContactForm() {
   const [submitted, setSubmitted] = React.useState(false);
@@ -24,6 +25,7 @@ export function ContactForm() {
       email: String(formData.get("email") ?? ""),
       subject: String(formData.get("subject") ?? ""),
       message: String(formData.get("message") ?? ""),
+      company_website: String(formData.get("company_website") ?? ""),
     };
 
     try {
@@ -67,6 +69,7 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <HoneypotField />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="contact-first-name">First name <span className="text-red-500">*</span></Label>
