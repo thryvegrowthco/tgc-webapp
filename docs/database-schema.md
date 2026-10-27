@@ -16,7 +16,7 @@ Extends `auth.users`. One row per registered user. Created automatically by the 
 | `full_name` | `TEXT` | `NULL` | Set from `raw_user_meta_data.full_name` on signup |
 | `email` | `TEXT` | — | Unique; copied from auth user |
 | `phone` | `TEXT` | `NULL` | — |
-| `role` | `TEXT` | `'client'` | CHECK: `'client'` or `'admin'`; set manually in Supabase — no UI |
+| `role` | `TEXT` | `'client'` | CHECK: `'client'` or `'admin'`; set manually in Supabase — no UI. The `protect_profile_role_trg` trigger (migration 0038) forces inserts to `'client'` and blocks `role` changes for the `authenticated`/`anon` roles — only `service_role` or `postgres` can change it. |
 | `avatar_url` | `TEXT` | `NULL` | Not currently used in UI |
 | `company` | `TEXT` | `NULL` | — |
 | `job_title` | `TEXT` | `NULL` | — |
