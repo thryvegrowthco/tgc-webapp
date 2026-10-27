@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { sendContactFormSubmission } from "@/lib/email/resend";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_MESSAGE_LENGTH = 5000;
@@ -56,27 +57,67 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Message too long" }, { status: 400 });
   }
 
-  // Admin can silence this alert in /admin/settings; the form still succeeds.
-  if (await isNotificationDisabled("admin_email:contact_form")) {
-    return NextResponse.json({ ok: true });
-  }
-
+  // Persist the message FIRST so a Resend outage never silently drops it. The
+  // service client bypasses RLS; inserts are service-role only (migration 0039).
+  // If 0039 hasn't been applied yet the table won't exist (42P01 / PGRST205) —
+  // log the code only (no body or email) and fall through to the email path.
+  const supabase = createServiceClient();
+  let storedId: string | null = null;
   try {
-    const result = await sendContactFormSubmission(f);
-    if (result.error) {
-      console.error("[contact] Resend returned error:", result.error);
-      return NextResponse.json(
-        { ok: false, error: "Failed to send message" },
-        { status: 500 }
-      );
+    const { data: inserted, error: insertError } = await supabase
+      .from("contact_messages")
+      .insert({
+        first_name: f.firstName,
+        last_name: f.lastName,
+        email: f.email,
+        subject: f.subject,
+        message: f.message,
+      })
+      .select("id")
+      .single();
+    if (insertError) {
+      console.error("[contact] store failed:", insertError.code || "unknown");
+    } else {
+      storedId = (inserted as { id: string } | null)?.id ?? null;
     }
   } catch (err) {
-    console.error("[contact] Send failed:", err);
-    return NextResponse.json(
-      { ok: false, error: "Failed to send message" },
-      { status: 500 }
-    );
+    console.error("[contact] store threw:", (err as { code?: string })?.code || "unknown");
   }
 
-  return NextResponse.json({ ok: true });
+  // Admin alert — skippable via /admin/settings. The message is already stored,
+  // so a disabled alert or a Resend failure no longer loses it.
+  let emailSent = false;
+  if (!(await isNotificationDisabled("admin_email:contact_form"))) {
+    try {
+      const result = await sendContactFormSubmission(f);
+      if (result.error) {
+        console.error("[contact] Resend returned error:", result.error);
+      } else {
+        emailSent = true;
+      }
+    } catch (err) {
+      console.error("[contact] Send failed:", err);
+    }
+  }
+
+  // Mark the stored row as emailed once both succeeded.
+  if (storedId && emailSent) {
+    const { error: updateError } = await supabase
+      .from("contact_messages")
+      .update({ email_sent: true })
+      .eq("id", storedId);
+    if (updateError) {
+      console.error("[contact] email_sent update failed:", updateError.code || "unknown");
+    }
+  }
+
+  // Never silently lose a message: succeed if it was stored OR emailed; only
+  // fail hard when both failed.
+  if (storedId || emailSent) {
+    return NextResponse.json({ ok: true });
+  }
+  return NextResponse.json(
+    { ok: false, error: "Failed to send message" },
+    { status: 500 }
+  );
 }

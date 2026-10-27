@@ -97,23 +97,50 @@ export async function POST(request: NextRequest) {
     sourceLabel,
   };
 
-  // Admin alert — skippable via /admin/settings (the request still succeeds).
+  // Capture the request as a lead FIRST so a Resend outage never loses it. Rachel
+  // tracks + converts it to a proposal (best-effort; insert() resolves with
+  // { error } instead of throwing, so without this a failed capture is invisible,
+  // which is the one thing attribution must not be).
+  let leadStored = false;
+  try {
+    const { error: leadError } = await createServiceClient().from("leads").insert({
+      full_name: `${data.firstName} ${data.lastName}`.trim(),
+      email: data.email,
+      phone: data.phone || null,
+      timeline: data.timing || null,
+      notes: data.message,
+      source,
+      status: "new",
+    });
+    if (leadError) console.error("[consultation] lead capture failed:", leadError);
+    else leadStored = true;
+  } catch (err) {
+    console.error("[consultation] lead capture failed:", err);
+  }
+
+  // Admin alert — skippable via /admin/settings. The lead is already stored, so
+  // an email failure no longer loses the request; only fail hard when the lead
+  // was not stored either.
   if (!(await isNotificationDisabled("admin_email:consultation_request"))) {
     try {
       const adminResult = await sendConsultationRequest(payload);
       if (adminResult.error) {
         console.error("[consultation] Resend returned error:", adminResult.error);
+        if (!leadStored) {
+          return NextResponse.json(
+            { ok: false, error: "Failed to send request" },
+            { status: 500 }
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[consultation] Admin email send failed:", err);
+      if (!leadStored) {
         return NextResponse.json(
           { ok: false, error: "Failed to send request" },
           { status: 500 }
         );
       }
-    } catch (err) {
-      console.error("[consultation] Admin email send failed:", err);
-      return NextResponse.json(
-        { ok: false, error: "Failed to send request" },
-        { status: 500 }
-      );
     }
   }
 
@@ -137,25 +164,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[consultation] GHL sync failed:", err);
-  }
-
-  // Capture the request as a lead so Rachel can track + convert it to a proposal
-  // (best-effort; the request still succeeds if this fails).
-  try {
-    const { error: leadError } = await createServiceClient().from("leads").insert({
-      full_name: `${data.firstName} ${data.lastName}`.trim(),
-      email: data.email,
-      phone: data.phone || null,
-      timeline: data.timing || null,
-      notes: data.message,
-      source,
-      status: "new",
-    });
-    // insert() resolves with { error } instead of throwing, so without this a failed
-    // capture is invisible, which is the one thing attribution must not be.
-    if (leadError) console.error("[consultation] lead capture failed:", leadError);
-  } catch (err) {
-    console.error("[consultation] lead capture failed:", err);
   }
 
   return NextResponse.json({ ok: true });
