@@ -5,7 +5,7 @@ import { formatCentralDate } from "@/lib/time/central";
 import { GoalsManager } from "@/components/dashboard/GoalsManager";
 import type { ClientGoal } from "@/types/database";
 
-export const metadata = { title: "Progress — Thryve Growth Co." };
+export const metadata = { title: "Progress" };
 
 type TimelineRow = {
   id: string;

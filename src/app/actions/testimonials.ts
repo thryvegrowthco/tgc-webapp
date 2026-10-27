@@ -35,8 +35,8 @@ export async function submitTestimonial(
 ): Promise<{ error?: string; success?: boolean }> {
   const quote = (input.quote ?? "").trim();
   const authorName = (input.authorName ?? "").trim();
-  if (quote.length < 10) return { error: "Please share a little more — at least a sentence." };
-  if (quote.length > MAX_QUOTE) return { error: "That's a bit long — please keep it under 2000 characters." };
+  if (quote.length < 10) return { error: "Please share a little more, at least a sentence." };
+  if (quote.length > MAX_QUOTE) return { error: "That's a bit long. Please keep it under 2000 characters." };
   if (authorName.length < 2) return { error: "Please enter your name." };
 
   const supabase = createServiceClient();
@@ -54,7 +54,7 @@ export async function submitTestimonial(
     .eq("booking_id", booking.id)
     .maybeSingle();
   if (existing) {
-    return { error: "We already have your testimonial — thank you so much!" };
+    return { error: "We already have your testimonial. Thank you so much!" };
   }
 
   const { error } = await supabase.from("testimonials").insert({
@@ -70,7 +70,7 @@ export async function submitTestimonial(
   if (error) {
     // Unique-index race: another submit landed first.
     if (error.message.toLowerCase().includes("duplicate") || error.code === "23505") {
-      return { error: "We already have your testimonial — thank you so much!" };
+      return { error: "We already have your testimonial. Thank you so much!" };
     }
     console.error("[submitTestimonial] insert failed:", error);
     return { error: "Something went wrong saving your testimonial. Please try again." };

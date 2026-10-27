@@ -443,7 +443,7 @@ async function notifyCuratedMatch(
       clientId,
       type: "curated_job_match",
       title: `Rachel picked a job for you: ${job.title}`,
-      body: `${job.company}${curation?.matchReason ? ` — ${curation.matchReason}` : ""}`,
+      body: `${job.company}${curation?.matchReason ? `: ${curation.matchReason}` : ""}`,
       link: "/dashboard/watchlist",
       matchId,
     });

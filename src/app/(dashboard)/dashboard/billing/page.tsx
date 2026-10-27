@@ -117,7 +117,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                 <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">
                   {cancelAtPeriodEnd ? "Ends" : "Next billing date"}
                 </dt>
-                <dd className="font-medium text-neutral-800">{nextBillingDate ?? "—"}</dd>
+                <dd className="font-medium text-neutral-800">{nextBillingDate ?? "Not set"}</dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">Status</dt>
@@ -172,7 +172,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
             <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">Cost</dt>
-                <dd className="font-medium text-neutral-800">$0 — on the house</dd>
+                <dd className="font-medium text-neutral-800">$0, on the house</dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">
@@ -193,7 +193,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
               Rachel set up your Job Alerts &amp; Watchlist at no cost, so there&apos;s no card on
               file and no invoices to download.
               {compEndsOn
-                ? ` Your complimentary access runs through ${compEndsOn} — subscribe any time to keep it going.`
+                ? ` Your complimentary access runs through ${compEndsOn}. Subscribe any time to keep it going.`
                 : " If you'd ever like to move to a paid subscription, you can start one here."}
             </p>
             <Button asChild variant="outline" size="lg">

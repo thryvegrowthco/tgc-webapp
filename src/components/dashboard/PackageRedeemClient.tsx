@@ -77,7 +77,7 @@ export function PackageRedeemClient({ packageId }: { packageId: string }) {
 
   return (
     <div className="mt-3 space-y-4 rounded-lg border border-neutral-200 bg-neutral-50/50 p-4">
-      <p className="text-xs text-neutral-500">Pick a date, then a time (Central). This uses one session from your package — no payment.</p>
+      <p className="text-xs text-neutral-500">Pick a date, then a time (Central). This uses one session from your package. No payment.</p>
       <BookingCalendar
         selected={selectedDate}
         onSelect={onSelectDate}

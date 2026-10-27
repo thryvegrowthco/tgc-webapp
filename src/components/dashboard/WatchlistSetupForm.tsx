@@ -390,7 +390,7 @@ export function WatchlistSetupForm({ initialData, adminClientId }: Props) {
           onChange={(e) => setMustHaves(e.target.value)}
           className={fieldClass}
         />
-        <p className={hintClass}>Deal-breakers — jobs missing any of these are excluded. Comma-separated.</p>
+        <p className={hintClass}>Deal-breakers: jobs missing any of these are excluded. Comma-separated.</p>
       </div>
 
       <div>

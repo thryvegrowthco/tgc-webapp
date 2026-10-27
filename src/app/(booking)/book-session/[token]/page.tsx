@@ -106,7 +106,7 @@ export default async function BookSessionPage({
     return (
       <ClosedState
         heading="This invitation has expired"
-        body="No problem — reply to Rachel's email and she'll send a few new times that work."
+        body="No problem. Reply to Rachel's email and she'll send a few new times that work."
       />
     );
   }

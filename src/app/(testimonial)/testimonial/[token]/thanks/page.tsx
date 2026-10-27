@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Thank You — Thryve Growth Co.",
+  title: "Thank You",
   robots: { index: false, follow: false },
 };
 

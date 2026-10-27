@@ -98,7 +98,7 @@ export default async function DocumentsPage() {
           <div className="flex-1">
             <p className="font-semibold text-neutral-900 text-sm">Need to upload something?</p>
             <p className="text-xs text-neutral-600 mt-0.5">
-              Open the session workspace for your booking — that&apos;s where intake forms and uploads live.
+              Open the session workspace for your booking. That&apos;s where intake forms and uploads live.
             </p>
           </div>
           <Link

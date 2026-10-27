@@ -163,7 +163,7 @@ function TimelineItem({ label, date }: { label: string; date: string | null }) {
             {new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </>
         ) : (
-          <span className="text-neutral-300">—</span>
+          <span className="text-neutral-300">None</span>
         )}
       </span>
     </li>

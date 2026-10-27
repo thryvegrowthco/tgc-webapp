@@ -73,8 +73,8 @@ export function renderIssueText(input: RenderIssueInput): string {
   return [
     body,
     "",
-    "—",
-    `Thryve Growth Co. — ${publicUrl}`,
+    "---",
+    `Thryve Growth Co. - ${publicUrl}`,
     businessAddress,
     "",
     "Unsubscribe: {{unsubscribe_url}}",

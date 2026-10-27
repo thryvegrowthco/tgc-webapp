@@ -7,7 +7,7 @@ import { ProposalContent } from "@/components/proposals/ProposalContent";
 import { ProposalAcceptClient } from "@/components/proposals/ProposalAcceptClient";
 
 export const metadata: Metadata = {
-  title: "Your Proposal — Thryve Growth Co.",
+  title: "Your Proposal",
   robots: { index: false, follow: false },
 };
 
@@ -83,7 +83,7 @@ export default async function ProposalPage({
     return (
       <ClosedState
         heading="This proposal is paid"
-        body="Thank you — your payment is complete and we're all set to begin. Check your email for the receipt."
+        body="Thank you. Your payment is complete and we're all set to begin. Check your email for the receipt."
       />
     );
   }
@@ -107,7 +107,7 @@ export default async function ProposalPage({
     return (
       <ClosedState
         heading="This proposal has expired"
-        body="No problem — reply to Rachel's email and she'll send a refreshed proposal."
+        body="No problem. Reply to Rachel's email and she'll send a refreshed proposal."
       />
     );
   }

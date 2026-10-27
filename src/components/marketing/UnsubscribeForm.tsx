@@ -32,7 +32,7 @@ export function UnsubscribeForm({ subscriberId, firstName }: UnsubscribeFormProp
   if (status === "sent") {
     return (
       <p className="text-sm text-brand-700 font-medium">
-        Got it — thank you for telling Rachel.
+        Got it. Thank you for telling Rachel.
       </p>
     );
   }

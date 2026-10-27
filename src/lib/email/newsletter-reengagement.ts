@@ -53,13 +53,13 @@ export async function sendReengagementEmail(input: ReengagementInput) {
         <tr>
           <td style="padding:32px 32px 16px 32px;">
             <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;">
-              Hey ${escapeHtml(firstName)} — checking in.
+              Hey ${escapeHtml(firstName)}, checking in.
             </h2>
             <p style="margin:0 0 16px;font-size:16px;color:#334155;line-height:1.65;">
               Life gets busy and inboxes get full. I haven't seen you open one of these in a while, and I don't want to keep landing in your inbox if it's not useful anymore.
             </p>
             <p style="margin:0 0 16px;font-size:16px;color:#334155;line-height:1.65;">
-              If you still want the weekly email, no action needed — I'll keep sending them. If your priorities have shifted, you can update what you hear about or step off the list entirely.
+              If you still want the weekly email, no action needed. I'll keep sending them. If your priorities have shifted, you can update what you hear about or step off the list entirely.
             </p>
           </td>
         </tr>
@@ -128,7 +128,7 @@ export async function sendMilestoneEmail(input: MilestoneInput) {
     from: FROM_EMAIL,
     to: input.email,
     replyTo: REPLY_TO_EMAIL,
-    subject: `${input.milestone === "1_year" ? "A year" : "Six months"} of these emails — thank you`,
+    subject: `${input.milestone === "1_year" ? "A year" : "Six months"} of these emails: thank you`,
     headers: {
       "List-Unsubscribe": `<mailto:hello@thryvegrowth.co?subject=unsubscribe>, <${unsubscribeApiUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -148,7 +148,7 @@ export async function sendMilestoneEmail(input: MilestoneInput) {
       ${escapeHtml(firstName)}, it's been ${label}.
     </h2>
     <p style="margin:0 0 16px;font-size:16px;color:#334155;line-height:1.65;">
-      A small thing to mark a small milestone — you've been reading these emails for ${label} now, and I just want to say thank you. It genuinely matters that you let me show up in your inbox.
+      A small thing to mark a small milestone. You've been reading these emails for ${label} now, and I just want to say thank you. It genuinely matters that you let me show up in your inbox.
     </p>
     <p style="margin:0 0 16px;font-size:16px;color:#334155;line-height:1.65;">
       If there's anything you want more or less of, hit reply and tell me. I read every response.

@@ -6,7 +6,7 @@ import { formatCentralDate } from "@/lib/time/central";
 import { PackageRedeemClient } from "@/components/dashboard/PackageRedeemClient";
 import type { SessionPackage } from "@/types/database";
 
-export const metadata = { title: "My Packages — Thryve Growth Co." };
+export const metadata = { title: "My Packages" };
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-green-100 text-green-700" },
@@ -31,7 +31,7 @@ export default async function PackagesPage() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-neutral-900">My Packages</h1>
-        <p className="text-neutral-500 mt-1 text-sm">Sessions you&apos;ve purchased as a package — book the rest here, no extra payment.</p>
+        <p className="text-neutral-500 mt-1 text-sm">Sessions you&apos;ve purchased as a package. Book the rest here, no extra payment.</p>
       </div>
 
       {packages.length === 0 ? (
@@ -84,7 +84,7 @@ export default async function PackagesPage() {
                     <CheckCircle2 className="h-3.5 w-3.5" /> All sessions booked.
                   </p>
                 ) : expired ? (
-                  <p className="mt-3 text-xs text-neutral-500">Expired — contact Rachel if you have remaining sessions.</p>
+                  <p className="mt-3 text-xs text-neutral-500">Expired. Contact Rachel if you have remaining sessions.</p>
                 ) : null}
               </div>
             );

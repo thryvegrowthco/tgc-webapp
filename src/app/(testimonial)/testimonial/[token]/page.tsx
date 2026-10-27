@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { TestimonialForm } from "@/components/testimonial/TestimonialForm";
 
 export const metadata: Metadata = {
-  title: "Share Your Experience — Thryve Growth Co.",
+  title: "Share Your Experience",
   robots: { index: false, follow: false },
 };
 
@@ -64,7 +64,7 @@ export default async function TestimonialSubmitPage({
     return (
       <ClosedState
         heading="You've already shared your thoughts"
-        body="Thank you so much — we've received your testimonial and truly appreciate you taking the time."
+        body="Thank you so much. We've received your testimonial and truly appreciate you taking the time."
       />
     );
   }
@@ -92,7 +92,7 @@ export default async function TestimonialSubmitPage({
           ) : (
             "If working together was helpful, "
           )}
-          a short testimonial means the world — and helps others find the support they need. It takes about a minute.
+          a short testimonial means the world and helps others find the support they need. It takes about a minute.
         </p>
       </Card>
 

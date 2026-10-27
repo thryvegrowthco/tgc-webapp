@@ -100,8 +100,8 @@ export async function sendClientInvite(
         </div>
 
         <p style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
-          Click below to sign in and set your password. This link expires in 24 hours —
-          just reply to this email if you need a fresh one.
+          Click below to sign in and set your password. This link expires in 24 hours.
+          Just reply to this email if you need a fresh one.
         </p>
 
         <a
@@ -117,7 +117,7 @@ export async function sendClientInvite(
         </p>
 
         <p style="font-size: 14px; color: #475569; margin-top: 24px;">
-          Not expecting this? Reply and let us know — we'll remove the account.
+          Not expecting this? Reply and let us know and we'll remove the account.
         </p>
 
         <div style="border-top: 1px solid #e2e8f0; margin-top: 40px; padding-top: 20px;">

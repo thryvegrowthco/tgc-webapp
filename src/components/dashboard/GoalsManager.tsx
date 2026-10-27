@@ -95,7 +95,7 @@ export function GoalsManager({ clientId, goals, adminMode = false }: Props) {
     <div className="space-y-3">
       {sorted.length === 0 && !adding && (
         <p className="text-sm text-neutral-400">
-          {adminMode ? "No goals yet for this client." : "No goals yet — add what you're working toward."}
+          {adminMode ? "No goals yet for this client." : "No goals yet. Add what you're working toward."}
         </p>
       )}
 

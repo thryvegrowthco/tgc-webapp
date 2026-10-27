@@ -113,7 +113,7 @@ const RESUME_REVIEW_SCHEMA: IntakeSchema = {
 const RESUME_REWRITE_SCHEMA: IntakeSchema = {
   ...RESUME_REVIEW_SCHEMA,
   title: "Resume rewrite intake",
-  subtitle: "I'll use this to draft your new resume — please be thorough.",
+  subtitle: "I'll use this to draft your new resume, so please be thorough.",
   fields: RESUME_REVIEW_SCHEMA.fields.map((field) =>
     field.id === "resume_upload" ? { ...field, required: true } : field
   ),
@@ -136,7 +136,7 @@ const INTERVIEW_PREP_SCHEMA: IntakeSchema = {
 
 const HR_CONSULTING_SCHEMA: IntakeSchema = {
   title: "HR consulting intake",
-  subtitle: "Share the situation — I'll come prepared to help.",
+  subtitle: "Share the situation and I'll come prepared to help.",
   fields: [
     { id: "org_name", label: "Organization name", type: "short", required: true },
     { id: "main_challenge", label: "Main challenge", type: "long", required: true },

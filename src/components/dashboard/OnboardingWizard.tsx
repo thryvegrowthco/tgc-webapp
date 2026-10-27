@@ -177,7 +177,7 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
         <div hidden={STEPS[stepIdx].key !== "work"} className="space-y-5">
           <div>
             <h2 className="font-display text-xl font-bold text-neutral-900 mb-1">Your work</h2>
-            <p className="text-sm text-neutral-500">Whatever applies — skip anything that doesn&apos;t.</p>
+            <p className="text-sm text-neutral-500">Whatever applies. Skip anything that doesn&apos;t.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -229,7 +229,7 @@ export function OnboardingWizard({ initial }: { initial: OnboardingInitial }) {
           </div>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-neutral-700 mb-1.5">Services you&apos;re interested in</legend>
-            <p className="text-xs text-neutral-500 mb-2">Pick any that apply — there&apos;s no wrong answer.</p>
+            <p className="text-xs text-neutral-500 mb-2">Pick any that apply. There&apos;s no wrong answer.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {SERVICE_OPTIONS.map((s) => (
                 <label key={s.value} className="flex items-start gap-2.5 rounded-lg border border-neutral-200 p-3 cursor-pointer hover:bg-brand-50 hover:border-brand-200 transition-colors">

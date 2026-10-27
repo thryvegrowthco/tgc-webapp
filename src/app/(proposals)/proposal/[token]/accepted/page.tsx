@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const metadata: Metadata = {
-  title: "Proposal Accepted — Thryve Growth Co.",
+  title: "Proposal Accepted",
   robots: { index: false, follow: false },
 };
 
@@ -36,7 +36,7 @@ export default async function ProposalAcceptedPage({
         <CheckCircle2 className="h-6 w-6 text-green-600" />
       </div>
       <h1 className="font-display text-2xl font-bold text-neutral-900">
-        {isPaid ? "Payment complete — thank you!" : "Proposal accepted!"}
+        {isPaid ? "Payment complete. Thank you!" : "Proposal accepted!"}
       </h1>
       <p className="text-neutral-600 mt-2">
         {isPaid

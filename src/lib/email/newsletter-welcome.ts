@@ -76,7 +76,7 @@ function buildWelcomeHtml(p: {
               Glad you're here, ${p.firstName}.
             </h2>
             <p style="margin:0;font-size:16px;color:#475569;line-height:1.65;">
-              Quick note from me before you get a single newsletter — just so you know what you signed up for.
+              Quick note from me before you get a single newsletter, just so you know what you signed up for.
             </p>
           </td>
         </tr>
@@ -84,13 +84,13 @@ function buildWelcomeHtml(p: {
         <tr>
           <td style="padding:20px 32px 8px 32px;">
             <p style="margin:0 0 16px;font-size:16px;color:#334155;line-height:1.65;">
-              Every week, I send one short email. No hype, no funnel — just the kind of thing I'd send a friend who's working on their career or their team. You can expect:
+              Every week, I send one short email. No hype, no funnel, just the kind of thing I'd send a friend who's working on their career or their team. You can expect:
             </p>
             <ul style="margin:0 0 16px;padding-left:20px;color:#334155;font-size:16px;line-height:1.7;">
               <li>A short reflection or motivation for the week</li>
               <li>One blog or article worth your time</li>
               <li>A practical career or leadership tip you can use today</li>
-              <li>A resource — template, checklist, or guide</li>
+              <li>A resource (template, checklist, or guide)</li>
               <li>Occasionally, an update on what I'm offering</li>
             </ul>
             <p style="margin:0 0 16px;font-size:16px;color:#334155;line-height:1.65;">
@@ -103,7 +103,7 @@ function buildWelcomeHtml(p: {
           <td style="padding:8px 32px 8px 32px;">
             <div style="background:#f5ece3;border-left:3px solid #203e35;padding:16px 20px;border-radius:0 8px 8px 0;">
               <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">
-                <strong style="color:#0f172a;">One favor:</strong> if something lands for you, hit reply and tell me. I read every response personally — this isn't a no-reply list.
+                <strong style="color:#0f172a;">One favor:</strong> if something lands for you, hit reply and tell me. I read every response personally. This isn't a no-reply list.
               </p>
             </div>
           </td>

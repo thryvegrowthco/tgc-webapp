@@ -242,7 +242,7 @@ export async function sendConsultationRequestAutoReply(data: ConsultationRequest
     from: FROM_EMAIL,
     to: data.email,
     replyTo: REPLY_TO_EMAIL,
-    subject: "I got your consultation request — talk soon",
+    subject: "I got your consultation request. Talk soon",
     html: `
       <!DOCTYPE html>
       <html>
@@ -256,7 +256,7 @@ export async function sendConsultationRequestAutoReply(data: ConsultationRequest
 
         <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
-            Got it — thanks for reaching out ✓
+            Got it. Thanks for reaching out ✓
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
             Hi ${escapeHtml(data.firstName)}, I received your request for a free 30-minute consultation call.
@@ -264,7 +264,7 @@ export async function sendConsultationRequestAutoReply(data: ConsultationRequest
         </div>
 
         <p style="font-size: 15px; color: #475569; line-height: 1.6;">
-          I'll personally review what you sent and get back to you within 1–2 business days with a couple of times that work for a call. No pressure, no sales pitch — just a real conversation about what's going on and whether I'm the right person to help.
+          I'll personally review what you sent and get back to you within 1 to 2 business days with a couple of times that work for a call. No pressure, no sales pitch, just a real conversation about what's going on and whether I'm the right person to help.
         </p>
 
         <p style="font-size: 15px; color: #475569; line-height: 1.6;">

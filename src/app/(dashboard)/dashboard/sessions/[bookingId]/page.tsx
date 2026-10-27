@@ -234,7 +234,7 @@ export default async function SessionWorkspacePage({
                 <ClientSessionActions bookingId={booking.id} />
               ) : (
                 <p className="text-sm text-neutral-500">
-                  Need to change this? It&apos;s within 24 hours — reply to Rachel&apos;s email and she&apos;ll help.
+                  Need to change this? It&apos;s within 24 hours. Reply to Rachel&apos;s email and she&apos;ll help.
                 </p>
               )}
             </div>

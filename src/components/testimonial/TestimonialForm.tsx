@@ -29,7 +29,7 @@ export function TestimonialForm({ token, prefillName }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (quote.trim().length < 10) return toast.error("Please share a little more — at least a sentence.");
+    if (quote.trim().length < 10) return toast.error("Please share a little more, at least a sentence.");
     if (authorName.trim().length < 2) return toast.error("Please enter your name.");
 
     setSubmitting(true);

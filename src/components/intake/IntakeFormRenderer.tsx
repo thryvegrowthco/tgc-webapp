@@ -92,7 +92,7 @@ export function IntakeFormRenderer({
           <div>
             <p className="font-semibold text-brand-800">Intake submitted</p>
             <p className="text-sm text-brand-700 mt-1">
-              Thanks — I&apos;ll review everything carefully before we meet. If you need to add
+              Thanks. I&apos;ll review everything carefully before we meet. If you need to add
               or change anything, message me from the workspace below.
             </p>
             <p className="text-xs text-brand-600 mt-2">

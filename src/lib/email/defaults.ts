@@ -45,7 +45,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
   },
 
   welcome: {
-    subject: "Welcome to Thryve Growth Co. — here's what comes next",
+    subject: "Welcome to Thryve Growth Co.: here's what comes next",
     placeholders: [
       "client_name",
       "service_type",
@@ -68,35 +68,35 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 </p>
 {{#if signed_agreement_url}}<p style="margin:0 0 16px;color:#475569;">Your signed service agreement is <a href="{{signed_agreement_url}}" style="color:#203e35;">on file here</a> for your records.</p>{{/if}}
 <p style="margin:0 0 16px;color:#475569;"><strong>Need to reschedule?</strong> Reply to this email at least 24 hours before our session and we'll find a new time. Cancellations within 24 hours are non-refundable.</p>
-<p style="margin:0;color:#475569;">Direct. Honest. Practical.<br/>— Rachel</p>`,
+<p style="margin:0;color:#475569;">Direct. Honest. Practical.<br/>Rachel</p>`,
   },
 
   intake_reminder_48h: {
     subject: "Quick reminder: your intake form for {{service_type}}",
     placeholders: ["client_name", "service_type", "session_workspace_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
-<p style="margin:0 0 16px;">Just a friendly nudge — your intake form for our upcoming {{service_type}} is due in 48 hours. It takes about 5 minutes.</p>
+<p style="margin:0 0 16px;">Just a friendly nudge. Your intake form for our upcoming {{service_type}} is due in 48 hours. It takes about 5 minutes.</p>
 <p style="margin:0 0 16px;">The more you share, the more we can get done together.</p>
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{session_workspace_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Complete your intake</a>
 </p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   intake_reminder_24h: {
-    subject: "One more nudge — your intake form for {{service_type}}",
+    subject: "One more nudge: your intake form for {{service_type}}",
     placeholders: ["client_name", "service_type", "session_time", "session_workspace_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
-<p style="margin:0 0 16px;">We're meeting tomorrow at {{session_time}}. I want to make sure I'm as prepared as possible — the more I know going in, the more we can get done together.</p>
+<p style="margin:0 0 16px;">We're meeting tomorrow at {{session_time}}. I want to make sure I'm as prepared as possible. The more I know going in, the more we can get done together.</p>
 <p style="margin:0 0 16px;">Could you take 5 minutes to fill out the intake form?</p>
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{session_workspace_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Complete your intake</a>
 </p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   intake_complete: {
-    subject: "Got it — I'll review before we meet",
+    subject: "Got it. I'll review before we meet",
     placeholders: ["client_name", "session_date", "session_time", "session_workspace_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">Thanks for completing your intake form. I'll review everything carefully before we meet on <strong>{{session_date}} at {{session_time}}</strong>.</p>
@@ -108,7 +108,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{session_workspace_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Open your session workspace</a>
 </p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   session_reminder_24h: {
@@ -126,7 +126,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 </table>
 <p style="margin:0 0 16px;color:#475569;">If something came up, reply to this email and we'll find a new time.</p>
 {{#if add_to_google_calendar_url}}<p style="margin:0 0 16px;color:#475569;"><a href="{{add_to_google_calendar_url}}" style="color:#203e35;">Add to Google Calendar</a> · <a href="{{ics_url}}" style="color:#203e35;">Apple or Outlook (.ics)</a></p>{{/if}}
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   post_service_followup: {
@@ -135,12 +135,12 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">Hope our recent {{service_type}} was useful. Here are three things to keep momentum:</p>
 <ol style="margin:0 0 24px;padding-left:20px;color:#0f172a;">
-  <li style="margin:0 0 12px;"><strong>Review what we covered</strong> — any notes or materials I shared are in your <a href="{{session_workspace_url}}" style="color:#203e35;">session workspace</a>.</li>
-  <li style="margin:0 0 12px;"><strong>Share a quick testimonial</strong> if it's been helpful — it takes about 60 seconds and means a lot. <a href="{{testimonial_url}}" style="color:#203e35;">Leave one here.</a></li>
+  <li style="margin:0 0 12px;"><strong>Review what we covered</strong>: any notes or materials I shared are in your <a href="{{session_workspace_url}}" style="color:#203e35;">session workspace</a>.</li>
+  <li style="margin:0 0 12px;"><strong>Share a quick testimonial</strong> if it's been helpful. It takes about 60 seconds and means a lot. <a href="{{testimonial_url}}" style="color:#203e35;">Leave one here.</a></li>
   <li style="margin:0 0 12px;"><strong>Need another session?</strong> <a href="{{book_url}}" style="color:#203e35;">Book it here</a> while it's top of mind.</li>
 </ol>
 <p style="margin:0 0 16px;color:#475569;">Direct. Honest. Practical.</p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   deliverable_ready: {
@@ -152,18 +152,18 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
   <a href="{{deliverable_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Open your dashboard</a>
 </p>
 <p style="margin:0 0 16px;color:#475569;">Let me know if you have any questions.</p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   new_job_match: {
     subject: "New job matches in your Thryve watchlist",
     placeholders: ["client_name", "match_count", "match_plural", "dashboard_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
-<p style="margin:0 0 16px;">Good news — <strong>{{match_count}}</strong> new job match{{#if match_plural}}es{{/if}} just landed in your watchlist based on your preferences.</p>
+<p style="margin:0 0 16px;">Good news: <strong>{{match_count}}</strong> new job match{{#if match_plural}}es{{/if}} just landed in your watchlist based on your preferences.</p>
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{dashboard_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Review your matches</a>
 </p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   curated_job_match: {
@@ -182,7 +182,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{dashboard_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">View this match</a>
 </p>
-<p style="margin:0;color:#475569;">Direct. Honest. Practical.<br/>— Rachel</p>`,
+<p style="margin:0;color:#475569;">Direct. Honest. Practical.<br/>Rachel</p>`,
   },
 
   watchlist_updated: {
@@ -193,7 +193,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{dashboard_url}}" style="display:inline-block;background:#ffffff;color:#203e35;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;border:1px solid #203e35;">View your watchlist</a>
 </p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   application_reminder: {
@@ -204,7 +204,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 32px;text-align:center;">
   <a href="{{dashboard_url}}" style="display:inline-block;background:#203e35;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Update your tracker</a>
 </p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   booking_invitation: {
@@ -225,7 +225,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
   </td></tr>
 </table>
 <p style="margin:0 0 16px;color:#475569;">Once you select your time, you'll receive a confirmation email with the session details. If none of the times work, just reply to this email and I'll send over a few more options.</p>
-<p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>— Rachel</p>`,
+<p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>Rachel</p>`,
   },
 
   session_confirmed: {
@@ -250,11 +250,11 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 <p style="margin:0 0 16px;color:#475569;">Before your session, please complete any required intake forms or send over anything you'd like me to review in advance. You can also reply to this email if anything changes.</p>
 {{#if session_workspace_url}}<p style="margin:0 0 16px;color:#475569;">Your session workspace is <a href="{{session_workspace_url}}" style="color:#203e35;">here</a>.</p>{{/if}}
 {{#if add_to_google_calendar_url}}<p style="margin:0 0 16px;color:#475569;"><a href="{{add_to_google_calendar_url}}" style="color:#203e35;">Add to Google Calendar</a> · <a href="{{ics_url}}" style="color:#203e35;">Apple or Outlook (.ics)</a></p>{{/if}}
-<p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>— Rachel</p>`,
+<p style="margin:0;color:#475569;">Looking forward to connecting with you!<br/>Rachel</p>`,
   },
 
   session_reminder_1h: {
-    subject: "Starting soon — your Thryve session at {{session_time}}",
+    subject: "Starting soon: your Thryve session at {{session_time}}",
     placeholders: ["client_name", "session_date", "session_time", "meeting_type", "meet_link", "meeting_location", "session_workspace_url"],
     bodyHtml: `<p style="margin:0 0 16px;">Hi {{client_name}},</p>
 <p style="margin:0 0 16px;">Your session starts in about an hour. Here are the details so you're ready:</p>
@@ -268,7 +268,7 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
   </td></tr>
 </table>
 <p style="margin:0 0 16px;color:#475569;">See you soon!</p>
-<p style="margin:0;color:#475569;">— Rachel</p>`,
+<p style="margin:0;color:#475569;">Rachel</p>`,
   },
 
   new_session_booked: {
@@ -314,6 +314,6 @@ export const DEFAULT_TEMPLATES: Record<EmailTemplateKey, DefaultTemplate> = {
 </p>
 {{#if expiry_note}}<p style="margin:0 0 16px;color:#475569;">{{expiry_note}}</p>{{/if}}
 <p style="margin:0 0 16px;color:#475569;">If you have any questions or would like to adjust anything, just reply to this email and we'll work it out together.</p>
-<p style="margin:0;color:#475569;">Looking forward to partnering with you!<br/>— Rachel</p>`,
+<p style="margin:0;color:#475569;">Looking forward to partnering with you!<br/>Rachel</p>`,
   },
 };
