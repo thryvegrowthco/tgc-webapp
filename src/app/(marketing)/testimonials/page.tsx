@@ -9,7 +9,8 @@ import type { Testimonial } from "@/types/database";
 
 export const metadata: Metadata = pageMeta("/testimonials", {
   title: "Client Testimonials",
-  description: "What clients say about working with Thryve Growth Co.",
+  description:
+    "Read what clients say about working with Rachel Dietz at Thryve Growth Co. on resumes, interview prep, coaching, and HR support.",
 });
 
 const QuoteIcon = () => (
@@ -50,7 +51,7 @@ export default async function TestimonialsPage() {
               What Clients Say
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
-              Real feedback from real clients. No embellishment, no cherry-picking.
+              Real words from real clients, shared with their permission.
             </p>
           </div>
         </div>

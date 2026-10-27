@@ -1,8 +1,21 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { NEWSLETTER_INTERESTS } from "@/lib/newsletter/interests";
 import { HoneypotField } from "@/components/shared/HoneypotField";
+
+function PrivacyNote() {
+  return (
+    <p className="text-xs text-neutral-500">
+      One email a week. Unsubscribe anytime. See our{" "}
+      <Link href="/privacy" className="underline underline-offset-2 hover:text-neutral-700">
+        Privacy Policy
+      </Link>
+      .
+    </p>
+  );
+}
 
 interface NewsletterFormProps {
   /**
@@ -70,27 +83,30 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
 
   if (variant === "inline") {
     return (
-      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
-        <HoneypotField />
-        <input
-          type="email"
-          placeholder="your@email.com"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-        />
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="rounded-lg bg-brand-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-60"
-        >
-          {status === "loading" ? "Subscribing…" : "Subscribe"}
-        </button>
-        {status === "error" && (
-          <p className="text-xs text-red-600 mt-1 w-full">Something went wrong. Try again.</p>
-        )}
-      </form>
+      <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
+          <HoneypotField />
+          <input
+            type="email"
+            placeholder="your@email.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <button
+            type="submit"
+            disabled={status === "loading"}
+            className="rounded-lg bg-brand-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-60"
+          >
+            {status === "loading" ? "Subscribing…" : "Subscribe"}
+          </button>
+          {status === "error" && (
+            <p className="text-xs text-red-600 mt-1 w-full">Something went wrong. Try again.</p>
+          )}
+        </form>
+        <PrivacyNote />
+      </div>
     );
   }
 
@@ -153,9 +169,7 @@ export function NewsletterForm({ variant = "inline", source = "footer" }: Newsle
         >
           {status === "loading" ? "Subscribing…" : "Subscribe"}
         </button>
-        <p className="text-xs text-neutral-500">
-          One email a week. Unsubscribe anytime.
-        </p>
+        <PrivacyNote />
       </div>
 
       {status === "error" && (

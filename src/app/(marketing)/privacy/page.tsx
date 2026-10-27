@@ -6,7 +6,8 @@ import type { TrackingPixel } from "@/types/database";
 
 export const metadata: Metadata = pageMeta("/privacy", {
   title: "Privacy Policy",
-  description: "Privacy Policy for Thryve Growth Co. LLC",
+  description:
+    "How Thryve Growth Co. collects, uses, and protects your personal information, including newsletter data and website analytics, and the choices you have.",
 });
 
 export default async function PrivacyPage() {
@@ -89,22 +90,22 @@ export default async function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1 mb-3">
               <li>Your email address (required)</li>
               <li>Your first name (optional)</li>
-              <li>The topics you said you&apos;re interested in — leadership, job searching, resume and interview tips, career growth, motivation, HR insights, or workplace growth (all optional)</li>
+              <li>The topics you said you&apos;re interested in: leadership, job searching, resume and interview tips, career growth, motivation, HR insights, or workplace growth (all optional)</li>
             </ul>
             <p className="mb-2"><strong>How we use it:</strong></p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
               <li>To send you the weekly newsletter</li>
-              <li>To track which emails you open and which links you click — so we know what content lands and what to write more of. We don&apos;t share that data with anyone outside the providers below.</li>
+              <li>To track which emails you open and which links you click, so we know what content lands and what to write more of. We don&apos;t share that data with anyone outside the providers below.</li>
             </ul>
             <p className="mb-2"><strong>Who handles the data on our behalf:</strong></p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
-              <li><strong>Resend</strong> — sends the emails and reports opens and clicks back to us</li>
-              <li><strong>Supabase</strong> — stores your subscription record and engagement history</li>
-              <li><strong>GoHighLevel</strong> — receives your subscription as a contact tag, only if we have GoHighLevel configured (it&apos;s optional and the rest of the newsletter works without it)</li>
+              <li><strong>Resend</strong>: sends the emails and reports opens and clicks back to us</li>
+              <li><strong>Supabase</strong>: stores your subscription record and engagement history</li>
+              <li><strong>GoHighLevel</strong>: receives your subscription as a contact tag, only if we have GoHighLevel configured (it&apos;s optional and the rest of the newsletter works without it)</li>
             </ul>
             <p className="mb-3"><strong>Controlling your subscription:</strong> Every email we send includes an unsubscribe link and a preferences link. Both work without logging in. You can update your topic interests, resubscribe after leaving, or step off the list entirely whenever you want.</p>
             <p className="mb-3"><strong>How long we keep it:</strong> We keep your record while you&apos;re subscribed. After you unsubscribe, we keep a small suppression record (just your email) so we never accidentally add you back. You can ask us to delete that too by emailing <a href="mailto:hello@thryvegrowth.co" className="text-brand-700 underline underline-offset-4">hello@thryvegrowth.co</a>.</p>
-            <p><strong>If you&apos;re in the EU or UK:</strong> The legal basis for processing your data is your consent — you subscribed. You can withdraw it any time with no penalty. You also have the right to access, correct, or delete your data; email us and we&apos;ll handle it within 30 days.</p>
+            <p><strong>If you&apos;re in the EU or UK:</strong> The legal basis for processing your data is your consent, which you gave when you subscribed. You can withdraw it any time with no penalty. You also have the right to access, correct, or delete your data; email us and we&apos;ll handle it within 30 days.</p>
           </div>
 
           <div>
@@ -154,7 +155,7 @@ export default async function PrivacyPage() {
                         <span className="font-medium text-neutral-900">{d.label}</span>
                         {d.optOutUrl && (
                           <>
-                            {" — "}
+                            {" · "}
                             <a
                               href={d.optOutUrl}
                               target="_blank"

@@ -11,7 +11,7 @@ export function AboutTGC() {
           </div>
 
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-neutral-900 mb-8 leading-tight">
-            About TGC
+            About Thryve Growth Co.
           </h2>
 
           <div className="space-y-6 text-neutral-600 leading-relaxed">
@@ -33,8 +33,7 @@ export function AboutTGC() {
               clarity, accountability, and support exist together.
             </p>
             <p>
-              That means honest conversations. Clear direction. Real follow
-              through.
+              That means honest conversations. Clear direction. Real follow-through.
             </p>
             <p>
               Whether I&apos;m working with individuals, leaders, or organizations,

@@ -11,7 +11,7 @@ export const metadata: Metadata = pageMeta("/", {
   title: "HR Consulting & Career Coaching | Thryve Growth Co.",
   absoluteTitle: true,
   description:
-    "Grow Better Leaders. Build Stronger Teams. Move Careers Forward. Real-world HR consulting and career coaching grounded in clarity, accountability, and honest guidance.",
+    "HR consulting, career and leadership coaching, interview prep, and resume writing from Rachel Dietz, PHR. Based in Wisconsin, serving clients nationwide.",
   shareTitle: "Thryve Growth Co. | HR Consulting & Career Coaching",
   shareDescription:
     "Grow Better Leaders. Build Stronger Teams. Move Careers Forward. Real-world HR expertise meets honest career coaching.",

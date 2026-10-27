@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 export const metadata: Metadata = pageMeta("/services/recruitment-screening", {
   title: "Recruitment & Candidate Screening",
   description:
-    "Flexible recruitment support for small businesses and organizations. Resume screening, candidate phone screens, interview question development, and hiring process consultation — tailored to your needs.",
+    "Flexible recruitment support for small businesses and nonprofits: resume screening, phone screens, interview questions, and hiring process advice.",
 });
 
 const included = [

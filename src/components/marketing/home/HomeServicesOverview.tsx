@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Users, User, Building2, FileText, Briefcase, Bell } from "lucide-react";
+import { ArrowRight, Users, User, Building2, FileText, Briefcase, Bell, UserSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const services = [
@@ -36,6 +36,7 @@ const addOns = [
   { icon: FileText, title: "Resume & Career Materials", href: "/services/resume-materials" },
   { icon: Briefcase, title: "Interview Preparation", href: "/services/interview-prep" },
   { icon: Bell, title: "Job Alerts & Watchlists", href: "/services/job-alerts" },
+  { icon: UserSearch, title: "Recruitment & Candidate Screening", href: "/services/recruitment-screening" },
 ];
 
 export function HomeServicesOverview() {
@@ -96,7 +97,7 @@ export function HomeServicesOverview() {
           <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-4">
             Additional Support
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {addOns.map((addon) => {
               const Icon = addon.icon;
               return (

@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { UnsubscribeForm } from "@/components/marketing/UnsubscribeForm";
 
 export const metadata: Metadata = {
-  title: "Unsubscribed — Thryve Growth Co.",
+  title: "Unsubscribed",
   robots: { index: false, follow: false },
 };
 
@@ -53,7 +53,7 @@ export default async function UnsubscribePage({ params }: PageProps) {
                 You&apos;ve been unsubscribed.
               </h1>
               <p className="text-neutral-600 mb-6 leading-relaxed">
-                {sub.email} won&apos;t receive any more Thryve newsletters. No hard feelings — life gets busy.
+                {sub.email} won&apos;t receive any more Thryve newsletters. No hard feelings. Life gets busy.
                 If you change your mind, you can <Link href="/newsletter" className="text-brand-700 underline underline-offset-4">resubscribe anytime</Link>.
               </p>
 

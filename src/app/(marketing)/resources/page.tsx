@@ -119,7 +119,7 @@ export default async function ResourcesPage() {
             <p className="text-neutral-600 leading-relaxed">
               {resources.length > 0
                 ? "Pick what you need. New templates are being added as we build them out."
-                : "We’re putting the finishing touches on the first batch — check back soon."}
+                : "We’re putting the finishing touches on the first batch. Check back soon."}
             </p>
           </div>
 

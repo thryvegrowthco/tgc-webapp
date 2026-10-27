@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { ManagePreferencesForm } from "@/components/marketing/ManagePreferencesForm";
 
 export const metadata: Metadata = {
-  title: "Manage your subscription — Thryve Growth Co.",
+  title: "Manage your subscription",
   robots: { index: false, follow: false },
 };
 

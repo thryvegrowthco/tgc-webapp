@@ -78,6 +78,9 @@ export default function ContactPage() {
                   </div>
                   <ArrowRight className="h-4 w-4 text-neutral-300 group-hover:text-brand-500 ml-auto transition-colors" />
                 </a>
+                <p className="mt-3 text-sm text-neutral-500">
+                  Based in Sun Prairie, Wisconsin. Working with clients nationwide by video.
+                </p>
               </div>
 
               {/* Social */}
@@ -148,14 +151,13 @@ export default function ContactPage() {
               <div className="rounded-xl bg-brand-700 p-5 text-white">
                 <p className="font-semibold mb-2">Ready to get started?</p>
                 <p className="text-sm text-brand-200 leading-relaxed mb-4">
-                  Skip the back-and-forth. Book a call directly and let&apos;s talk
-                  about what you need.
+                  Want to talk it through? Request a free 30-minute call.
                 </p>
                 <Link
                   href="/consultation"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-100 hover:text-white transition-colors"
                 >
-                  Book a Free 30-Minute Consultation Call <ArrowRight className="h-4 w-4" />
+                  Request a free 30-minute call <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

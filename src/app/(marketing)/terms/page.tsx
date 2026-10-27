@@ -3,7 +3,8 @@ import { pageMeta } from "@/lib/seo/page-meta";
 
 export const metadata: Metadata = pageMeta("/terms", {
   title: "Terms of Service",
-  description: "Terms of Service for Thryve Growth Co. LLC",
+  description:
+    "The Terms of Service for Thryve Growth Co. The rules for using our website, booking and paying for sessions, and the policies that apply to clients.",
 });
 
 export default function TermsPage() {

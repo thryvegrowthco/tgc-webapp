@@ -27,9 +27,9 @@ export function AboutHero() {
               Hi, I&apos;m <span className="text-brand-700">Rachel.</span>
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed max-w-xl">
-              I&apos;m the founder of Thryve Growth Co. and a senior HR leader who
-              has spent years helping people and organizations grow through real
-              challenges, not just theory.
+              I&apos;m Rachel Dietz, PHR, founder of Thryve Growth Co. and a senior
+              HR leader who has spent years helping people and organizations grow
+              through real challenges, not just theory.
             </p>
             <div className="mt-8 flex items-center gap-6 text-sm text-neutral-500">
               <div className="flex items-center gap-1.5">
@@ -38,8 +38,8 @@ export function AboutHero() {
               </div>
               <div className="w-px h-4 bg-neutral-200" />
               <div className="flex items-center gap-1.5">
-                <span className="text-brand-600 font-bold">Thryve</span>
-                <span>Growth Co. LLC</span>
+                <span className="text-brand-600 font-bold">PHR</span>
+                <span>certified</span>
               </div>
             </div>
           </div>

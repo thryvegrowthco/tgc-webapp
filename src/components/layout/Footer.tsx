@@ -12,6 +12,7 @@ const serviceLinks = [
   { label: "HR Consulting & Team Development", href: "/services/hr-consulting" },
   { label: "Career & Leadership Coaching", href: "/services/coaching" },
   { label: "Culture & Engagement Consulting", href: "/services/culture-engagement" },
+  { label: "Recruitment & Candidate Screening", href: "/services/recruitment-screening" },
   { label: "Interview Preparation", href: "/services/interview-prep" },
   { label: "Resume & Career Materials", href: "/services/resume-materials" },
   { label: "Job Alerts & Watchlists", href: "/services/job-alerts" },
@@ -74,6 +75,9 @@ export function Footer() {
             <p className="mt-3 text-sm text-neutral-700 leading-relaxed">
               Practical HR consulting and coaching for individuals and organizations
               who want to grow with intention.
+            </p>
+            <p className="mt-3 text-sm text-neutral-700">
+              Sun Prairie, Wisconsin. Serving clients nationwide.
             </p>
 
             {/* Social Links */}

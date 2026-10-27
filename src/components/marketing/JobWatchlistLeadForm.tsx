@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +66,7 @@ export function JobWatchlistLeadForm() {
         </h3>
         <p className="text-neutral-600 leading-relaxed max-w-sm">
           Thanks for sharing what you&apos;re looking for. Rachel will reach out
-          within 1–2 business days to talk through next steps.
+          within 1 to 2 business days to talk through next steps.
         </p>
       </div>
     );
@@ -163,7 +164,11 @@ export function JobWatchlistLeadForm() {
       {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
       <p className="text-xs text-center text-neutral-400">
-        Rachel will reach out within 1–2 business days.
+        Rachel will reach out within 1 to 2 business days. By sending this, you agree to our{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-neutral-600">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </form>
   );

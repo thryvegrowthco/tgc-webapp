@@ -50,7 +50,7 @@ export function HomeHero() {
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
                 <Link href="/consultation">
-                  Start Your Growth
+                  Book a free 30-minute call
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>

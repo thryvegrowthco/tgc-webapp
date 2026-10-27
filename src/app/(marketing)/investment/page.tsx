@@ -202,7 +202,7 @@ export default function InvestmentPage() {
         body="Pick a service, book a call, or just reach out if you have questions. No pressure either way."
         primaryLabel="Book a free 30-minute call"
         primaryHref="/consultation"
-        secondaryLabel="Start Your Growth"
+        secondaryLabel="Explore services"
         secondaryHref="/services"
       />
     </>

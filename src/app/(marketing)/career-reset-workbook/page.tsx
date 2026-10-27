@@ -17,7 +17,7 @@ const DOWNLOAD_URL = `/api/resources/download/${SLUG}`;
 export const metadata: Metadata = pageMeta("/career-reset-workbook", {
   title: "Career Reset Workbook",
   description:
-    "A free, guided workbook to help you get unstuck, get clear on what you actually want next, and map your first real steps, at your own pace. From Thryve Growth Co.",
+    "A free, guided workbook from Rachel Dietz, PHR, to help you get unstuck, get clear on what you want next, and map your first real steps at your own pace.",
   shareTitle: "The Career Reset Workbook (Free)",
   shareDescription:
     "Feeling stuck? This free workbook walks you through the exact questions a career coach starts with, so you leave with clarity and a first plan.",
@@ -30,7 +30,7 @@ const INSIDE = [
   "Create your career vision: picture an ordinary good day two years out and turn it into a clear direction",
   "Define your non-negotiables: choose the five things that matter most, with your real deal-breakers",
   "Set goals that create movement: a 90-day goal broken into realistic 30 / 60 / 90-day milestones",
-  "Check your job-search readiness: a scorecard across your résumé, story, network, interviewing, and more",
+  "Check your job-search readiness: a scorecard across your resume, story, network, interviewing, and more",
   "Build your 30-day plan: four focused weeks (clarify, position, connect, and act)",
   "Celebrate the progress: see how far you've come and commit to your next 30 days",
 ];

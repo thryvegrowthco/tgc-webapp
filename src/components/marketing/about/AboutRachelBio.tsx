@@ -1,12 +1,17 @@
 import { RachelPhoto } from "@/components/shared/RachelPhoto";
+import { RACHEL_LINKEDIN } from "@/lib/site/social";
 
 const highlights = [
-  "10+ years of hands-on HR leadership experience",
   "Coached individuals through career transitions and promotions",
   "Coached and mentored professionals to develop their strengths, overcome challenges, and advance their careers",
   "Developed onboarding, performance, and retention programs",
   "Partnered with executives on culture and organizational design",
-  "PHR-certified HR professional",
+];
+
+const credentials = [
+  "Professional in Human Resources (PHR), HR Certification Institute",
+  "10+ years in HR, including public-sector HR, from assistant-level roles to senior HR leadership",
+  "Based in Sun Prairie, Wisconsin. Working with clients nationwide by video.",
 ];
 
 export function AboutRachelBio() {
@@ -26,7 +31,7 @@ export function AboutRachelBio() {
           </h2>
           <p className="text-neutral-600 leading-relaxed">
             I didn&apos;t land here by accident. I built my career from the ground
-            up, starting in assistant level roles and working my way into senior
+            up, starting in assistant-level roles and working my way into senior
             leadership. Every step came with a learning curve, tough moments, and
             a lot of figuring things out in real time.
           </p>
@@ -40,7 +45,7 @@ export function AboutRachelBio() {
               That experience shaped how I approach this work.
             </p>
             <p>
-              I&apos;m not here to give surface level advice or tell you what
+              I&apos;m not here to give surface-level advice or tell you what
               sounds good. I&apos;m here to help you get clear, be honest about
               what&apos;s actually going on, and take action that moves you forward.
             </p>
@@ -65,6 +70,31 @@ export function AboutRachelBio() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Credentials */}
+            <div className="pt-4">
+              <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400 mb-4">
+                Credentials
+              </p>
+              <ul className="space-y-2.5">
+                {credentials.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm">
+                    <span className="h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full bg-brand-100 text-brand-700 font-bold text-xs mt-0.5">
+                      ✓
+                    </span>
+                    <span className="text-neutral-700">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <a
+                href={RACHEL_LINKEDIN}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-brand-700 hover:text-brand-800"
+              >
+                Connect with Rachel on LinkedIn →
+              </a>
             </div>
           </div>
 

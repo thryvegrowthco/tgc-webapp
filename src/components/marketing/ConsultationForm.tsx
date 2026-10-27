@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +77,7 @@ export function ConsultationForm({ entry = null }: { entry?: EntryToken | null }
           Request received!
         </h3>
         <p className="text-neutral-600 leading-relaxed max-w-sm">
-          Thanks for reaching out. I&apos;ll personally get back to you within 1–2
+          Thanks for reaching out. I&apos;ll personally get back to you within 1 to 2
           business days with a couple of times that work for your free 30-minute call.
         </p>
       </div>
@@ -180,7 +181,11 @@ export function ConsultationForm({ entry = null }: { entry?: EntryToken | null }
       {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
       <p className="text-xs text-center text-neutral-400">
-        No payment required. No sales pressure. I&apos;ll respond within 1–2 business days.
+        No payment needed. By sending this, you agree to our{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-neutral-600">
+          Privacy Policy
+        </Link>
+        . I only use your details to reply to you.
       </p>
     </form>
   );

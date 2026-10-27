@@ -12,14 +12,14 @@ import { pageMeta } from "@/lib/seo/page-meta";
 export const metadata: Metadata = pageMeta("/consultation", {
   title: "Book a Free 30-Minute Consultation Call",
   description:
-    "Request a free 30-minute consultation call with Rachel at Thryve Growth Co. No payment, no pressure — just an honest conversation about what you're working through.",
+    "Request a free 30-minute call with Rachel Dietz, PHR. No payment and no pressure. Just an honest conversation about your career or team.",
 });
 
 const whatToExpect = [
   "A real conversation, no sales pressure",
   "Honest feedback about whether I can help",
-  "Clarity on next steps — whether that's working together or not",
-  "Reply within 1–2 business days with available times",
+  "Clear next steps, whether or not we work together",
+  "Reply within 1 to 2 business days with available times",
 ];
 
 interface ConsultationPageProps {
@@ -50,12 +50,13 @@ export default async function ConsultationPage({ searchParams }: ConsultationPag
               </span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl font-bold text-neutral-900 leading-tight mb-4">
-              Book a Free 30-Minute Consultation Call
+              Book your free 30-minute call
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
-              Tell me a little about what&apos;s going on and I&apos;ll get back to you
-              with a few times that work for a free 30-minute call. No pressure, no sales
-              pitch — just an honest conversation.
+              Tell me a little about what&apos;s going on. I&apos;ll read it myself and
+              reply within 1 to 2 business days with a few times that work. It&apos;s a
+              real conversation with no sales pitch, and you&apos;ll leave with clear next
+              steps, whether or not we work together.
             </p>
           </div>
         </div>
@@ -102,7 +103,7 @@ export default async function ConsultationPage({ searchParams }: ConsultationPag
                   <p className="text-sm font-semibold text-brand-800">After you submit</p>
                 </div>
                 <p className="text-sm text-brand-700 leading-relaxed">
-                  I&apos;ll personally review what you sent and reply within 1–2
+                  I&apos;ll personally review what you sent and reply within 1 to 2
                   business days with a few times that work. The call itself is 30 minutes
                   over video.
                 </p>

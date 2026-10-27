@@ -8,7 +8,7 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 export const metadata: Metadata = pageMeta("/services", {
   title: "Services",
   description:
-    "HR consulting, career coaching, culture consulting, interview prep, resume writing, and job alerts: real-world support for individuals and organizations ready to grow.",
+    "HR consulting, coaching, culture work, interview prep, resume writing, recruitment, and job alerts for individuals and small businesses, delivered virtually.",
 });
 
 const coreServices = [
@@ -48,7 +48,7 @@ const coreServices = [
     badgeColor: "bg-blue-100 text-blue-800",
     title: "Recruitment & Candidate Screening",
     description:
-      "Flexible recruitment support to help small businesses and organizations attract, screen, and evaluate candidates with confidence — tailored to your hiring needs.",
+      "Flexible recruitment support to help small businesses and organizations attract, screen, and evaluate candidates with confidence, tailored to your hiring needs.",
     outcomes: ["Resume & application screening", "Candidate phone screenings", "Interview question development", "Candidate evaluations & recommendations"],
     href: "/services/recruitment-screening",
   },

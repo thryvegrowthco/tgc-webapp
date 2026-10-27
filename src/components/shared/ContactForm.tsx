@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ export function ContactForm() {
           Message received!
         </h3>
         <p className="text-neutral-600 leading-relaxed max-w-sm">
-          Thanks for reaching out. I&apos;ll get back to you within 1–2 business
+          Thanks for reaching out. I&apos;ll get back to you within 1 to 2 business
           days.
         </p>
       </div>
@@ -118,7 +119,11 @@ export function ContactForm() {
       )}
 
       <p className="text-xs text-center text-neutral-400">
-        I&apos;ll respond within 1–2 business days.
+        I&apos;ll respond within 1 to 2 business days. By sending this, you agree to our{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-neutral-600">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </form>
   );

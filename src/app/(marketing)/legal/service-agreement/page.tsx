@@ -5,10 +5,9 @@ import { AgreementRenderer } from "@/components/legal/AgreementRenderer";
 import { getCurrentAgreement } from "@/app/actions/legal";
 
 export const metadata: Metadata = pageMeta("/legal/service-agreement", {
-  title: "Service Agreement — Thryve Growth Co.",
-  // Title already carries the brand; keep the share title from doubling it.
-  shareTitle: "Service Agreement — Thryve Growth Co.",
-  description: "The terms that govern services provided by Thryve Growth Co.",
+  title: "Service Agreement",
+  description:
+    "The Service Agreement for Thryve Growth Co. These are the terms that govern the coaching, consulting, resume, and interview services we provide to clients.",
 });
 
 export default async function ServiceAgreementPage() {

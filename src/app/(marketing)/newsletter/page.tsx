@@ -3,12 +3,9 @@ import { pageMeta } from "@/lib/seo/page-meta";
 import { NewsletterForm } from "@/components/shared/NewsletterForm";
 
 export const metadata: Metadata = pageMeta("/newsletter", {
-  title: "The Thryve Newsletter — Thryve Growth Co.",
-  // Title already carries the brand, so the share title skips the " | Thryve
-  // Growth Co." the default would otherwise double up.
-  shareTitle: "The Thryve Newsletter — Thryve Growth Co.",
+  title: "The Thryve Newsletter",
   description:
-    "One short email a week. Career, leadership, and HR insights you can actually use — no hype, no funnel.",
+    "One short email a week from Rachel. Career, leadership, and HR insights you can use. No hype, no funnel.",
 });
 
 export default function NewsletterLandingPage() {
@@ -23,7 +20,7 @@ export default function NewsletterLandingPage() {
             One short email. Once a week. From Rachel.
           </h1>
           <p className="text-lg text-neutral-600 leading-relaxed">
-            Career, leadership, and HR perspective from a coach who&apos;d rather help than hype. No funnels. Reply anytime — she reads every one.
+            Career, leadership, and HR perspective from a coach who&apos;d rather help than hype. No funnels. Reply anytime. Rachel reads every one.
           </p>
         </div>
 
@@ -32,7 +29,7 @@ export default function NewsletterLandingPage() {
         </div>
 
         <p className="text-xs text-neutral-500 text-center mt-6">
-          Read by HR leaders, mid-career professionals, and folks rebuilding after a layoff.
+          Written for HR leaders, mid-career professionals, and anyone rebuilding after a layoff.
         </p>
       </div>
     </section>
