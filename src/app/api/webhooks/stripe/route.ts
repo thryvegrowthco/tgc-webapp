@@ -12,6 +12,7 @@ import type { LocationType } from "@/types/database";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
 import { createAdminNotification, notifyAdmin } from "@/lib/notifications/admin";
 import { isNotificationDisabled } from "@/lib/notifications/settings";
+import { ensureClientAccount, sendCheckoutAccountWelcome } from "@/lib/auth/provision-client";
 
 export const runtime = "nodejs";
 
@@ -84,6 +85,42 @@ async function fetchSignedAgreementUrl(
   return `${APP_URL}/dashboard/legal/signed/${data.id}`;
 }
 
+/**
+ * Fail-safe alert when checkout-time account creation fails. The payment and
+ * booking are already saved; this only tells Rachel to create the account by
+ * hand (it will link to the existing booking by email). Reuses the existing
+ * "action needed" alert channel (email + bell), mirroring the paid-invitation
+ * compensation path. Best-effort; never throws.
+ */
+async function alertAccountCreationFailed(args: {
+  email: string;
+  name: string;
+  serviceType: string;
+  reason: string;
+  context: string;
+}): Promise<void> {
+  console.error(
+    `[Stripe Webhook] account creation failed (${args.context}):`,
+    args.reason
+  );
+  await notifyAdmin({
+    type: "subscription_issue",
+    subject: `Action needed: could not create an account for ${args.name || args.email}`,
+    title: "Paid client account could not be created",
+    body: "A client paid but their portal account could not be created automatically. Their payment and booking are saved. Create the account from Clients, New client using this email and it will link up.",
+    fields: [
+      { label: "Client", value: args.name || args.email },
+      { label: "Email", value: args.email },
+      { label: "Service", value: args.serviceType },
+      { label: "Where", value: args.context },
+      { label: "Reason", value: args.reason },
+    ],
+    link: "/admin/clients",
+    ctaLabel: "Open clients",
+    replyTo: args.email || undefined,
+  });
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
@@ -134,7 +171,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const serviceKey = meta.serviceKey ?? null;
   const clientName = meta.clientName ?? "";
   const clientEmail = session.customer_email ?? meta.clientEmail ?? "";
-  const userId = meta.userId || null;
+  // `userId` becomes the resolved client's id: it starts from checkout metadata
+  // (public booking checkout requires sign-in) but is filled in below when a
+  // payer arrives with no account.
+  let userId = meta.userId || null;
   const contractVersion = meta.contractVersion ?? null;
   const contractAcceptedAt = meta.contractAcceptedAt ?? null;
 
@@ -150,6 +190,28 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (existingBooking) {
     console.log("[Stripe Webhook] Booking already exists for session:", session.id);
     return;
+  }
+
+  // ─── Create the client account if the payer doesn't have one ─────────────
+  // Public booking checkout requires sign-in, so userId is normally set. This
+  // covers any no-account payer (e.g. a future public checkout): provision a
+  // 'client' account so the booking is linked and visible. Fail-safe: on error
+  // we keep userId null (booking is still created) and alert Rachel.
+  let accountCreated = false;
+  if (!userId && clientEmail) {
+    const ensured = await ensureClientAccount(clientEmail, clientName);
+    if (ensured.clientId) {
+      userId = ensured.clientId;
+      accountCreated = ensured.isNew;
+    } else {
+      await alertAccountCreationFailed({
+        email: clientEmail,
+        name: clientName,
+        serviceType,
+        reason: ensured.error ?? "unknown",
+        context: "booking checkout",
+      });
+    }
   }
 
   // ─── Compute session_at + intake_due_at from slot ───
@@ -412,21 +474,30 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         support_email: SUPPORT_EMAIL,
       },
     }),
-    sendTemplated("welcome", {
-      to: clientEmail,
-      bookingId: booking.id,
-      clientId: userId ?? undefined,
-      idempotent: true,
-      data: {
-        client_name: clientName || "there",
-        service_type: serviceType,
-        intake_due_date: intakeDueDate,
-        session_workspace_url: sessionWorkspaceUrl,
-        session_date: slotDate,
-        meet_link: meetLink ?? "",
-        signed_agreement_url: signedAgreementUrl,
-      },
-    }),
+    // Brand-new accounts get ONE welcome that carries their receipt context and
+    // a secure setup link (the standard welcome points at the dashboard, which a
+    // passwordless account cannot open yet). Existing accounts get the standard
+    // welcome unchanged.
+    accountCreated
+      ? sendCheckoutAccountWelcome(clientEmail, clientName, {
+          serviceType,
+          amountFormatted,
+        })
+      : sendTemplated("welcome", {
+          to: clientEmail,
+          bookingId: booking.id,
+          clientId: userId ?? undefined,
+          idempotent: true,
+          data: {
+            client_name: clientName || "there",
+            service_type: serviceType,
+            intake_due_date: intakeDueDate,
+            session_workspace_url: sessionWorkspaceUrl,
+            session_date: slotDate,
+            meet_link: meetLink ?? "",
+            signed_agreement_url: signedAgreementUrl,
+          },
+        }),
     (await isNotificationDisabled("admin_email:new_booking"))
       ? Promise.resolve()
       : sendAdminBookingAlert(emailData),
@@ -478,6 +549,32 @@ async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Sessio
     return;
   }
 
+  // ─── Create the client account if the invited payer doesn't have one ─────
+  // An invitation sent to a not-yet-client leaves client_id null; the paid
+  // session would otherwise be a no-account "guest" booking. Provision a
+  // 'client' account and let finalizeSession link the booking to it. Fail-safe:
+  // on error we keep client_id null (today's guest behavior) and alert Rachel.
+  let resolvedClientId = invitation.client_id;
+  let accountCreated = false;
+  if (!resolvedClientId && invitation.client_email) {
+    const ensured = await ensureClientAccount(
+      invitation.client_email,
+      invitation.client_name ?? ""
+    );
+    if (ensured.clientId) {
+      resolvedClientId = ensured.clientId;
+      accountCreated = ensured.isNew;
+    } else {
+      await alertAccountCreationFailed({
+        email: invitation.client_email,
+        name: invitation.client_name ?? "",
+        serviceType: invitation.service_type,
+        reason: ensured.error ?? "unknown",
+        context: "paid booking invitation",
+      });
+    }
+  }
+
   const result = await finalizeSession({
     source: "invitation_paid",
     invitationId: invitation.id,
@@ -489,7 +586,7 @@ async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Sessio
     serviceType: invitation.service_type,
     serviceKey: invitation.service_key,
     sessionType: invitation.session_type,
-    clientId: invitation.client_id,
+    clientId: resolvedClientId,
     clientEmail: invitation.client_email,
     clientName: invitation.client_name ?? "",
     paymentStatus: "paid",
@@ -574,6 +671,21 @@ async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Sessio
   } catch (receiptErr) {
     console.error("[Stripe Webhook] invitation receipt send failed:", receiptErr);
   }
+
+  // Brand-new account created for this payer: send ONE welcome with their
+  // receipt context and a secure setup link. Best-effort; gated on isNew so a
+  // Stripe retry (which short-circuits on invitation.booking_id above) and
+  // already-linked clients never receive it.
+  if (accountCreated) {
+    await sendCheckoutAccountWelcome(
+      invitation.client_email,
+      invitation.client_name ?? "",
+      {
+        serviceType: invitation.service_type,
+        amountFormatted: formatCents(session.amount_total ?? 0),
+      }
+    );
+  }
 }
 
 /**
@@ -619,11 +731,34 @@ async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session)
     typeof session.payment_intent === "string" ? session.payment_intent : null;
   const serviceLabel = prop.service_type || prop.title;
 
+  // ─── Create the client account if the proposal payer doesn't have one ────
+  // Proposals sent to a not-yet-client have client_id null. Provision a 'client'
+  // account so the proposal, payment, and future work link to a real portal
+  // login. Fail-safe: on error we keep client_id null and alert Rachel.
+  let proposalClientId = prop.client_id;
+  let accountCreated = false;
+  if (!proposalClientId && prop.client_email) {
+    const ensured = await ensureClientAccount(prop.client_email, prop.client_name ?? "");
+    if (ensured.clientId) {
+      proposalClientId = ensured.clientId;
+      accountCreated = ensured.isNew;
+    } else {
+      await alertAccountCreationFailed({
+        email: prop.client_email,
+        name: prop.client_name ?? "",
+        serviceType: serviceLabel,
+        reason: ensured.error ?? "unknown",
+        context: "paid proposal",
+      });
+    }
+  }
+
   await supabase
     .from("proposals")
     .update({
       status: "paid",
       paid_at: new Date().toISOString(),
+      client_id: proposalClientId,
       stripe_session_id: session.id,
       stripe_payment_intent_id: paymentIntentId,
       updated_at: new Date().toISOString(),
@@ -632,7 +767,7 @@ async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session)
     .neq("status", "paid");
 
   await supabase.from("payments").insert({
-    client_id: prop.client_id,
+    client_id: proposalClientId,
     proposal_id: prop.id,
     stripe_payment_intent_id: paymentIntentId,
     amount_cents: session.amount_total ?? prop.amount_cents,
@@ -646,7 +781,7 @@ async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session)
   await Promise.allSettled([
     sendTemplated("receipt", {
       to: prop.client_email,
-      clientId: prop.client_id ?? undefined,
+      clientId: proposalClientId ?? undefined,
       data: {
         client_name: prop.client_name?.split(" ")[0] || "there",
         service_type: serviceLabel,
@@ -676,10 +811,21 @@ async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session)
       ],
       link: "/admin/proposals",
       ctaLabel: "Open proposals",
-      clientId: prop.client_id,
+      clientId: proposalClientId,
       replyTo: prop.client_email || undefined,
     }),
   ]);
+
+  // Brand-new account created for this payer: send ONE welcome with their
+  // receipt context and a secure setup link. Best-effort; gated on isNew so a
+  // Stripe retry (which short-circuits on prop.status === "paid" above) and
+  // already-linked clients never receive it.
+  if (accountCreated) {
+    await sendCheckoutAccountWelcome(prop.client_email, prop.client_name ?? "", {
+      serviceType: serviceLabel,
+      amountFormatted,
+    });
+  }
 }
 
 async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Session) {
