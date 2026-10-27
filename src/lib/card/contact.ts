@@ -3,6 +3,8 @@
 // business card carries the same copy (Desktop/Apps/designs/thryve-growth-co/
 // business-card/card.json, outside this repo): change them together.
 
+import { SOCIAL_LINKS } from "@/lib/site/social";
+
 export const VCARD_PATH = "/card/rachel-dietz.vcf";
 
 export const CARD_CONTACT = {
@@ -20,8 +22,8 @@ export const CARD_CONTACT = {
   // contacts already saved to someone's phone keep the old tokenless URL.
   consultationUrl: "https://www.thryvegrowth.co/consultation?from=card",
   services: ["HR Consulting", "Leadership", "Career Coaching"],
-  linkedin: "https://www.linkedin.com/company/thryvegrowthco/",
-  instagram: "https://www.instagram.com/thryvegrowthco/",
+  linkedin: SOCIAL_LINKS.linkedin,
+  instagram: SOCIAL_LINKS.instagram,
 } as const;
 
 /** RFC 2426 §4: backslash, newline, comma and semicolon are escaped in text values. */

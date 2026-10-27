@@ -6,6 +6,7 @@ import { Mail } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { HoneypotField } from "@/components/shared/HoneypotField";
+import { SOCIAL_LINKS } from "@/lib/site/social";
 
 const serviceLinks = [
   { label: "HR Consulting & Team Development", href: "/services/hr-consulting" },
@@ -78,7 +79,7 @@ export function Footer() {
             {/* Social Links */}
             <div className="mt-6 flex gap-3">
               <a
-                href="https://www.linkedin.com/company/thryvegrowthco/"
+                href={SOCIAL_LINKS.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Thryve Growth Co. on LinkedIn"
@@ -90,7 +91,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://www.instagram.com/thryvegrowthco/"
+                href={SOCIAL_LINKS.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Thryve Growth Co. on Instagram"

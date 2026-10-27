@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Mail, ArrowRight } from "lucide-react";
 import { ContactForm } from "@/components/shared/ContactForm";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { SOCIAL_LINKS } from "@/lib/site/social";
 
 export const metadata: Metadata = pageMeta("/contact", {
   title: "Contact",
@@ -86,7 +87,7 @@ export default function ContactPage() {
                 </h2>
                 <div className="space-y-3">
                   <a
-                    href="https://linkedin.com"
+                    href={SOCIAL_LINKS.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4 hover:border-brand-200 hover:bg-brand-50 transition-all group"
@@ -103,7 +104,7 @@ export default function ContactPage() {
                     <ArrowRight className="h-4 w-4 text-neutral-300 group-hover:text-brand-500 ml-auto transition-colors" />
                   </a>
                   <a
-                    href="https://instagram.com"
+                    href={SOCIAL_LINKS.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4 hover:border-brand-200 hover:bg-brand-50 transition-all group"
