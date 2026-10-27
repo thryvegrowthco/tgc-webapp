@@ -68,7 +68,7 @@ Note the port it picks — Next.js falls back to 3001 / 3002 / 3003 if 3000 is i
   ```sql
   update profiles set role = 'admin' where email = 'rachel@thryvegrowth.co';
   ```
-- **Test client account** — sign up via `/signup` with a different email. Use a `+test` alias of your real email if you want emails to actually arrive (e.g. `you+test@gmail.com`).
+- **Test client account** — public signup is closed, so create one from **Admin → Clients → New client** with a different email (this sends an invite link via the service role). Use a `+test` alias of your real email if you want emails to actually arrive (e.g. `you+test@gmail.com`).
 
 ---
 
@@ -115,7 +115,7 @@ Note the port it picks — Next.js falls back to 3001 / 3002 / 3003 if 3000 is i
 
 ### Steps (as **client**)
 
-1. Sign out, then sign up at `/signup` as a brand-new test client.
+1. Create a brand-new test client from **Admin → Clients → New client**, then open the invite link from the email to set a password. (Public signup at `/signup` is closed.)
 2. Verify your email if email auth is enabled, then log in.
 3. Land on `/dashboard`. At the top, a **"Tell Rachel about you"** soft-prompt card with a sparkle icon.
 4. Click the card. You're at `/dashboard/onboarding`.

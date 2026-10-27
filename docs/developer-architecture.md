@@ -35,7 +35,7 @@ src/
 ├── app/
 │   ├── (admin)/admin/          ← Admin pages (role-gated per page)
 │   ├── (dashboard)/dashboard/  ← Client pages (session-gated)
-│   ├── (auth)/                 ← Login, signup, reset-password (no Header/Footer; bare layout)
+│   ├── (auth)/                 ← Login, signup (invite-only notice), reset-password (no Header/Footer; bare layout)
 │   ├── (marketing)/            ← All public-facing pages (homepage, about, blog, services, etc.)
 │   │                             Has its own layout.tsx with <Header /> and <Footer />
 │   ├── actions/                ← Server actions (auth, booking, blog, documents, watchlist)
@@ -71,7 +71,7 @@ src/
 |---|---|---|---|
 | `(admin)` | `/admin/*` | `AdminNav` sidebar; no public Header/Footer | Each page checks `profiles.role = 'admin'` via Supabase session |
 | `(dashboard)` | `/dashboard/*` | `DashboardNav` sidebar; no public Header/Footer | Each layout/page checks `supabase.auth.getUser()` |
-| `(auth)` | `/login`, `/signup`, `/reset-password` | Bare (no Header/Footer) | Public; `proxy.ts` redirects authenticated users to `/dashboard` |
+| `(auth)` | `/login`, `/signup`, `/reset-password` | Bare (no Header/Footer) | Public; `proxy.ts` redirects authenticated users to `/dashboard`. `/signup` is an invite-only notice (no form); accounts are created from Admin → Clients → New client |
 | `(booking)` | `/book-session/[token]`, `/book-session/[token]/confirmed` | Minimal branded shell (`(booking)/layout.tsx`); no Header/Footer | **Public, token-gated** — the public booking page for invitations. Reads/writes via the service client (the URL token is the bearer secret); not covered by `proxy.ts` auth |
 | `(proposals)` | `/proposal/[token]`, `/proposal/[token]/accepted` | Minimal branded shell (`(proposals)/layout.tsx`, mirrors the booking group); no Header/Footer | **Public, token-gated** — the public proposal review/accept page. Reads/writes via the service client (the URL token is the bearer secret); not covered by `proxy.ts` auth |
 | `(testimonial)` | `/testimonial/[token]`, `/testimonial/[token]/thanks` | Minimal branded shell (`(testimonial)/layout.tsx`, mirrors the proposals group); no Header/Footer; `robots` noindex | **Public, token-gated** (Phase 3) — the per-booking testimonial submit page. Resolves the booking by `bookings.testimonial_token` via the service client; not covered by `proxy.ts` auth |
@@ -160,7 +160,7 @@ All actions are `"use server"` files. They redirect on failure to auth routes wh
 
 | File | Functions | Notes |
 |---|---|---|
-| `auth.ts` | `signUp`, `logIn`, `logOut`, `requestPasswordReset`, `updatePassword` | — |
+| `auth.ts` | `logIn`, `logOut`, `requestPasswordReset`, `updatePassword` | Public self-signup is closed — no `signUp` action; accounts are created by admin invite (`createClientAccount` in `clients.ts`) |
 | `booking.ts` | `createBookingCheckoutSession`, `addBulkAvailabilitySlots`, `deleteAvailabilitySlot`, `deleteAvailabilitySlotsBulk`, `updateBookingStatus`, `updateSession` | `createBookingCheckoutSession` refuses if slot is already booked; `addBulkAvailabilitySlots` accepts `{ dates, timeBlocks, serviceType }` and inserts the cartesian product via Supabase upsert with `ignoreDuplicates` against the `(slot_date, start_time)` unique index — returns `{ created, skipped }`. 500-row sanity cap. `deleteAvailabilitySlot` refuses if slot is booked. `deleteAvailabilitySlotsBulk(ids: string[])` mirrors the single-row guard with `.in("id", ids).eq("is_booked", false)` — booked rows are filtered out of the delete and surfaced via the `skipped` count. `updateBookingStatus` is admin-only with status allowlist. `updateSession(bookingId, fields)` is admin-only and edits a session record: `workflow_status` (incl. `no_show`/`rescheduled`, stamps `completed_at` on `completed`), `payment_status`, `admin_notes`, `session_summary`, `next_steps`, `follow_up_needed`; stamps `updated_at`. |
 | `booking-invitations.ts` | Admin: `createBookingInvitation`, `sendBookingInvitation`, `cancelBookingInvitation`. Public (token-gated, no auth): `acceptBookingInvitation`, `createInvitationCheckoutSession`, `releaseReservedOptions` | Admin-initiated booking flow. `createBookingInvitation` validates + computes each option's `session_at` via `localCentralToUtcIso` and inserts `booking_invitations` + `booking_invitation_options` (rolls back the parent if option insert fails); `sendNow` emails immediately. `sendBookingInvitation` sends `booking_invitation` and stamps `status='sent'`. Public actions validate the invitation by token via the service client, atomically reserve one option (`open→reserved`, stamps `reserved_at`), and either call `finalizeSession` (free) or open Stripe Checkout with `metadata.flow='invitation'` (paid). `releaseReservedOptions` is called on `cancel_url` return. |
 | `packages.ts` | Client: `redeemPackageCredit({ packageId, slotId })` | Phase 1a. Validates an active, non-expired package with a remaining credit (own); atomically claims the slot (`is_booked` guard); creates the session via `createSessionBooking` (no charge, covered by the package); decrements `sessions_used` (optimistic guard); `exhausted` when full. Powers `/dashboard/packages` + `PackageRedeemClient`. |

@@ -657,42 +657,43 @@ GET /api/documents/download (src/app/api/documents/download/route.ts)
 
 ## 5. Authentication Flows
 
-**Signup:**
+**Signup (closed — accounts are created by admin invite only):**
+
+Public self-signup is closed. `/signup` (`src/app/(auth)/signup/page.tsx`) is a
+static server component that shows an invite-only message (noindex) and links to
+`/consultation`; there is no public signup form and no `signUp` server action.
+Accounts are created only from **Admin → Clients → New client**.
 
 ```
-Client visits /signup
-  Fills name, email, password → submits
+Rachel opens Admin → Clients → New client
         │
         ▼
-signUp server action (src/app/actions/auth.ts)
-  supabase.auth.signUp({
-    email, password,
-    options: {
-      data: { full_name },
-      emailRedirectTo: "{APP_URL}/auth/callback"
-    }
-  })
+createClientAccount (src/app/actions/clients.ts)  [requireAdmin + service role]
+  service.auth.admin.generateLink({ type: 'invite', email, ... })
+  (resendClientInvite re-issues the link later if needed)
         │
         ▼
 Supabase fires Send Email hook → POST /api/auth/send-email
   (src/app/api/auth/send-email/route.ts)
   1. Verifies HMAC-SHA256 signature using SUPABASE_HOOK_SECRET
-  2. email_action_type = "signup"
-  3. Constructs: {APP_URL}/auth/confirm?token_hash=...&type=signup&next=/dashboard
-  4. sendSignupConfirmation(email, name, confirmUrl) via Resend
+  2. email_action_type = "invite"
+  3. Constructs: {APP_URL}/auth/confirm?token_hash=...&type=invite&next=...
         │
         ▼
-Client receives branded confirmation email from hello@go.thryvegrowth.co
+Client receives branded invite email from hello@go.thryvegrowth.co
 Client clicks link → /auth/confirm (src/app/auth/confirm/route.ts)
-  supabase.auth.verifyOtp({ token_hash, type: 'signup' })
-  Sets session cookie
-  Redirects to /dashboard
+  verifyOtp → sets session → lands on /dashboard/profile?welcome=1 to set a password
         │
         ▼
 handle_new_user() Postgres trigger fires on auth.users INSERT
   Creates profiles row: { id, email, full_name, role: 'client' }
-  (role = 'admin' if email matches hardcoded ADMIN_EMAIL in migration 0003)
+  (role = 'admin' if email matches hardcoded ADMIN_EMAIL in migration 0003;
+   migration 0038's protect_profile_role_trg forces 'client' for non-service roles)
 ```
+
+Supabase may still send a signup confirmation email (`sendSignupConfirmation`,
+the `/api/auth/send-email` hook) until "Allow new users to sign up" is turned off
+in the Supabase dashboard; the code path is left in place for that reason.
 
 **Login:**
 

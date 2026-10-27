@@ -77,12 +77,12 @@ export function LoginForm({ redirectTo }: { redirectTo: string | null }) {
           </form>
 
           <p className="mt-6 text-center text-sm text-neutral-500">
-            Don&apos;t have an account?{" "}
+            New here?{" "}
             <Link
-              href="/signup"
+              href="/consultation"
               className="text-brand-700 font-medium hover:text-brand-800"
             >
-              Create one
+              Start with a free consultation
             </Link>
           </p>
         </div>

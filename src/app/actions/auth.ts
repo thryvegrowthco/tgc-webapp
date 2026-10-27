@@ -25,55 +25,10 @@ async function landingPathFor(
   return role === "admin" ? "/admin" : "/dashboard";
 }
 
-// ─── Sign Up ────────────────────────────────────────────────────────────────
-
-export async function signUp(
-  _prev: AuthActionState,
-  formData: FormData
-): Promise<AuthActionState> {
-  const supabase = await createClient();
-
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const fullName = formData.get("fullName") as string;
-
-  if (!email || !password || !fullName) {
-    return { error: "All fields are required." };
-  }
-
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
-  }
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  // The handle_new_user() trigger creates the profile row automatically.
-  // We only upsert as a fallback, and intentionally omit `role` so we never
-  // overwrite the admin role the trigger may have assigned.
-  if (data.user) {
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name: fullName,
-    });
-  }
-
-  return {
-    success:
-      "Account created! Check your email to confirm your address before logging in.",
-  };
-}
+// Public self-signup is closed. Accounts are created only by Rachel via the
+// admin "New client" flow (createClientAccount in src/app/actions/clients.ts,
+// which uses the service role to send an invite). The /signup route now shows
+// an invite-only message instead of a form.
 
 // ─── Log In ──────────────────────────────────────────────────────────────────
 
