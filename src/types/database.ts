@@ -1966,6 +1966,67 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Proposed in migration 0039 (not applied yet). The contact API tolerates
+      // this table being absent and falls back to email-only.
+      contact_messages: {
+        Row: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          subject: string;
+          message: string;
+          status: "new" | "read" | "archived";
+          email_sent: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          subject: string;
+          message: string;
+          status?: "new" | "read" | "archived";
+          email_sent?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          first_name?: string;
+          last_name?: string;
+          email?: string;
+          subject?: string;
+          message?: string;
+          status?: "new" | "read" | "archived";
+          email_sent?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      // Proposed in migration 0039 (not applied yet). The rate limiter tolerates
+      // this table being absent and falls back to an in-memory limiter.
+      form_rate_limits: {
+        Row: {
+          id: number;
+          bucket: string;
+          key_hash: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          bucket: string;
+          key_hash: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          bucket?: string;
+          key_hash?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
