@@ -88,9 +88,19 @@ export default async function CareerResetWorkbookPage() {
         titleAccent="Workbook"
         description="A free, guided workbook for that in-between season, when you know something about work needs to change but you're not sure what. Eight short parts help you get honest about where you are, reconnect with your strengths, and map one realistic step forward."
       >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          {downloadCta("lg", "Download the workbook")}
-          <span className="text-sm text-neutral-500">Free · instant download · no strings attached</span>
+        <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            {downloadCta("lg", "Download the workbook")}
+            <span className="text-sm text-neutral-500">Free · instant download · no strings attached</span>
+          </div>
+          {/* Optional email signup. The download above never requires an email;
+              this is a separate, clearly optional ask. */}
+          <div className="max-w-md">
+            <p className="text-sm font-medium text-neutral-700 mb-2">
+              Want more like this? Get Rachel&apos;s weekly email (optional).
+            </p>
+            <NewsletterForm variant="inline" source="career-reset-workbook-hero" />
+          </div>
         </div>
       </PageHero>
 
