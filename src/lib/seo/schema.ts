@@ -84,7 +84,8 @@ export function personNode(): object {
       "Resume writing",
       "Recruiting",
     ],
-    sameAs: [RACHEL_LINKEDIN],
+    // Only advertise Rachel's LinkedIn once the owner confirms it (see social.ts).
+    ...(RACHEL_LINKEDIN ? { sameAs: [RACHEL_LINKEDIN] } : {}),
   };
 }
 
@@ -113,6 +114,12 @@ export interface OfferInput {
   price?: string;
   /** Minimum price for "from $X" style offers, e.g. "500". */
   minPrice?: string;
+  /**
+   * Billing period for recurring offers (e.g. "MONTH"). When set alongside
+   * `price`, the Offer gains a UnitPriceSpecification so the price reads as
+   * per-period rather than one-time.
+   */
+  unitText?: string;
 }
 
 function offerNode(o: OfferInput): object {
@@ -128,12 +135,21 @@ function offerNode(o: OfferInput): object {
       },
     };
   }
-  return {
+  const offer: Record<string, unknown> = {
     "@type": "Offer",
     ...(o.name ? { name: o.name } : {}),
     price: o.price,
     priceCurrency: "USD",
   };
+  if (o.unitText) {
+    offer.priceSpecification = {
+      "@type": "UnitPriceSpecification",
+      price: o.price,
+      priceCurrency: "USD",
+      unitText: o.unitText,
+    };
+  }
+  return offer;
 }
 
 export interface ServiceSchemaInput {

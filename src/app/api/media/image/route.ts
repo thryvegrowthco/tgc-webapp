@@ -74,7 +74,7 @@ export async function GET(request: Request) {
           src,
           thumb,
           // Attribution carried in the alt text of the inserted image.
-          alt: `${baseAlt} — Photo by ${creditName} on Unsplash`,
+          alt: `${baseAlt}. Photo by ${creditName} on Unsplash`,
           creditName,
           creditLink,
           downloadLocation: p.links?.download_location ?? "",

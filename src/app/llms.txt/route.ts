@@ -10,11 +10,11 @@ export const dynamic = "force-static";
 // Prices here mirror src/lib/stripe/products.ts and the /investment page. If a
 // price changes there, update it here too (kept inline rather than templated
 // because the copy wraps each price in a sentence). Source of truth: /investment.
-const profiles = [
-  `- LinkedIn (company): ${SOCIAL_LINKS.linkedin}`,
-  `- LinkedIn (Rachel Dietz, PHR): ${RACHEL_LINKEDIN}`,
-  `- Instagram: ${SOCIAL_LINKS.instagram}`,
-];
+const profiles = [`- LinkedIn (company): ${SOCIAL_LINKS.linkedin}`];
+if (RACHEL_LINKEDIN) {
+  profiles.push(`- LinkedIn (Rachel Dietz, PHR): ${RACHEL_LINKEDIN}`);
+}
+profiles.push(`- Instagram: ${SOCIAL_LINKS.instagram}`);
 if (GOOGLE_BUSINESS_PROFILE_URL) {
   profiles.push(`- Google Business Profile: ${GOOGLE_BUSINESS_PROFILE_URL}`);
 }

@@ -21,7 +21,7 @@ const steps = [
 
 const stats = [
   { value: "10+", label: "Years in HR Leadership" },
-  { value: "100%", label: "Practitioner-based Approach" },
+  { value: "Practitioner-based", label: "Approach" },
   { value: "Both", label: "Individual & Org Experience" },
 ];
 

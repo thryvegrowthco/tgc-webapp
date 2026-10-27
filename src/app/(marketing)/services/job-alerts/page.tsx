@@ -62,7 +62,7 @@ export default function JobAlertsPage() {
           name: "Job Alerts & Watchlists",
           description:
             "Curated job matches delivered to you, filtered to your goals, your experience, and your preferences. Manual curation by Rachel plus automated job board feeds.",
-          offers: [{ name: "Monthly Support", price: "15" }],
+          offers: [{ name: "Monthly Support", price: "15", unitText: "MONTH" }],
         })}
       />
       <PageHero

@@ -87,14 +87,16 @@ export function AboutRachelBio() {
                   </li>
                 ))}
               </ul>
-              <a
-                href={RACHEL_LINKEDIN}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-brand-700 hover:text-brand-800"
-              >
-                Connect with Rachel on LinkedIn →
-              </a>
+              {RACHEL_LINKEDIN && (
+                <a
+                  href={RACHEL_LINKEDIN}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-brand-700 hover:text-brand-800"
+                >
+                  Connect with Rachel on LinkedIn →
+                </a>
+              )}
             </div>
           </div>
 

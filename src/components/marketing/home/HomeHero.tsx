@@ -67,8 +67,8 @@ export function HomeHero() {
               </div>
               <div className="w-px h-4 bg-neutral-200" />
               <div className="flex items-center gap-1.5">
-                <span className="text-brand-600 font-bold">100%</span>
-                <span>Real-world Experience</span>
+                <span className="text-brand-600 font-bold">PHR</span>
+                <span>Certified HR Professional</span>
               </div>
             </div>
           </div>

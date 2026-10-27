@@ -67,8 +67,8 @@ export default function ResumeMaterialsPage() {
             What I Offer
           </h2>
           <p className="text-neutral-600 leading-relaxed mb-12 max-w-2xl">
-            As someone who has reviewed thousands of resumes as an HR professional
-            and hiring manager, I know exactly what gets attention, and what gets
+            As someone who has reviewed resumes for years as an HR professional,
+            I know exactly what gets attention, and what gets
             you passed over. My resume work is practical, direct, and built around
             helping you compete for the roles you actually want.
           </p>
