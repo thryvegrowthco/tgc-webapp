@@ -132,6 +132,86 @@ export async function sendClientInvite(
   });
 }
 
+// Sent when a visitor PAYS at checkout without an existing account. The Stripe
+// webhook creates a client account for them (email confirmed, no password) and
+// this is the single welcome email that gives them their receipt context plus a
+// secure link to set a password and reach their portal. Mirrors sendClientInvite
+// (the invited-client experience) and adds a short receipt summary. The setup
+// link is a one-time Supabase recovery link — never log it.
+export async function sendCheckoutWelcome(
+  email: string,
+  name: string,
+  setupUrl: string,
+  receipt: { serviceType: string; amountFormatted: string }
+) {
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: "Your Thryve Growth Co. account is ready",
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: system-ui, sans-serif; color: #0f172a; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="margin-bottom: 32px;">
+          <h1 style="font-size: 24px; font-weight: 700; color: #203e35; margin: 0 0 4px;">
+            Thryve Growth Co.
+          </h1>
+          <p style="color: #64748b; margin: 0; font-size: 14px;">Clarity. Accountability. Real Growth.</p>
+        </div>
+
+        <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
+            Welcome${name ? `, ${name}` : ""}!
+          </h2>
+          <p style="color: #475569; margin: 0; font-size: 15px;">
+            Thank you for your payment. We set up a Thryve Growth Co. account for you so you can
+            see everything in one place. Choose a password and it is yours.
+          </p>
+        </div>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; margin: 0 0 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <tr><td style="padding: 16px 18px;">
+            <p style="margin: 0 0 6px; color: #0f172a;"><strong>Service:</strong> ${receipt.serviceType}</p>
+            <p style="margin: 0; color: #0f172a;"><strong>Amount:</strong> ${receipt.amountFormatted}</p>
+          </td></tr>
+        </table>
+
+        <p style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
+          Click below to set your password and open your dashboard. There you will find your
+          booking, prep steps, and a place to message Rachel directly.
+        </p>
+
+        <a
+          href="${setupUrl}"
+          style="display: inline-block; background: #203e35; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-bottom: 24px;"
+        >
+          Set up my account
+        </a>
+
+        <p style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
+          If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="${setupUrl}" style="color: #203e35; word-break: break-all;">${setupUrl}</a>
+        </p>
+
+        <p style="font-size: 14px; color: #475569; margin-top: 24px;">
+          For your security this link expires after a short time. If it stops working, go to the
+          sign-in page, choose Forgot password, and we will send a fresh link to this email. A
+          separate receipt is also on its way for your records.
+        </p>
+
+        <div style="border-top: 1px solid #e2e8f0; margin-top: 40px; padding-top: 20px;">
+          <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+            © ${new Date().getFullYear()} Thryve Growth Co. LLC ·
+            <a href="https://thryvegrowth.co" style="color: #94a3b8;">thryvegrowth.co</a>
+          </p>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendPasswordReset(
   email: string,
   name: string,
