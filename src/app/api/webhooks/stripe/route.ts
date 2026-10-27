@@ -522,22 +522,57 @@ async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Sessio
       .eq("status", "reserved");
     await notifyAdmin({
       type: "subscription_issue",
-      subject: `Action needed: paid booking could not be scheduled — ${invitation.client_name || invitation.client_email}`,
+      subject: `Action needed: paid booking could not be scheduled: ${invitation.client_name || invitation.client_email}`,
       title: "Paid invitation could not be finalized",
       body: refunded
         ? "The client paid but the time was no longer available, so the session was not created and the payment was refunded automatically. Reach out to offer new times."
-        : "The client paid but the time was no longer available and the session was not created. The automatic refund FAILED — refund this payment in Stripe manually and offer new times.",
+        : "The client paid but the time was no longer available and the session was not created. The automatic refund FAILED. Refund this payment in Stripe manually and offer new times.",
       fields: [
         { label: "Client", value: invitation.client_name || invitation.client_email },
         { label: "Email", value: invitation.client_email },
         { label: "Service", value: invitation.service_type },
         { label: "Reason", value: result.error },
-        { label: "Refund", value: refunded ? "Issued automatically" : "FAILED — handle manually" },
+        { label: "Refund", value: refunded ? "Issued automatically" : "FAILED: handle manually" },
       ],
       link: "/admin/invitations",
       ctaLabel: "Open invitations",
       replyTo: invitation.client_email || undefined,
     });
+    return;
+  }
+
+  // Success: finalizeSession already sent session_confirmed (client) and
+  // new_session_booked (admin), but not a receipt. Send one now. Idempotent on
+  // (receipt_sent, bookingId), so a Stripe retry won't double-send. Failure only
+  // logs; the webhook must still return 200. (finalizeSession returns only
+  // bookingId, so clientId comes from the invitation row.)
+  try {
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+    const paymentSummary = await fetchPaymentMethodSummary(paymentIntentId);
+    await sendTemplated("receipt", {
+      to: invitation.client_email,
+      bookingId: result.bookingId,
+      clientId: invitation.client_id ?? undefined,
+      idempotent: true,
+      data: {
+        client_name: (invitation.client_name ?? "").split(" ")[0] || "there",
+        service_type: invitation.service_type,
+        amount_formatted: formatCents(session.amount_total ?? 0),
+        payment_date: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+        transaction_id: paymentIntentId ?? session.id,
+        card_brand: paymentSummary.cardBrand,
+        card_last4: paymentSummary.cardLast4,
+        stripe_receipt_url: paymentSummary.receiptUrl,
+        support_email: SUPPORT_EMAIL,
+      },
+    });
+  } catch (receiptErr) {
+    console.error("[Stripe Webhook] invitation receipt send failed:", receiptErr);
   }
 }
 
