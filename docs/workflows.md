@@ -8,7 +8,7 @@ End-to-end traces of every major data flow in the app. Useful for debugging, onb
 
 **Services:** Coaching sessions, interview prep sessions, resume review, HR consulting, culture consulting
 
-**Invitation-only for visitors.** `/book` (`src/app/(marketing)/book/page.tsx`) renders the `BookingFlow` **only for signed-in users**. Signed-out visitors instead see an explanation card that points them to the free consultation (`/consultation`) and to `/login?redirect=/book` for existing clients. As a defense in depth, `createBookingCheckoutSession` (`src/app/actions/booking.ts`) refuses with an error when there is no signed-in `user`, before creating any Stripe session. All accounts come from Rachel's invitations, so "signed-in" means "invited client". Public CTAs that used to point at `/book` (packages, investment, interview-prep, consultation) now point at `/consultation`. The invited `/book-session/[token]` flow (Section 1b) is unchanged. Dashboard links to `/book` still work for signed-in clients.
+**Invitation-only for visitors.** `/book` (`src/app/(marketing)/book/page.tsx`) renders the `BookingFlow` **only for signed-in users**. Signed-out visitors instead see an explanation card that points them to the free consultation (`/consultation`) and to `/login?redirect=/book` for existing clients. As a defense in depth, `createBookingCheckoutSession` (`src/app/actions/booking.ts`) refuses with an error when there is no signed-in `user`, before creating any Stripe session. Accounts come from Rachel's invitations and, since `feat/checkout-creates-account`, from any paid checkout that lacks a client account: the Stripe webhook provisions a `client` account for the payer (see step 2b below and Sections 1b/1d). Public `/signup` stays closed; accounts are never created from an unauthenticated public endpoint. Public CTAs that used to point at `/book` (packages, investment, interview-prep, consultation) now point at `/consultation`. The invited `/book-session/[token]` flow (Section 1b) is unchanged. Dashboard links to `/book` still work for signed-in clients.
 
 ```
 Signed-in client visits /book
@@ -58,6 +58,12 @@ Stripe sends POST checkout.session.completed to /api/webhooks/stripe
 handleCheckoutCompleted (src/app/api/webhooks/stripe/route.ts)
   1. Verifies Stripe signature
   2. Reads metadata from session
+  2b. If the payer has no account (no userId) but an email: ensureClientAccount
+      (src/lib/auth/provision-client.ts) finds-or-creates a 'client' account via
+      the service role (email confirmed, no password) and the rest of the handler
+      links to it. Fail-safe: on error it keeps going with no client_id and
+      alertAccountCreationFailed notifies Rachel. (Public /book requires sign-in,
+      so this only triggers for a future public checkout.)
   3. Fetches slot date/time for email
   4. Inserts bookings row (status: 'confirmed', workflow_status: 'intake_needed')
   5. Updates availability_slots.is_booked = true
@@ -69,10 +75,14 @@ handleCheckoutCompleted (src/app/api/webhooks/stripe/route.ts)
  11. Inserts admin_tasks row "Review intake when submitted" (idempotent via unique partial index)
  12. Promise.allSettled([
        sendTemplated("receipt", { ..., card_brand, card_last4, stripe_receipt_url, support_email }),
-       sendTemplated("welcome", { ..., signed_agreement_url }),
+       accountCreated
+         ? sendCheckoutAccountWelcome(...)  // ONE welcome: receipt context + secure setup link
+         : sendTemplated("welcome", { ..., signed_agreement_url }),
        sendAdminBookingAlert(Rachel's email),
        syncBookingToGHL(GHL contact upsert)
      ]) ← failures don't block the 200 response
+     (A brand-new account cannot open the dashboard welcome link yet, so it gets
+      the setup-link welcome instead; existing accounts get the standard welcome.)
         │
         ▼
 Client redirected to /book/success?session_id=...
@@ -122,7 +132,11 @@ Client receives "Choose a Time for Your Thryve Session" email → /book-session/
         └─ payment ON ─── createInvitationCheckoutSession({token, optionId})
               reserveOption → Stripe Checkout (metadata.flow='invitation', invitationId, optionId)
               → webhook checkout.session.completed → handleInvitationCheckoutCompleted
+              → (if invitation.client_id is null) ensureClientAccount creates a
+                'client' account from client_email and passes clientId into finalize
               → finalizeSession(source='invitation_paid', paymentStatus='paid')
+              → (if the account was just created) sendCheckoutAccountWelcome:
+                ONE welcome with receipt context + secure setup link
         │
         ▼
 finalizeSession() [SHARED]:
@@ -147,8 +161,11 @@ reads the **booking's own `client_id`** (not the invitation's; `createSessionBoo
 resolves the client by email and may land on a different account) alongside
 `session_at`/`meet_link`. When the booking has a client account it shows a "View
 your session details" button to `/dashboard/sessions/[bookingId]` plus a muted
-"You'll sign in to see your prep steps, meeting link, and messages" note; with no
-account it falls back to a "Back to Thryve Growth Co." link.
+"You'll sign in to see your prep steps, meeting link, and messages" note (now also
+pointing first-time payers to the setup link in their email); with no account it
+falls back to a "Back to Thryve Growth Co." link. Because the paid webhook now
+provisions an account and `createSessionBooking` links by email, a paid
+invitation to a not-yet-client lands in the account branch once the webhook runs.
 
 **Double-booking prevention (defense in depth):** (1) the atomic option reserve
 (`open→reserved`) is the per-option guarantee — the loser gets "That time was
@@ -229,10 +246,15 @@ Client receives "Your Proposal from Thryve Growth Co." email → /proposal/[toke
               success_url → /proposal/[token]/accepted ; cancel_url → ?cancelled=1
               → webhook checkout.session.completed → handleProposalCheckoutCompleted
                   - idempotent (proposals.status check + UNIQUE stripe_session_id)
-                  - status='paid', paid_at + stripe ids stamped
-                  - INSERT payments (proposal_id set; service_type = service_type||title)
+                  - if proposal.client_id is null: ensureClientAccount creates a
+                    'client' account from client_email (fail-safe: alerts Rachel
+                    on error); proposal + payment link to it
+                  - status='paid', paid_at + stripe ids + client_id stamped
+                  - INSERT payments (proposal_id + client_id set; service_type = service_type||title)
                   - sendTemplated('receipt') → client
                   - notifyAdmin('proposal_paid') → Rachel
+                  - if the account was just created: sendCheckoutAccountWelcome
+                    → ONE welcome (receipt context + secure setup link)
         │
    client declines ──────────── declineProposal({token})  [token bearer]
         - status='declined', declined_at; notifyAdmin → Rachel (follow-up)
