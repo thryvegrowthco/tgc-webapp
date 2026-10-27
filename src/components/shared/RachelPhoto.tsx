@@ -8,48 +8,46 @@ interface RachelPhotoProps {
   className?: string;
   priority?: boolean;
   rounded?: boolean;
+  /** Responsive sizes hint for next/image. */
+  sizes?: string;
 }
 
-const photoConfig: Record<PhotoVariant, { src: string; alt: string; width: number; height: number; label: string }> = {
+const photoConfig: Record<PhotoVariant, { src: string; alt: string; width: number; height: number }> = {
   hero: {
     src: "/images/headshots/rachel-hero.webp",
     alt: "Rachel, Founder of Thryve Growth Co.",
     width: 600,
     height: 750,
-    label: "rachel-hero.webp",
   },
   about: {
     src: "/images/headshots/rachel-about.webp",
     alt: "Rachel, Founder of Thryve Growth Co.",
     width: 560,
     height: 700,
-    label: "rachel-about.webp",
   },
   "about-2": {
     src: "/images/headshots/rachel-about-2.webp",
     alt: "Rachel working with clients at Thryve Growth Co.",
     width: 560,
     height: 420,
-    label: "rachel-about-2.webp",
   },
   profile: {
     src: "/images/headshots/rachel-profile.webp",
     alt: "Rachel, Thryve Growth Co.",
     width: 200,
     height: 200,
-    label: "rachel-profile.webp",
   },
 };
 
 /**
  * RachelPhoto — reusable professional photo component.
- * Shows a branded placeholder until real images are added to /public/images/headshots/
  */
 export function RachelPhoto({
   variant = "hero",
   className,
   priority = false,
   rounded = false,
+  sizes = "(min-width: 1024px) 600px, 90vw",
 }: RachelPhotoProps) {
   const config = photoConfig[variant];
 
@@ -67,27 +65,10 @@ export function RachelPhoto({
         alt={config.alt}
         width={config.width}
         height={config.height}
+        sizes={sizes}
         className={cn("object-cover w-full h-full", rounded && "rounded-full")}
         priority={priority}
       />
-      {/* Branded placeholder shown while image loads or if missing */}
-      <div
-        aria-hidden="true"
-        className={cn(
-          "absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-brand-100 to-brand-200",
-          "opacity-0" // Hidden when image loads; visible via CSS if image errors
-        )}
-      >
-        <div className="text-center px-4">
-          <div className="text-brand-600 text-4xl mb-2">📸</div>
-          <p className="text-brand-800 font-semibold text-sm">Add headshot:</p>
-          <p className="text-brand-700 text-xs font-mono mt-1">
-            /public/images/headshots/
-            <br />
-            {config.label}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

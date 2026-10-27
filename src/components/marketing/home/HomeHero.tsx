@@ -30,18 +30,15 @@ export function HomeHero() {
             </div>
 
             <h1 className="font-display text-5xl sm:text-6xl font-bold text-black leading-[1.1] tracking-tight">
-              Grow Better{" "}
-              <span className="text-[#203e35]">Leaders.</span>
-              <br />
-            </h1>
-            <h1 className="font-display text-5xl sm:text-6xl font-bold text-black leading-[1.1] tracking-tight">
-              Build Stronger{" "}
-              <span className="text-[#203e35]">Teams.</span>
-              <br />
-            </h1>
-            <h1 className="font-display text-5xl sm:text-6xl font-bold text-black leading-[1.1] tracking-tight">
-              Move Careers{" "}
-              <span className="text-[#203e35]">Forward.</span>
+              <span className="block">
+                Grow Better <span className="text-[#203e35]">Leaders.</span>
+              </span>
+              <span className="block">
+                Build Stronger <span className="text-[#203e35]">Teams.</span>
+              </span>
+              <span className="block">
+                Move Careers <span className="text-[#203e35]">Forward.</span>
+              </span>
             </h1>
 
             <p className="mt-6 text-lg text-neutral-600 leading-relaxed max-w-xl">
