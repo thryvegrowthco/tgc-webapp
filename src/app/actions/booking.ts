@@ -23,6 +23,12 @@ export async function createBookingCheckoutSession(data: BookingFormData): Promi
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Booking is invitation-only: accounts are created by Rachel after a free
+  // consultation. Refuse checkout for signed-out callers before touching Stripe.
+  if (!user) {
+    return { error: "Please sign in to book. New clients start with a free consultation." };
+  }
+
   const product = SERVICES[data.serviceKey];
   if (!product) return { error: "Invalid service selected." };
 

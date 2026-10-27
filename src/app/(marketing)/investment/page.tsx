@@ -200,8 +200,8 @@ export default function InvestmentPage() {
       <SectionCTA
         heading="Not Sure Where to Start?"
         body="Pick a service, book a call, or just reach out if you have questions. No pressure either way."
-        primaryLabel="Work With Me"
-        primaryHref="/book"
+        primaryLabel="Book a free 30-minute call"
+        primaryHref="/consultation"
         secondaryLabel="Start Your Growth"
         secondaryHref="/services"
       />

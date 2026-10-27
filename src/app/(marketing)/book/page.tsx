@@ -9,9 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentAgreement, getLatestSigningForUser } from "@/app/actions/legal";
 
 export const metadata: Metadata = pageMeta("/book", {
-  title: "Book a Call",
+  title: "Book a Session",
   description:
-    "Book a session with Rachel at Thryve Growth Co. Select your service, choose a time, and pay securely via Stripe.",
+    "Sessions with Rachel Dietz are booked by invitation after a free 30-minute consultation. Existing clients can sign in to book.",
 });
 
 const whatToExpect = [
@@ -24,6 +24,57 @@ const whatToExpect = [
 export default async function BookPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Booking is invitation-only. Signed-out visitors start with the free
+  // consultation; after that, Rachel emails a personal booking link. Only
+  // signed-in clients (all accounts come from Rachel's invitations) see the
+  // live BookingFlow below.
+  if (!user) {
+    return (
+      <section className="bg-gradient-to-br from-brand-50 via-white to-brand-50 py-16 lg:py-24">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8 sm:p-10 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-1.5 mb-5">
+              <span className="text-sm font-semibold text-brand-800 tracking-wide">
+                Let&apos;s Connect
+              </span>
+            </div>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold text-neutral-900 leading-tight mb-4">
+              Book a Session
+            </h1>
+            <p className="text-lg text-neutral-600 leading-relaxed">
+              Sessions are booked by invitation. New clients start with a free
+              30-minute consultation. After we talk, Rachel will email you a
+              personal booking link with times that work.
+            </p>
+
+            <div className="mt-8">
+              <Button asChild size="lg">
+                <Link href="/consultation">
+                  Book a free 30-minute consultation
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <p className="mt-6 text-sm text-neutral-500">
+              Already have a booking link? Use the link in your invitation email.
+            </p>
+            <p className="mt-2 text-sm text-neutral-500">
+              Existing client?{" "}
+              <Link
+                href="/login?redirect=/book"
+                className="text-brand-700 font-medium hover:text-brand-800"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const [currentAgreement, latestSigning] = await Promise.all([
     getCurrentAgreement(),
     user ? getLatestSigningForUser(user.id) : Promise.resolve(null),
@@ -50,21 +101,9 @@ export default async function BookPage() {
               Book a Session
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
-              Select your service, pick a time, and pay securely. You&apos;ll receive
-              a confirmation email with everything you need.
+              Pick a session type and a time that works. You&apos;ll receive a
+              confirmation email with everything you need.
             </p>
-
-            <div className="mt-6">
-              <p className="text-sm text-neutral-500 mb-3">
-                Not ready to commit yet?
-              </p>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/consultation">
-                  Try a free 30-minute consultation first
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
           </div>
         </div>
       </section>

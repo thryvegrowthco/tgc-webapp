@@ -129,9 +129,9 @@ export default function InterviewPrepPage() {
 
       <SectionCTA
         heading="Have an Interview Coming Up?"
-        body="Let's get you ready. Book a session and we'll make sure you walk in prepared."
-        primaryLabel="Book a Session"
-        primaryHref="/book"
+        body="Let's get you ready. Book a free call and we'll make sure you walk in prepared."
+        primaryLabel="Book a free 30-minute call"
+        primaryHref="/consultation"
         secondaryLabel="View Pricing"
         secondaryHref="/investment"
       />

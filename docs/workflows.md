@@ -8,8 +8,10 @@ End-to-end traces of every major data flow in the app. Useful for debugging, onb
 
 **Services:** Coaching sessions, interview prep sessions, resume review, HR consulting, culture consulting
 
+**Invitation-only for visitors.** `/book` (`src/app/(marketing)/book/page.tsx`) renders the `BookingFlow` **only for signed-in users**. Signed-out visitors instead see an explanation card that points them to the free consultation (`/consultation`) and to `/login?redirect=/book` for existing clients. As a defense in depth, `createBookingCheckoutSession` (`src/app/actions/booking.ts`) refuses with an error when there is no signed-in `user`, before creating any Stripe session. All accounts come from Rachel's invitations, so "signed-in" means "invited client". Public CTAs that used to point at `/book` (packages, investment, interview-prep, consultation) now point at `/consultation`. The invited `/book-session/[token]` flow (Section 1b) is unchanged. Dashboard links to `/book` still work for signed-in clients.
+
 ```
-Client visits /book
+Signed-in client visits /book
         │
         ▼
 BookingFlow component (src/components/booking/BookingFlow.tsx)

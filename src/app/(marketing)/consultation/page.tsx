@@ -127,13 +127,13 @@ export default async function ConsultationPage({ searchParams }: ConsultationPag
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-2">
-                  Ready to book a paid session?
+                  Already a client?
                 </p>
                 <Link
-                  href="/book"
+                  href="/login?redirect=/book"
                   className="text-sm text-brand-700 font-medium hover:text-brand-800"
                 >
-                  Skip the consult and book directly →
+                  Sign in to book a session →
                 </Link>
               </div>
             </div>

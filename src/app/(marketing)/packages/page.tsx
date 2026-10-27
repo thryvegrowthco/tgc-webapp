@@ -28,7 +28,7 @@ const packages = [
       "Email support between sessions",
     ],
     bestFor: "Career transitions, leadership development, goal setting",
-    href: "/book",
+    href: "/consultation",
     featured: true,
   },
   {
@@ -48,7 +48,7 @@ const packages = [
       "Question bank for your target role and industry",
     ],
     bestFor: "Upcoming interviews, career changers, returning to the job market",
-    href: "/book",
+    href: "/consultation",
     featured: false,
   },
 ];
@@ -134,7 +134,7 @@ export default function PackagesPage() {
                 </div>
 
                 <Button asChild size="lg" className="w-full" variant={pkg.featured ? "default" : "outline"}>
-                  <Link href={pkg.href}>Get Started <ArrowRight className="h-4 w-4" /></Link>
+                  <Link href={pkg.href}>Start with a free consultation <ArrowRight className="h-4 w-4" /></Link>
                 </Button>
               </div>
             ))}
