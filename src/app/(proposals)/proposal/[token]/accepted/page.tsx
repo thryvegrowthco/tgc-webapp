@@ -40,7 +40,7 @@ export default async function ProposalAcceptedPage({
       </h1>
       <p className="text-neutral-600 mt-2">
         {isPaid
-          ? "We've received your payment and a receipt is on its way. Rachel will be in touch shortly to kick things off."
+          ? "We've received your payment and a receipt is on its way. If you are new here, check your email for a link to set up your account. Rachel will be in touch shortly to kick things off."
           : wasPaidProposal
             ? "Thank you for accepting. If you completed payment, a receipt is on its way. Rachel will follow up to get started."
             : "Thank you for accepting. Rachel will be in touch shortly to get started."}

@@ -151,7 +151,8 @@ export default async function ConfirmedPage({
               View your session details
             </Link>
             <p className="text-xs text-neutral-500">
-              You&apos;ll sign in to see your prep steps, meeting link, and messages.
+              You&apos;ll sign in to see your prep steps, meeting link, and messages. If this is
+              your first time here, check your email for a link to set up your account.
             </p>
           </div>
         ) : (
