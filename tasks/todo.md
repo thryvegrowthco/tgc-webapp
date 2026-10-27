@@ -25,6 +25,14 @@ email them a secure setup link. Public /signup stays closed.
 - [ ] Checks: tsc, eslint, check:og, check:emdash
 - [ ] Req 6 (FAQ revisions): ALREADY SATISFIED in repo — data.ts says "two rounds of revisions"; surface, do not fabricate.
 
+## Review (done)
+
+- All items implemented and committed (5 commits on `feat/checkout-creates-account`).
+- Checks green: `tsc --noEmit`, `eslint` (changed files), `check:og`, `check:emdash`, `generate:help`.
+- Req 6 (FAQ revisions): NO change made — repo already says "two rounds of revisions" everywhere (git shows data.ts was created with "two"; `-S "one additional revision"` finds nothing). Surfaced, not fabricated.
+- No webhook unit tests / test framework exist; the only related scripts are live-DB `.mts` walks (need `.env.local` + write to the live DB) and `tsx` is absent, so none could be run here. Recommend the owner extend `scripts/test-booking-walk.mts` / `test-proposal-walk.mts` to cover the account path.
+- No DB migration added (existing `handle_new_user` trigger + reused `subscription_issue` notification type).
+
 ## Decisions / rationale
 - Create with `email_confirm:true` + `recovery` link = requirement 1 ("email confirmed, no password") + requirement 2 ("generateLink recovery/magic link").
 - Welcome email lives in auth-emails.ts (same family as the invited-client email) = "prefer whatever the codebase already does for invited clients"; no new EmailTemplateKey/DB migration.
