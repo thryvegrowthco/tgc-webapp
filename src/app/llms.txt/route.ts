@@ -16,7 +16,9 @@ if (RACHEL_LINKEDIN) {
 }
 profiles.push(`- Instagram: ${SOCIAL_LINKS.instagram}`);
 if (GOOGLE_BUSINESS_PROFILE_URL) {
-  profiles.push(`- Google Business Profile: ${GOOGLE_BUSINESS_PROFILE_URL}`);
+  profiles.push(
+    `- Google Business Profile (reviews): ${GOOGLE_BUSINESS_PROFILE_URL}`,
+  );
 }
 
 const BODY = `# Thryve Growth Co.

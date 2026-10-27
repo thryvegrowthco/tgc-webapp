@@ -11,6 +11,8 @@ export const SOCIAL_LINKS = {
 export const RACHEL_LINKEDIN: string | null =
   "https://www.linkedin.com/in/racheldietzhr";
 
-// TODO(owner): paste the Google Business Profile share URL. Stays null until
-// filled; consumers must omit it from sameAs / profile lists while it is null.
-export const GOOGLE_BUSINESS_PROFILE_URL: string | null = null;
+// Owner-confirmed Google review link for the verified Google Business Profile.
+// Stays null until filled; consumers must omit it from sameAs / profile lists
+// while it is null.
+export const GOOGLE_BUSINESS_PROFILE_URL: string | null =
+  "https://g.page/r/Caddjd3daQLEEAE/review";
