@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -40,6 +42,18 @@ const pairsWellWith = [
 export default function ResumeMaterialsPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "resume-materials",
+          name: "Resume & Career Materials",
+          description:
+            "Resume review, full rewrite, LinkedIn optimization, and cover letters: career materials that actually tell your story the right way.",
+          offers: [
+            { name: "Resume Review + Edits", price: "75" },
+            { name: "Full Resume Rewrite", price: "150" },
+          ],
+        })}
+      />
       <PageHero
         eyebrow="For Individuals"
         title="Resume & Career"

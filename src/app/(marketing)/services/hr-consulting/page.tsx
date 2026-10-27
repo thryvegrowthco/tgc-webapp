@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -40,6 +42,18 @@ const pairsWellWith = [
 export default function HRConsultingPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "hr-consulting",
+          name: "HR Consulting & Team Development",
+          description:
+            "Strategic HR consulting for growing organizations. Build structure, develop leaders, and create the HR foundation your team needs to perform.",
+          offers: [
+            { name: "Hourly Support", price: "125" },
+            { name: "Project-Based Work", minPrice: "500" },
+          ],
+        })}
+      />
       <PageHero
         eyebrow="For Businesses"
         title="HR Consulting &"

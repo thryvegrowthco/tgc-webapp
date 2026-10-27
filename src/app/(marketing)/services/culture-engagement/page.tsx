@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -37,6 +39,15 @@ const pairsWellWith = [
 export default function CultureEngagementPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "culture-engagement",
+          name: "Culture & Engagement Consulting",
+          description:
+            "Build a culture that's clear, aligned, and sustainable. Strategic culture and engagement consulting for organizations ready to build something that actually lasts.",
+          offers: [{ name: "Project-Based Engagement", minPrice: "750" }],
+        })}
+      />
       <PageHero
         eyebrow="For Businesses"
         title="Culture & Engagement"

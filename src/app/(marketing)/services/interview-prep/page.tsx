@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -39,6 +41,18 @@ const pairsWellWith = [
 export default function InterviewPrepPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "interview-prep",
+          name: "Interview Preparation",
+          description:
+            "Walk into your next interview prepared and confident. Real mock interviews, honest feedback, and strategy from someone who's been on both sides of the table.",
+          offers: [
+            { name: "Single Session", price: "100" },
+            { name: "3-Session Package", price: "250" },
+          ],
+        })}
+      />
       <PageHero
         eyebrow="For Individuals"
         title="Interview"

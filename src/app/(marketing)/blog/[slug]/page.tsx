@@ -7,6 +7,8 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Link as TiptapLink } from "@tiptap/extension-link";
 import { Image as TiptapImage } from "@tiptap/extension-image";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { blogPostGraph } from "@/lib/seo/schema";
 import { createClient } from "@/lib/supabase/server";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { RachelProfileCircle } from "@/components/shared/RachelPhoto";
@@ -35,7 +37,7 @@ async function getPost(slug: string) {
   const { data } = await supabase
     .from("blog_posts")
     .select(
-      "id, title, slug, excerpt, content, published_at, featured_image_path, featured_image_alt"
+      "id, title, slug, excerpt, content, published_at, updated_at, featured_image_path, featured_image_alt"
     )
     .eq("slug", slug)
     .eq("published", true)
@@ -89,6 +91,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <>
+      <JsonLd
+        data={blogPostGraph({
+          slug: post.slug,
+          title: post.title,
+          datePublished: post.published_at,
+          dateModified: post.updated_at,
+          image: post.featured_image_path,
+        })}
+      />
       {/* Post hero */}
       <section className="bg-gradient-to-br from-brand-50 via-white to-brand-50 py-12 border-b border-neutral-100">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

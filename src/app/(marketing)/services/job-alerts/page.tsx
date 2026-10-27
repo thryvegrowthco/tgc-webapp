@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight, Bell, Search, User } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -54,6 +56,15 @@ const pairsWellWith = [
 export default function JobAlertsPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "job-alerts",
+          name: "Job Alerts & Watchlists",
+          description:
+            "Curated job matches delivered to you, filtered to your goals, your experience, and your preferences. Manual curation by Rachel plus automated job board feeds.",
+          offers: [{ name: "Monthly Support", price: "15" }],
+        })}
+      />
       <PageHero
         eyebrow="For Individuals"
         title="Job Alerts &"

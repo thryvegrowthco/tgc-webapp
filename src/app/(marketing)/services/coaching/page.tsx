@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -40,6 +42,18 @@ const pairsWellWith = [
 export default function CoachingPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "coaching",
+          name: "Career & Leadership Coaching",
+          description:
+            "1:1 career and leadership coaching grounded in real HR experience. Get clarity, build confidence, and move forward with a strategy that actually fits your life.",
+          offers: [
+            { name: "Single Session", price: "125" },
+            { name: "4-Session Coaching Plan", price: "425" },
+          ],
+        })}
+      />
       <PageHero
         eyebrow="For Individuals"
         title="Career & Leadership"

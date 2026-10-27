@@ -9,6 +9,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SectionCTA } from "@/components/shared/SectionCTA";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { faqPageGraph } from "@/lib/seo/schema";
 
 export const metadata: Metadata = pageMeta("/faq", {
   title: "FAQ",
@@ -159,6 +161,9 @@ export const faqCategories = [
 export default function FAQPage() {
   return (
     <>
+      {/* FAQPage schema built from the same data the accordion renders, so every
+          acceptedAnswer.text matches a visible answer. */}
+      <JsonLd data={faqPageGraph(faqCategories.flatMap((cat) => cat.items))} />
       {/* Hero */}
       <section className="bg-gradient-to-br from-brand-50 via-white to-brand-50 py-16 lg:py-24 border-b border-neutral-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

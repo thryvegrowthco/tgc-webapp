@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { serviceGraph } from "@/lib/seo/schema";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
@@ -36,6 +38,14 @@ const pairsWellWith = [
 export default function RecruitmentScreeningPage() {
   return (
     <>
+      <JsonLd
+        data={serviceGraph({
+          slug: "recruitment-screening",
+          name: "Recruitment & Candidate Screening",
+          description:
+            "Flexible recruitment support for small businesses and nonprofits: resume screening, phone screens, interview questions, and hiring process advice.",
+        })}
+      />
       <PageHero
         eyebrow="For Businesses"
         title="Recruitment &"
