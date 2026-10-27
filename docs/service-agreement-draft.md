@@ -100,8 +100,8 @@ paid for the specific service in question.
 
 ### 11. Governing Law
 
-This agreement is governed by the laws of {{ STATE WHERE RACHEL'S BUSINESS IS
-REGISTERED }}. Any disputes will be resolved in the courts of that jurisdiction.
+This agreement is governed by the laws of Wisconsin. Any disputes will be
+resolved in the courts of that jurisdiction.
 
 ### 12. Updates
 

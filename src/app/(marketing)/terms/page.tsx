@@ -7,7 +7,8 @@ export const metadata: Metadata = pageMeta("/terms", {
 });
 
 export default function TermsPage() {
-  const effectiveDate = "April 1, 2025";
+  // Update to the actual publish date if this ships later.
+  const effectiveDate = "October 26, 2026";
 
   return (
     <section className="py-16 lg:py-24 bg-white">
@@ -93,7 +94,7 @@ export default function TermsPage() {
           <div>
             <h2 className="font-display text-lg font-bold text-neutral-900 mb-3">10. Governing Law</h2>
             <p>
-              These Terms are governed by the laws of the United States and the state where Thryve Growth Co. LLC is registered. If a dispute comes up, we&apos;ll start with a good-faith conversation. If that doesn&apos;t resolve things, the matter goes to binding arbitration.
+              These Terms are governed by the laws of the State of Wisconsin, where Thryve Growth Co. LLC is registered. If a dispute comes up, we&apos;ll start with a good-faith conversation. If that doesn&apos;t resolve things, any dispute will be resolved in the courts of Wisconsin.
             </p>
           </div>
 
