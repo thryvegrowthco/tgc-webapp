@@ -6,9 +6,10 @@ export const SOCIAL_LINKS = {
   instagram: "https://www.instagram.com/thryvegrowthco/",
 } as const;
 
-// Rachel's personal LinkedIn. TODO(owner): confirm URL. Stays null until filled;
-// consumers must omit it from sameAs / profile lists and hide UI links while null.
-export const RACHEL_LINKEDIN: string | null = null;
+// Rachel's personal LinkedIn. Stays null until filled; consumers must omit it
+// from sameAs / profile lists and hide UI links while null.
+export const RACHEL_LINKEDIN: string | null =
+  "https://www.linkedin.com/in/racheldietzhr";
 
 // TODO(owner): paste the Google Business Profile share URL. Stays null until
 // filled; consumers must omit it from sameAs / profile lists while it is null.
