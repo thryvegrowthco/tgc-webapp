@@ -17,16 +17,19 @@ interface SuccessPageProps {
 export default async function BookingSuccessPage({ searchParams }: SuccessPageProps) {
   const { session_id } = await searchParams;
 
-  let serviceType = "your session";
+  let serviceLabel: string | null = null;
   let customerEmail = "";
 
   if (session_id) {
     try {
       const session = await stripe.checkout.sessions.retrieve(session_id);
-      serviceType = (session.metadata?.serviceType as string) ?? serviceType;
+      const metaService = session.metadata?.serviceType;
+      if (typeof metaService === "string" && metaService.trim().length > 0) {
+        serviceLabel = metaService.trim();
+      }
       customerEmail = session.customer_email ?? "";
     } catch {
-      // Session not found or invalid — still show success page
+      // Session not found or invalid. Still show the success page.
     }
   }
 
@@ -43,9 +46,16 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
         </h1>
 
         <p className="text-neutral-600 leading-relaxed mb-4">
-          Your{" "}
-          <span className="font-semibold text-neutral-800">{serviceType}</span>{" "}
-          session is confirmed. I&apos;m looking forward to our conversation.
+          {serviceLabel ? (
+            <>
+              Your{" "}
+              <span className="font-semibold text-neutral-800">{serviceLabel}</span>{" "}
+              booking is confirmed.
+            </>
+          ) : (
+            "Your booking is confirmed."
+          )}{" "}
+          I&apos;m looking forward to our conversation.
         </p>
 
         {customerEmail && (
