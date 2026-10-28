@@ -16,7 +16,10 @@ import { applyComplimentaryAccess } from "@/lib/watchlist/comp";
 // gives one code path for both, our own email copy, and a RELATIVE `next` (see
 // the /auth/confirm sanitizer — an absolute one produces a dead host).
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://thryvegrowth.co";
+// Canonical host (www) so the emailed setup link resolves and sets its auth
+// cookies on the origin the app serves from. NEXT_PUBLIC_APP_URL is the source
+// of truth in every environment; this fallback only guards a missing env.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.thryvegrowth.co";
 
 // Where an invitee lands: the profile page is the only set-password UI in the
 // app. NOT /reset-password — that's the "email me a link" request form, and
@@ -186,7 +189,12 @@ export async function resendClientInvite(clientId: string): Promise<ResendInvite
   if (lookupErr || !authUser?.user) {
     return { error: "Could not find that account." };
   }
-  if (authUser.user.email_confirmed_at) {
+  // Refuse only when the client has actually activated the account (signed in /
+  // set a password). Checkout-provisioned accounts are created email-confirmed
+  // but never signed in, so gating on email_confirmed_at would wrongly block a
+  // resend for exactly the accounts that most need one. A fresh magiclink below
+  // works whether or not the email was already confirmed.
+  if (authUser.user.last_sign_in_at) {
     return {
       error: "This client has already activated their account. Send a password reset instead.",
     };
