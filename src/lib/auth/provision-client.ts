@@ -30,6 +30,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // NOT a client (e.g. an admin). The caller refuses to link in that case.
 const NON_CLIENT = Symbol("non_client");
 
+// Returned by findClientProfileByEmail when the profiles read itself errored.
+// supabase-js returns { error } instead of throwing, so an unchecked read makes
+// a failed lookup look identical to "no profile" — which would let the caller go
+// on to create or link an account on top of a transient DB error. This distinct
+// result forces callers to stop and alert instead.
+const LOOKUP_FAILED = Symbol("lookup_failed");
+
 export interface EnsureClientAccountResult {
   /** The resolved (existing or newly created) profile id, or null on failure. */
   clientId: string | null;
@@ -73,6 +80,16 @@ export async function ensureClientAccount(
 
   // ─── 1. Already have an account for this email? ──────────────────────────
   const existing = await findClientProfileByEmail(email);
+  if (existing === LOOKUP_FAILED) {
+    // Treat a failed read as a hard failure: stop here and let the caller alert,
+    // rather than risk creating a duplicate account over a transient error.
+    return {
+      clientId: null,
+      isNew: false,
+      neverSignedIn: false,
+      error: "profile_lookup_failed",
+    };
+  }
   if (existing === NON_CLIENT) {
     return {
       clientId: null,
@@ -150,13 +167,19 @@ export async function ensureClientAccount(
  */
 async function findClientProfileByEmail(
   email: string
-): Promise<string | typeof NON_CLIENT | null> {
+): Promise<string | typeof NON_CLIENT | typeof LOOKUP_FAILED | null> {
   const service = createServiceClient();
-  const { data } = await service
+  const { data, error } = await service
     .from("profiles")
     .select("id, role")
     .eq("email", email)
     .maybeSingle();
+  // A failed read must NOT look like "no profile": returning null here would let
+  // the caller go on to create or link an account on top of a transient error.
+  if (error) {
+    console.error("[ensureClientAccount] profile lookup failed:", error.message);
+    return LOOKUP_FAILED;
+  }
   const row = data as { id: string; role: string } | null;
   if (!row) return null;
   if (row.role !== "client") return NON_CLIENT;
@@ -186,6 +209,14 @@ async function resolveExistingAccount(
 
   // Usual case: the profiles row is present (a concurrent delivery won the race).
   const existing = await findClientProfileByEmail(email);
+  if (existing === LOOKUP_FAILED) {
+    return {
+      clientId: null,
+      isNew: false,
+      neverSignedIn: false,
+      error: "profile_lookup_failed",
+    };
+  }
   if (existing === NON_CLIENT) {
     return {
       clientId: null,
@@ -202,10 +233,10 @@ async function resolveExistingAccount(
     };
   }
 
-  // The auth user exists but has NO profiles row (the handle_new_user trigger
-  // never fired). Resolve the id WITHOUT scanning every user: generateLink with
-  // type 'recovery' returns the existing user's record for this email and sends
-  // nothing (we never use the link). Then backstop the missing 'client' row.
+  // The auth user exists but the email lookup found NO 'client' profiles row.
+  // Resolve the id WITHOUT scanning every user: generateLink with type 'recovery'
+  // returns the existing user's record for this email and sends nothing (we never
+  // use the link).
   const { data, error } = await service.auth.admin.generateLink({
     type: "recovery",
     email,
@@ -218,18 +249,56 @@ async function resolveExistingAccount(
     return null;
   }
   const userId = data.user.id;
-  const { error: upsertErr } = await service
+
+  // Backstop a MISSING 'client' row only — never overwrite an existing profile.
+  // ignoreDuplicates makes this INSERT ... ON CONFLICT (id) DO NOTHING, so a
+  // profile that already exists for this id (e.g. an admin whose profiles.email
+  // differs from the auth email, or one the email lookup above could not read) is
+  // left completely untouched: its role and full_name can never be flipped here.
+  const { error: insertErr } = await service
     .from("profiles")
     .upsert(
       { id: userId, email, full_name: name || null, role: "client" },
-      { onConflict: "id" }
+      { onConflict: "id", ignoreDuplicates: true }
     );
-  if (upsertErr) {
+  if (insertErr) {
     console.error(
       "[ensureClientAccount] profile backstop (email_exists) failed:",
-      upsertErr.message
+      insertErr.message
     );
   }
+
+  // Re-read by id and refuse unless the row is EXACTLY a client. This closes the
+  // hole where a privileged profile shares this auth id: whether the insert was a
+  // no-op (row already existed) or newly wrote the 'client' row, we only link
+  // after confirming the persisted role is 'client'. A failed/empty re-read is
+  // treated as a failure so we never link blind.
+  const { data: roleRow, error: roleErr } = await service
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (roleErr || !roleRow) {
+    console.error(
+      "[ensureClientAccount] profile re-read after backstop failed:",
+      roleErr?.message
+    );
+    return {
+      clientId: null,
+      isNew: false,
+      neverSignedIn: false,
+      error: "profile_lookup_failed",
+    };
+  }
+  if ((roleRow as { role: string }).role !== "client") {
+    return {
+      clientId: null,
+      isNew: false,
+      neverSignedIn: false,
+      error: "email_belongs_to_non_client",
+    };
+  }
+
   return { clientId: userId, isNew: false, neverSignedIn: !data.user.last_sign_in_at };
 }
 
@@ -270,17 +339,22 @@ export async function sendCheckoutAccountWelcome(
   const eventKey = stripeSessionId ? `checkout_welcome:${stripeSessionId}` : null;
 
   // ─── Idempotency: never send a second setup email for the same checkout ───
+  // supabase-js returns { error } instead of throwing, so check it explicitly.
+  // Any returned row means a prior delivery already sent this welcome. We do NOT
+  // add a unique index/migration here: concurrent duplicate deliveries are rare
+  // and the webhook handlers all return early on replay. A failed read logs and
+  // falls through, so a transient error never blocks a legitimate first send.
   if (eventKey) {
-    try {
-      const { data: already } = await service
-        .from("automation_log")
-        .select("id")
-        .eq("event_key", eventKey)
-        .eq("status", "success")
-        .maybeSingle();
-      if (already) return "skipped";
-    } catch {
-      // A log-read failure must not block a first send; fall through.
+    const { data: already, error: readErr } = await service
+      .from("automation_log")
+      .select("id")
+      .eq("event_key", eventKey)
+      .eq("status", "success")
+      .limit(1);
+    if (readErr) {
+      console.error("[sendCheckoutAccountWelcome] idempotency read failed:", readErr.message);
+    } else if (already && already.length > 0) {
+      return "skipped";
     }
   }
 
@@ -319,18 +393,18 @@ export async function sendCheckoutAccountWelcome(
     return "failed";
   }
 
-  // Mark sent so replays short-circuit above. Best-effort: a log-write failure
-  // does not un-send the email, so we still report success.
+  // Mark sent so replays short-circuit above. supabase-js returns { error }
+  // instead of throwing, so check it: a log-write failure does not un-send the
+  // email, so we console.error it and still report success rather than throw.
   if (eventKey) {
-    try {
-      await service.from("automation_log").insert({
-        event_key: eventKey,
-        client_id: clientId ?? null,
-        status: "success",
-        payload: { template_key: "checkout_welcome" },
-      });
-    } catch {
-      // Logging must not change the send result.
+    const { error: logErr } = await service.from("automation_log").insert({
+      event_key: eventKey,
+      client_id: clientId ?? null,
+      status: "success",
+      payload: { template_key: "checkout_welcome" },
+    });
+    if (logErr) {
+      console.error("[sendCheckoutAccountWelcome] log insert failed:", logErr.message);
     }
   }
 
