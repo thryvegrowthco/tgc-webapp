@@ -132,21 +132,24 @@ async function alertSetupEmailFailed(args: {
   name: string;
   serviceType: string;
   context: string;
+  clientId: string | null;
 }): Promise<void> {
   console.error(`[Stripe Webhook] setup email failed (${args.context}) for ${args.email}`);
   await notifyAdmin({
     type: "subscription_issue",
     subject: `Action needed: setup email failed for ${args.name || args.email}`,
     title: "Client account created, but the setup email failed",
-    body: "We created the client's portal account from their payment, but the email with their password setup link could not be sent. Open Clients, find this client, and send them a password reset (or use Resend invite) so they can set a password and sign in.",
+    body: "We created the client's portal account from their payment, but the email with their password setup link could not be sent. Open the client and send them a password reset (or use Resend invite) so they can set a password and sign in.",
     fields: [
       { label: "Client", value: args.name || args.email },
       { label: "Email", value: args.email },
       { label: "Service", value: args.serviceType },
       { label: "Where", value: args.context },
     ],
-    link: "/admin/clients",
-    ctaLabel: "Open clients",
+    // Deep-link straight to the client whose account was just provisioned, so
+    // Rachel lands on the page with the Resend invite button (not the whole list).
+    link: args.clientId ? `/admin/clients/${args.clientId}` : "/admin/clients",
+    ctaLabel: args.clientId ? "Open client" : "Open clients",
     replyTo: args.email || undefined,
   });
 }
@@ -527,6 +530,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
               name: clientName,
               serviceType,
               context: "booking checkout",
+              clientId: userId,
             });
           }
         })
@@ -742,6 +746,7 @@ async function handleInvitationCheckoutCompleted(session: Stripe.Checkout.Sessio
         name: invitation.client_name ?? "",
         serviceType: invitation.service_type,
         context: "paid booking invitation",
+        clientId: resolvedClientId,
       });
     }
   }
@@ -894,6 +899,7 @@ async function handleProposalCheckoutCompleted(session: Stripe.Checkout.Session)
         name: prop.client_name ?? "",
         serviceType: serviceLabel,
         context: "paid proposal",
+        clientId: proposalClientId,
       });
     }
   }
