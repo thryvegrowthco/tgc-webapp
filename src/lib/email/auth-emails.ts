@@ -300,7 +300,7 @@ export async function sendEmailChange(
             Confirm your new email address
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
-            You requested to change your email to <strong>${newEmail}</strong>.
+            You requested to change your email to <strong>${escapeHtml(newEmail)}</strong>.
           </p>
         </div>
 
