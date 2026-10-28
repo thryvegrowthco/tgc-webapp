@@ -228,13 +228,17 @@ export default async function AdminClientDetailPage({
     clientName: clientDisplayName,
   }));
 
-  // Has this client ever activated their login? An admin-created account exists
-  // in auth.users with no password until they click the invite, and only the
-  // service client can read that. Safe here: the (admin) layout gates the role.
+  // Has this client ever activated their login? Admin-invited AND
+  // checkout-provisioned accounts both exist in auth.users with no password until
+  // the client clicks their link and sets one. Gate on last_sign_in_at (never
+  // signed in) rather than email_confirmed_at: checkout-provisioned accounts are
+  // created email-confirmed but password-less, so an email_confirmed_at check
+  // would wrongly hide the Resend invite button for exactly those accounts. Only
+  // the service client can read this. Safe here: the (admin) layout gates the role.
   let awaitingActivation = false;
   try {
     const { data: authUser } = await createServiceClient().auth.admin.getUserById(id);
-    awaitingActivation = Boolean(authUser?.user && !authUser.user.email_confirmed_at);
+    awaitingActivation = Boolean(authUser?.user && !authUser.user.last_sign_in_at);
   } catch (err) {
     console.error("[admin/clients] activation lookup failed:", err);
   }
