@@ -63,9 +63,15 @@ handleCheckoutCompleted (src/app/api/webhooks/stripe/route.ts)
       the service role (email confirmed, no password) and the rest of the handler
       links to it. It only matches/links to an existing 'client' profile; if the
       email belongs to an admin (or any non-client) it refuses and returns an
-      error rather than linking. On email_exists it resolves the user id via
-      generateLink(recovery) (no scan, sends nothing) and backstops a missing
-      'client' profiles row. Fail-safe: on any error it keeps going with no
+      error rather than linking. A failed profiles read is treated as a hard
+      failure (refuse and alert), not as "no profile". On email_exists it
+      resolves the user id via generateLink(recovery) (no scan, sends nothing)
+      and backstops a MISSING 'client' profiles row with an insert-only upsert
+      (ON CONFLICT DO NOTHING), then re-reads the row by id and links only when
+      its persisted role is exactly 'client'. An existing admin/non-client
+      profile is therefore never overwritten or linked, even when profiles.email
+      differs from the auth email or the first lookup errored. Fail-safe: on any
+      error it keeps going with no
       client_id and alertAccountCreationFailed notifies Rachel (payment is
       recorded; a new account from Clients will NOT retroactively attach it, so
       she reassigns the session from Admin once an account exists). (Public /book
@@ -505,7 +511,7 @@ service.auth.admin.generateLink({ type: 'invite', email,
 
 **Invitee experience:** branded email → `/auth/confirm?type=invite` → `verifyOtp` confirms the email and **creates a session** → `/dashboard/profile?welcome=1` (passes the proxy — they're authenticated) → welcome banner over the existing "Change Password" card → `updatePassword` → `/dashboard`.
 
-**If they never accept:** the `auth.users` row exists with `email_confirmed_at` NULL and no password; the `profiles` row already exists via the trigger, so they appear in `/admin/clients` immediately and can be comped before ever accepting — they simply can't log in. `/admin/clients/[id]` shows an "Account not activated" banner with a **Resend invite** button → `resendClientInvite`, which uses `type: 'magiclink'` (invite 422s for an existing user) and refuses only once the client has actually signed in (`last_sign_in_at` set). It no longer refuses on `email_confirmed_at`, because checkout-provisioned accounts are created email-confirmed but password-less, and Resend invite is exactly how Rachel gets those un-activated clients a fresh setup link.
+**If they never accept:** the `auth.users` row exists with `email_confirmed_at` NULL and no password; the `profiles` row already exists via the trigger, so they appear in `/admin/clients` immediately and can be comped before ever accepting — they simply can't log in. `/admin/clients/[id]` shows an "Account not activated" banner with a **Resend invite** button whenever the account has never signed in (`last_sign_in_at` NULL, read via the service client). Gating the banner on `last_sign_in_at` rather than `email_confirmed_at` means it also appears for checkout-provisioned accounts (created email-confirmed but password-less), which is exactly where Rachel needs it. The button calls `resendClientInvite`, which uses `type: 'magiclink'` (invite 422s for an existing user) and refuses only once the client has actually signed in (`last_sign_in_at` set). That is the same gate, so the button stays visible until the client sets a password and signs in.
 
 **Grant / revoke free access** — `WatchlistAdminControls` on `/admin/clients/[id]` (primary) or `/admin/watchlists/[clientId]`:
 
