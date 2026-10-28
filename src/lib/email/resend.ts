@@ -113,7 +113,7 @@ export interface ContactFormSubmission {
   message: string;
 }
 
-function escapeHtml(input: string): string {
+export function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

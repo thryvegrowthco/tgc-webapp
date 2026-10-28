@@ -1,4 +1,4 @@
-import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/email/resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL, escapeHtml } from "@/lib/email/resend";
 
 // Branded auth email templates. Styling matches the booking confirmation email:
 // header color #203e35, accent background #f5ece3, footer with copyright.
@@ -26,7 +26,7 @@ export async function sendSignupConfirmation(
 
         <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
-            Welcome${name ? `, ${name}` : ""}!
+            Welcome${name ? `, ${escapeHtml(name)}` : ""}!
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
             Please confirm your email address to activate your account.
@@ -92,7 +92,7 @@ export async function sendClientInvite(
 
         <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
-            Welcome${name ? `, ${name}` : ""}!
+            Welcome${name ? `, ${escapeHtml(name)}` : ""}!
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
             Rachel set up a Thryve Growth Co. account for you. Choose a password and it's yours.
@@ -162,7 +162,7 @@ export async function sendCheckoutWelcome(
 
         <div style="background: #f5ece3; border: 1px solid #d6eae5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #0f172a;">
-            Welcome${name ? `, ${name}` : ""}!
+            Welcome${name ? `, ${escapeHtml(name)}` : ""}!
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
             Thank you for your payment. We set up a Thryve Growth Co. account for you so you can
@@ -172,8 +172,8 @@ export async function sendCheckoutWelcome(
 
         <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; margin: 0 0 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
           <tr><td style="padding: 16px 18px;">
-            <p style="margin: 0 0 6px; color: #0f172a;"><strong>Service:</strong> ${receipt.serviceType}</p>
-            <p style="margin: 0; color: #0f172a;"><strong>Amount:</strong> ${receipt.amountFormatted}</p>
+            <p style="margin: 0 0 6px; color: #0f172a;"><strong>Service:</strong> ${escapeHtml(receipt.serviceType)}</p>
+            <p style="margin: 0; color: #0f172a;"><strong>Amount:</strong> ${escapeHtml(receipt.amountFormatted)}</p>
           </td></tr>
         </table>
 
@@ -238,7 +238,7 @@ export async function sendPasswordReset(
             Password reset request
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
-            Hi${name ? ` ${name}` : ""}, we received a request to reset your password.
+            Hi${name ? ` ${escapeHtml(name)}` : ""}, we received a request to reset your password.
           </p>
         </div>
 
@@ -363,7 +363,7 @@ export async function sendMagicLink(
             Your sign-in link
           </h2>
           <p style="color: #475569; margin: 0; font-size: 15px;">
-            Hi${name ? ` ${name}` : ""}, here is your one-click sign-in link.
+            Hi${name ? ` ${escapeHtml(name)}` : ""}, here is your one-click sign-in link.
           </p>
         </div>
 
