@@ -158,12 +158,23 @@ export async function createClientAccount(
   }
 
   if (input.sendInvite) {
+    // sendClientInvite returns a Resend v6 result with { error } instead of
+    // throwing, so an unchecked call would set inviteSent on a failed send. The
+    // account exists and is usable either way — don't fail the whole create over
+    // an email hiccup; Rachel can press Resend invite.
     try {
-      await sendClientInvite(email, fullName, buildConfirmUrl(data.properties.hashed_token));
-      result.inviteSent = true;
+      const res = await sendClientInvite(
+        email,
+        fullName,
+        buildConfirmUrl(data.properties.hashed_token)
+      );
+      if (res?.error) {
+        console.error("[createClientAccount] invite email failed:", res.error);
+        result.inviteError = "Account created, but the invite email failed to send.";
+      } else {
+        result.inviteSent = true;
+      }
     } catch (err) {
-      // The account exists and is usable — don't fail the whole create over an
-      // email hiccup. Rachel can press Resend invite.
       console.error("[createClientAccount] invite email failed:", err);
       result.inviteError = "Account created, but the invite email failed to send.";
     }
@@ -228,11 +239,17 @@ export async function resendClientInvite(clientId: string): Promise<ResendInvite
     `${APP_URL}/auth/confirm?token_hash=${data.properties.hashed_token}` +
     `&type=magiclink&next=${encodeURIComponent(INVITE_LANDING)}`;
 
+  // sendClientInvite returns a Resend v6 result with { error } instead of
+  // throwing, so an unchecked call would report success on a failed send.
   try {
-    await sendClientInvite(email, fullName, confirmUrl);
+    const res = await sendClientInvite(email, fullName, confirmUrl);
+    if (res?.error) {
+      console.error("[resendClientInvite] email failed:", res.error);
+      return { error: "Invite email failed to send. Try again or send a password reset." };
+    }
   } catch (err) {
     console.error("[resendClientInvite] email failed:", err);
-    return { error: "Could not send the invite email." };
+    return { error: "Invite email failed to send. Try again or send a password reset." };
   }
 
   revalidatePath(`/admin/clients/${clientId}`);
