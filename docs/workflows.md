@@ -61,9 +61,15 @@ handleCheckoutCompleted (src/app/api/webhooks/stripe/route.ts)
   2b. If the payer has no account (no userId) but an email: ensureClientAccount
       (src/lib/auth/provision-client.ts) finds-or-creates a 'client' account via
       the service role (email confirmed, no password) and the rest of the handler
-      links to it. Fail-safe: on error it keeps going with no client_id and
-      alertAccountCreationFailed notifies Rachel. (Public /book requires sign-in,
-      so this only triggers for a future public checkout.)
+      links to it. It only matches/links to an existing 'client' profile; if the
+      email belongs to an admin (or any non-client) it refuses and returns an
+      error rather than linking. On email_exists it resolves the user id via
+      generateLink(recovery) (no scan, sends nothing) and backstops a missing
+      'client' profiles row. Fail-safe: on any error it keeps going with no
+      client_id and alertAccountCreationFailed notifies Rachel (payment is
+      recorded; a new account from Clients will NOT retroactively attach it, so
+      she reassigns the session from Admin once an account exists). (Public /book
+      requires sign-in, so this only triggers for a future public checkout.)
   3. Fetches slot date/time for email
   4. Inserts bookings row (status: 'confirmed', workflow_status: 'intake_needed')
   5. Updates availability_slots.is_booked = true
@@ -75,14 +81,20 @@ handleCheckoutCompleted (src/app/api/webhooks/stripe/route.ts)
  11. Inserts admin_tasks row "Review intake when submitted" (idempotent via unique partial index)
  12. Promise.allSettled([
        sendTemplated("receipt", { ..., card_brand, card_last4, stripe_receipt_url, support_email }),
-       accountCreated
-         ? sendCheckoutAccountWelcome(...)  // ONE welcome: receipt context + secure setup link
+       sendSetupWelcome
+         ? sendCheckoutAccountWelcome(..., session.id, userId)  // ONE welcome: receipt context + secure setup link
          : sendTemplated("welcome", { ..., signed_agreement_url }),
        sendAdminBookingAlert(Rachel's email),
        syncBookingToGHL(GHL contact upsert)
      ]) ← failures don't block the 200 response
-     (A brand-new account cannot open the dashboard welcome link yet, so it gets
-      the setup-link welcome instead; existing accounts get the standard welcome.)
+     (An account with no password yet cannot open the dashboard welcome link, so
+      it gets the setup-link welcome instead; already-active accounts get the
+      standard welcome. sendSetupWelcome = the resolved account has never signed
+      in, not just "created this call", so an existing-but-never-activated
+      account still gets its setup link. sendCheckoutAccountWelcome is idempotent
+      per Stripe session id (logged in automation_log as checkout_welcome:<id>),
+      so a replay never double-sends; if its send fails it returns "failed" and
+      the handler alerts Rachel via alertSetupEmailFailed to resend a link.)
         │
         ▼
 Client redirected to /book/success?session_id=...
@@ -135,8 +147,11 @@ Client receives "Choose a Time for Your Thryve Session" email → /book-session/
               → (if invitation.client_id is null) ensureClientAccount creates a
                 'client' account from client_email and passes clientId into finalize
               → finalizeSession(source='invitation_paid', paymentStatus='paid')
-              → (if the account was just created) sendCheckoutAccountWelcome:
-                ONE welcome with receipt context + secure setup link
+              → receipt is sent with the resolved (provisioned) client id, not
+                invitation.client_id (null for a no-account payer)
+              → (if the resolved account has never signed in) sendCheckoutAccountWelcome:
+                ONE welcome with receipt context + secure setup link (idempotent
+                per session id; on send failure it alerts Rachel to resend)
         │
         ▼
 finalizeSession() [SHARED]:
@@ -253,8 +268,9 @@ Client receives "Your Proposal from Thryve Growth Co." email → /proposal/[toke
                   - INSERT payments (proposal_id + client_id set; service_type = service_type||title)
                   - sendTemplated('receipt') → client
                   - notifyAdmin('proposal_paid') → Rachel
-                  - if the account was just created: sendCheckoutAccountWelcome
-                    → ONE welcome (receipt context + secure setup link)
+                  - if the resolved account has never signed in: sendCheckoutAccountWelcome
+                    → ONE welcome (receipt context + secure setup link);
+                    idempotent per session id, alerts Rachel on send failure
         │
    client declines ──────────── declineProposal({token})  [token bearer]
         - status='declined', declined_at; notifyAdmin → Rachel (follow-up)
@@ -489,7 +505,7 @@ service.auth.admin.generateLink({ type: 'invite', email,
 
 **Invitee experience:** branded email → `/auth/confirm?type=invite` → `verifyOtp` confirms the email and **creates a session** → `/dashboard/profile?welcome=1` (passes the proxy — they're authenticated) → welcome banner over the existing "Change Password" card → `updatePassword` → `/dashboard`.
 
-**If they never accept:** the `auth.users` row exists with `email_confirmed_at` NULL and no password; the `profiles` row already exists via the trigger, so they appear in `/admin/clients` immediately and can be comped before ever accepting — they simply can't log in. `/admin/clients/[id]` shows an "Account not activated" banner with a **Resend invite** button → `resendClientInvite`, which uses `type: 'magiclink'` (invite 422s for an existing user) and refuses once the email is confirmed.
+**If they never accept:** the `auth.users` row exists with `email_confirmed_at` NULL and no password; the `profiles` row already exists via the trigger, so they appear in `/admin/clients` immediately and can be comped before ever accepting — they simply can't log in. `/admin/clients/[id]` shows an "Account not activated" banner with a **Resend invite** button → `resendClientInvite`, which uses `type: 'magiclink'` (invite 422s for an existing user) and refuses only once the client has actually signed in (`last_sign_in_at` set). It no longer refuses on `email_confirmed_at`, because checkout-provisioned accounts are created email-confirmed but password-less, and Resend invite is exactly how Rachel gets those un-activated clients a fresh setup link.
 
 **Grant / revoke free access** — `WatchlistAdminControls` on `/admin/clients/[id]` (primary) or `/admin/watchlists/[clientId]`:
 

@@ -60,7 +60,14 @@ Nothing breaks — the search runs again the next morning. Open **Integrations �
 Invite links stop working after 24 hours. Their client page shows an amber **"Account not activated yet"** banner with a **Resend invite** button — press it for a fresh link, as often as you need. The account already exists either way, so they show up in your Clients list and you can set up their Job Alerts before they've ever logged in.
 
 ### What happens when someone pays and has no account?
-An account is created for them automatically. This covers a client who pays a booking invitation by card, or who accepts and pays a proposal, when they do not already have a login. They get one warm welcome email with their receipt and a secure link to set a password, so they can see their booking and everything else in their dashboard. You do not need to do anything, and they show up in your Clients list like any other client. In the rare case the account cannot be created, you get an "action needed" alert (email and bell) telling you to add them from **Clients → New client** using the same email, which links up to what they paid for. Their payment and booking are never lost. Public signup stays closed, so this only ever happens as part of a real, completed payment.
+An account is created for them automatically. This covers a client who pays a booking invitation by card, or who accepts and pays a proposal, when they do not already have a login. They get one warm welcome email with their receipt and a secure link to set a password, so they can see their booking and everything else in their dashboard. You do not need to do anything, and they show up in your Clients list like any other client.
+
+Two things can occasionally need a hand, and each sends you an "action needed" alert (email and bell):
+
+- **The welcome email could not be sent.** The account was still created. Open the client in **Clients**, and send them a password reset (or press **Resend invite**) so they get a fresh link to set a password and sign in.
+- **The account could not be created at all.** Their payment is still recorded, so nothing is lost. Reach out to the client about getting them set up. If it was a scheduled session, you can open it under **Sessions** and use **Reassign** to attach it to their client account once one exists. Note that simply adding a brand-new account from **Clients → New client** does not, on its own, pull in a payment they already made.
+
+Public signup stays closed, so this only ever happens as part of a real, completed payment.
 
 ### Do comped clients show up in my revenue numbers?
 No. The dashboard tile counts **Paying Clients** only and shows free ones separately as a small "+ 2 comped" line. Analytics and the subscriber count exclude them too. In the Clients list they carry a **Comped** badge rather than the green **Active** badge, and there's a **Comped** filter chip.
