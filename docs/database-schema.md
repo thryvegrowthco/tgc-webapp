@@ -552,7 +552,7 @@ One row per weekly newsletter draft → scheduled → sent.
 | `status` | `TEXT` | `'draft'` | `draft` → `pending_approval` → `scheduled` → `sending` → `sent` / `failed` |
 | `scheduled_for` | `TIMESTAMPTZ` | `NULL` | When the cron should send it |
 | `sent_at` | `TIMESTAMPTZ` | `NULL` | Stamped after a successful send |
-| `sent_count` | `INT` | `0` | Recipients delivered to in the last send |
+| `sent_count` | `INT` | `0` | Recipients the issue was delivered to. A send that was interrupted and resumed counts both runs |
 | `failed_count` | `INT` | `0` | Recipients that hit a send error |
 | `template_id` | `UUID` | `NULL` | Optional FK to `newsletter_templates` |
 | `target_interests` | `TEXT[]` | `'{}'` | Empty array = send to all; otherwise overlap-match subscribers |
@@ -565,7 +565,7 @@ One row per weekly newsletter draft → scheduled → sent.
 
 Index: `(status, scheduled_for)` for the hourly cron's hot query.
 
-**`sending` is a lock, and it has a timeout.** `sendIssue` sets `status='sending'` plus `updated_at=NOW()` to claim an issue. The hourly cron reclaims anything left at `sending` for more than 15 minutes (`STALE_LOCK_MS` in `src/app/api/cron/newsletter-send/route.ts`) by putting it back to `scheduled`. Without that, a process killed mid-send would strand the issue forever: the due query only matches `scheduled`, and `sendIssue`'s own `.in("status", [...])` guard blocks a manual resend too.
+**`sending` is a lock, and it has a timeout.** `sendIssue` sets `status='sending'` plus `updated_at=NOW()` to claim an issue. The hourly cron reclaims anything left at `sending` for more than 15 minutes (`STALE_LOCK_MS` in `src/app/api/cron/newsletter-send/route.ts`) by putting it back to `scheduled`. Without that, a process killed mid-send would strand the issue forever: the due query only matches `scheduled`, and `sendIssue`'s own `.in("status", [...])` guard blocks a manual resend too. The retry resumes rather than restarts: `sendIssue` skips every subscriber that already has a non-`failed` `newsletter_sends` row for the issue, so the batches the killed run completed are not sent twice.
 
 **`automation_log` rows:** the send cron writes one `newsletter_send_run` row per run (`status` `success` / `failed` / `skipped`, with a summary payload). `automation_log.event_key` is plain `TEXT` with no CHECK constraint, so new event keys need no migration; its `status` CHECK already allows all three values.
 
@@ -588,7 +588,7 @@ Reusable section layouts. The migration seeds one row tagged `is_default = TRUE`
 
 ### `newsletter_sends`
 
-Per-recipient ledger of every send. Required so Resend webhook events can be correlated back to the issue + subscriber via `resend_message_id`.
+Per-recipient ledger of every send. Required so Resend webhook events can be correlated back to the issue + subscriber via `resend_message_id`. `sendIssue` also reads it before sending: a subscriber with a `sent` or `bounced` row for the issue is skipped, which is what keeps a retried send from reaching anyone twice.
 
 | Column | Type | Default | Notes |
 |---|---|---|---|

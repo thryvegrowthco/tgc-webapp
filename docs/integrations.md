@@ -363,7 +363,7 @@ All schedules are UTC. The right column shows the local Central time, which shif
 | Endpoint | UTC cron | Local Central time |
 |---|---|---|
 | `GET /api/cron/job-alerts` | `0 9 * * 1` | Mon 3am CDT / 4am CST |
-| `GET /api/cron/newsletter-send` | `0 * * * *` | Hourly at :00 — sends due issues, and reclaims any issue stuck at `sending` for >15 min. Writes a `newsletter_send_run` row to `automation_log` every run. **Returns 500 only when an issue was genuinely due and failed to go out**; an idle tick or a transient Supabase error returns 200, because the issue stays `scheduled` and the next tick retries it |
+| `GET /api/cron/newsletter-send` | `0 * * * *` | Hourly at :00 — sends due issues, and reclaims any issue stuck at `sending` for >15 min (the retry skips subscribers the interrupted run already reached). Writes a `newsletter_send_run` row to `automation_log` every run. **Returns 500 only when an issue was genuinely due and failed to go out**; an idle tick or a transient Supabase error returns 200, because the issue stays `scheduled` and the next tick retries it |
 | `GET /api/cron/newsletter-reengage` | `0 14 * * 3` | Wed 9am CDT / 8am CST |
 | `GET /api/cron/newsletter-milestones` | `0 14 * * *` | Daily 9am CDT / 8am CST |
 | `GET /api/cron/intake-reminders` | `0 14 * * *` | Daily 9am CDT / 8am CST |

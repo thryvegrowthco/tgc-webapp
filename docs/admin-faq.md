@@ -213,7 +213,8 @@ anything for you to do about them.
 Nothing — wait 15 minutes. If a send is interrupted partway through (usually a site update landing
 at the same moment), the issue used to sit at Sending forever and never go out. Now anything stuck
 in Sending for more than 15 minutes is automatically put back to Scheduled and retried on the next
-hourly check. If it's still showing Sending well beyond that, pass it on to whoever manages the
+hourly check. The retry only goes to people who have not received the issue yet, so nobody gets it
+twice. If it's still showing Sending well beyond that, pass it on to whoever manages the
 site.
 
 ### Do links work in every kind of email?

@@ -975,7 +975,10 @@ For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
      (the text part keeps link destinations as "anchor text (https://url)" and
       carries its own footer + {{unsubscribe_url}} — the HTML shell's footer
       never reaches it)
-  3. Load matching recipients (interest-filtered, exclude unsubscribed)
+  3. Load matching recipients (interest-filtered, exclude unsubscribed), then
+     drop anyone newsletter_sends already shows this issue reached (any row
+     that is not 'failed'). Nothing to drop on a first run; on a retry after
+     a killed run this is what stops a second copy going out
   4. Chunk to 100/batch. For each batch:
        - Build per-recipient payload with first_name + tokenized
          unsubscribe URL substituted into the rendered HTML
@@ -986,6 +989,7 @@ For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
        - Insert newsletter_sends rows with resend_message_id
        - Sleep 1.1s between batches (stays under Resend's 10 req/s)
   5. UPDATE status='sent', sent_at, sent_count, failed_count
+     (sent_count is the issue's total: earlier deliveries plus this run)
   6. UPDATE last_sent_at on the subscribers that actually received it
         │
         ▼
@@ -998,6 +1002,18 @@ OOM) is caught instead by the stale-lock reclaim at the top of the next tick.
 Without both, an issue stranded at `sending` would never be retried — the due
 query only matches `scheduled`, and the lock's own status guard blocks a manual
 resend too.
+
+**A retry resumes, it does not start over.** A run killed after some batches
+went out has already written those batches to `newsletter_sends`. When the
+reclaim puts the issue back to `scheduled`, the next `sendIssue` reads that
+ledger first and sends only to subscribers without a delivered row for the
+issue (rows marked `failed` are tried again). The run's `automation_log` row
+reports the ones left out as `skipped`, `sent_count` ends up as the total across
+both runs, and `last_sent_at` is stamped for the skipped subscribers too. If the
+ledger cannot be read the send stops and the issue is marked `failed`, because
+sending blind could deliver the issue twice. One gap remains: a run killed
+between Resend accepting a batch and the ledger insert for that batch leaves no
+row, so that one batch (at most 100 people) would be sent again.
 
 **Alerting contract.** The route returns **500 only when an issue was genuinely
 due and failed to go out**. An idle tick, or a transient Supabase error, returns

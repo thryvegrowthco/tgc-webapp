@@ -27,7 +27,9 @@ export const maxDuration = 300;
 // If the function is killed mid-send (deploy, timeout, OOM) nothing releases
 // that lock, and the due query below only matches status='scheduled' — so the
 // issue would silently never go out. Reclaim anything stuck longer than this
-// and let the next tick retry it.
+// and let the next tick retry it. The retry resumes rather than restarts:
+// sendIssue leaves out anyone the killed run already reached, so nobody gets
+// the issue twice.
 const STALE_LOCK_MS = 15 * 60 * 1000;
 
 interface DueIssue {
@@ -47,6 +49,8 @@ export async function GET(request: NextRequest) {
     title: string;
     sent: number;
     failed: number;
+    // Recipients a resumed send left out because the killed run reached them.
+    skipped?: number;
     error?: string;
   }> = [];
   const errors: string[] = [];
@@ -98,6 +102,7 @@ export async function GET(request: NextRequest) {
           title: issue.title,
           sent: result.sent,
           failed: result.failed,
+          skipped: result.skipped,
         });
         if (result.failed > 0) {
           lostSend = true;

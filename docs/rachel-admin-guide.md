@@ -737,7 +737,9 @@ the site. An issue marked Failed has not reached your subscribers.
 There's also a safety net for an interrupted send. If the system is restarted partway through
 sending — during a site update, say — an issue could previously get stuck showing **Sending**
 forever and never actually go out. Now anything stuck in Sending for more than 15 minutes is
-automatically put back to Scheduled and retried on the next hourly check.
+automatically put back to Scheduled and retried on the next hourly check. The retry picks up
+where the interrupted send stopped: anyone who already received the issue is skipped, so nobody
+gets it twice.
 
 One thing worth knowing about the numbers: the **Sent** count now reflects emails the email
 service actually accepted. Previously, if the email service rejected a batch outright, the issue
