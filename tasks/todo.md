@@ -106,3 +106,13 @@ The exact error is unrecoverable: Vercel runtime logs aged out, and the route lo
       guard — the same subscribers can be re-emailed every run.
 - [ ] `NewsletterIssueForm.tsx` computes the default schedule in browser-local time but saves it
       as Central, shifting the hour for any admin outside Central.
+
+### Rebased onto main (2026-11-14)
+- Rebased from `675863a` onto `73d47a7`. `main` had not touched `route.ts`, `newsletter-send.ts` or `proxy.ts` since the branch point, so the code applied unchanged. Conflicts were limited to docs, the generated help content and this file.
+- Kept main's wording wherever #7 (job-feed, merged 2026-09-22) had rewritten the same lines: the job-feed rows in `developer-architecture.md` and `integrations.md`, and `JOB_FEED_BATCH` in `environment-variables.md`.
+- `integrations.md`: kept this fix's two new paragraphs (private `isAuthorized` copies, `/api/*` skips the proxy) and main's "Timeouts" section. Left out this fix's "Function timeout: 60 seconds" paragraph, which that section replaces.
+- `maxDuration` is back at 300 (separate follow-up commit). The 300 to 60 change above assumed Hobby clamps at 60s; #7 established that the project runs on Fluid compute, where 300s is honoured. The same applies to the "it's 60" correction listed under Docs above.
+- Re-run after the rebase: `tsc --noEmit` clean; eslint clean on the three changed source files; `next build` succeeds, including the em dash and preview-image checks; the built middleware matcher skips `/api/*` and still matches `/dashboard`, `/admin`, `/login`, `/`.
+- Not re-run after the rebase: the live checks under Verification (idle tick, stale-lock reclaim, Resend bad-key probe). `.env.local` points at the live database, so they need a deliberate run.
+- Still true on today's main: `job-alerts`, `newsletter-milestones` and `newsletter-reengage` carry a private copy of `isAuthorized`.
+- For review: the stale-lock reclaim puts a killed send back to `scheduled`, and `sendIssue` does not skip subscribers already in `newsletter_sends` for that issue. A send killed after some batches went out would reach those subscribers twice on the retry.

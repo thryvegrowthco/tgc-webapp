@@ -17,10 +17,11 @@ import { isAuthorized, getNowFromRequest } from "@/lib/cron/auth";
 import { sendIssue } from "@/lib/email/newsletter-send";
 
 export const runtime = "nodejs";
-// Vercel Hobby caps execution at 60s and clamps anything higher, so declaring
-// more would only be wishful. The send loop sleeps 1.1s per 100-recipient
-// batch, which leaves room for a few thousand recipients per run.
-export const maxDuration = 60;
+// Vercel (Hobby, Fluid compute) honours up to 300s; see "Timeouts" in
+// docs/integrations.md. The send loop sleeps 1.1s per 100-recipient batch, so
+// a large list needs the room: a run killed mid-send leaves the issue locked
+// until the stale-lock reclaim below puts it back on the schedule.
+export const maxDuration = 300;
 
 // sendIssue locks an issue to status='sending' for the duration of the send.
 // If the function is killed mid-send (deploy, timeout, OOM) nothing releases
