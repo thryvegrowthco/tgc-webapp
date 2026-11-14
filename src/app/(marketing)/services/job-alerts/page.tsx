@@ -62,7 +62,7 @@ export default function JobAlertsPage() {
           name: "Job Alerts & Watchlists",
           description:
             "Curated job matches delivered to you, filtered to your goals, your experience, and your preferences. Manual curation by Rachel plus automated job board feeds.",
-          offers: [{ name: "Monthly Support", price: "15", unitText: "MONTH" }],
+          offers: [{ name: "Monthly Support", price: "10", unitText: "MONTH" }],
         })}
       />
       <PageHero
@@ -130,7 +130,7 @@ export default function JobAlertsPage() {
                   <div className="p-2 bg-brand-50 rounded-lg"><Bell className="h-4 w-4 text-brand-600" /></div>
                   <p className="font-semibold text-neutral-800">Investment</p>
                 </div>
-                <p className="text-2xl font-display font-bold text-brand-700">$15<span className="text-base font-normal text-neutral-500">/month</span></p>
+                <p className="text-2xl font-display font-bold text-brand-700">$10<span className="text-base font-normal text-neutral-500">/month</span></p>
                 <p className="text-sm text-neutral-500 mt-1">Cancel anytime.</p>
                 <div className="mt-4">
                   <Button asChild size="sm">

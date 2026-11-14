@@ -33,6 +33,8 @@ const addOnServices = [
   { title: "Interview Preparation", href: "/services/interview-prep" },
   { title: "Resume & Career Materials", href: "/services/resume-materials" },
   { title: "Job Alerts & Watchlists", href: "/services/job-alerts" },
+  { title: "Small Business HR Consult", href: "/services/hr-consulting#hr-consult" },
+  { title: "Independent Workplace Investigations", href: "/services/workplace-investigations" },
 ];
 
 const navLinks = [
@@ -266,6 +268,10 @@ export function Header() {
                       <Link
                         key={svc.href}
                         href={svc.href}
+                        // An in-page link (#hr-consult) does not change the
+                        // pathname, so the route-change effect would leave the
+                        // drawer open over the section it just scrolled to.
+                        onClick={() => setMobileOpen(false)}
                         className="block px-3 py-2.5 rounded-lg text-sm text-neutral-600 hover:bg-brand-50 hover:text-brand-700 transition-colors"
                       >
                         {svc.title}

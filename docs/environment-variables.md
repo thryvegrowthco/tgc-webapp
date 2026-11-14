@@ -43,7 +43,7 @@ Create each product in the Stripe dashboard, then copy the price ID here. All pr
 | `STRIPE_PRICE_INTERVIEW_PACKAGE` | Yes | Interview Preparation — 2-Session Package | $250 |
 | `STRIPE_PRICE_RESUME_REVIEW` | Yes | Resume Review | $75 |
 | `STRIPE_PRICE_RESUME_REWRITE` | Yes | Full Resume Rewrite | $200 |
-| `STRIPE_PRICE_JOB_ALERTS` | Yes | Job Alerts & Watchlists — Monthly | $50/month (recurring) |
+| `STRIPE_PRICE_JOB_ALERTS` | Yes | Job Alerts & Watchlists — Monthly | $10/month (recurring). This Price sets what subscribers are charged; changing the price means creating a new Stripe Price and updating this variable in Vercel. |
 | `STRIPE_PRICE_HR_HOURLY` | Yes | HR Consulting — Hourly | $100/hr |
 | `STRIPE_PRICE_HR_PROJECT` | Yes | HR Consulting — Project | $500+ |
 | `STRIPE_PRICE_CULTURE` | Yes | Culture & Engagement Consulting | $750+ |

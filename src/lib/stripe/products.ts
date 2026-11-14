@@ -74,7 +74,10 @@ export const SERVICES: Record<ServiceKey, ServiceProduct> = {
   job_alerts_monthly: {
     name: "Job Alerts & Watchlists: Monthly Support",
     description: "Curated job matches delivered to your dashboard. Cancel anytime.",
-    amountCents: 1500,
+    // Display and fallback amount only. What a subscriber is actually charged is
+    // the Stripe Price that STRIPE_PRICE_JOB_ALERTS points to, so a price change
+    // needs a new Price in Stripe and that env var updated, not just this number.
+    amountCents: 1000,
     stripePriceId: process.env.STRIPE_PRICE_JOB_ALERTS ?? "price_job_alerts",
     mode: "subscription",
     serviceType: "Job Alerts & Watchlists",
@@ -136,7 +139,7 @@ export const SERVICE_SELECT_OPTIONS = [
   { value: "interview_package", label: "Interview Preparation: 3-Session Package ($250)" },
   { value: "resume_review", label: "Resume Review + Edits ($75)" },
   { value: "resume_rewrite", label: "Full Resume Rewrite ($150)" },
-  { value: "job_alerts_monthly", label: "Job Alerts & Watchlists ($15/month)" },
+  { value: "job_alerts_monthly", label: "Job Alerts & Watchlists ($10/month)" },
   { value: "hr_consulting_hourly", label: "HR Consulting: Hourly Support ($125/hr)" },
   { value: "hr_consulting_project", label: "HR Consulting: Project-Based ($500+)" },
   { value: "culture_engagement", label: "Culture & Engagement Consulting ($750+)" },

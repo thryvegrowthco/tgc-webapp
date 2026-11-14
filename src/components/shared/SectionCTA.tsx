@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SectionCTAProps {
@@ -7,6 +7,8 @@ interface SectionCTAProps {
   body?: string;
   primaryLabel?: string;
   primaryHref?: string;
+  /** Icon on the primary button. Defaults to the calendar used for booking a call. */
+  primaryIcon?: LucideIcon;
   secondaryLabel?: string;
   secondaryHref?: string;
   variant?: "light" | "dark";
@@ -17,6 +19,7 @@ export function SectionCTA({
   body = "Let's talk about what growth looks like for you. No pressure. Just an honest conversation.",
   primaryLabel = "Book a Free 30-Minute Consultation Call",
   primaryHref = "/consultation",
+  primaryIcon: PrimaryIcon = Calendar,
   secondaryLabel = "Learn More",
   secondaryHref = "/services",
   variant = "dark",
@@ -32,7 +35,7 @@ export function SectionCTA({
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild size="lg">
               <Link href={primaryHref}>
-                <Calendar className="h-4 w-4" />
+                <PrimaryIcon className="h-4 w-4" />
                 {primaryLabel}
               </Link>
             </Button>
@@ -62,7 +65,7 @@ export function SectionCTA({
             className="bg-white text-brand-700 hover:bg-brand-50"
           >
             <Link href={primaryHref}>
-              <Calendar className="h-4 w-4" />
+              <PrimaryIcon className="h-4 w-4" />
               {primaryLabel}
             </Link>
           </Button>

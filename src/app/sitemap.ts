@@ -22,6 +22,7 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: `${BASE_URL}/services/interview-prep`, lastModified: UPDATED, changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/services/resume-materials`, lastModified: UPDATED, changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/services/recruitment-screening`, lastModified: UPDATED, changeFrequency: "monthly", priority: 0.8 },
+  { url: `${BASE_URL}/services/workplace-investigations`, lastModified: new Date("2026-11-13"), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/services/job-alerts`, lastModified: UPDATED, changeFrequency: "monthly", priority: 0.7 },
   { url: `${BASE_URL}/career-reset-workbook`, lastModified: UPDATED, changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE_URL}/investment`, lastModified: UPDATED, changeFrequency: "monthly", priority: 0.8 },

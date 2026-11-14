@@ -8,8 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { HoneypotField } from "@/components/shared/HoneypotField";
+import type { ContactTopic } from "@/lib/contact/topics";
 
-export function ContactForm() {
+interface ContactFormProps {
+  /**
+   * Set when the visitor arrived from a service button (/contact?topic=...).
+   * Prefills the subject and tailors the message box; the payload is unchanged.
+   */
+  topic?: ContactTopic | null;
+}
+
+export function ContactForm({ topic = null }: ContactFormProps) {
   const [submitted, setSubmitted] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -89,18 +98,32 @@ export function ContactForm() {
 
       <div className="space-y-1.5">
         <Label htmlFor="contact-subject">Subject <span className="text-red-500">*</span></Label>
-        <Input id="contact-subject" name="subject" placeholder="What's this about?" required />
+        <Input
+          id="contact-subject"
+          name="subject"
+          placeholder="What's this about?"
+          defaultValue={topic?.subject}
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="contact-message">Message <span className="text-red-500">*</span></Label>
+        <Label htmlFor="contact-message">
+          {topic?.messageLabel ?? "Message"} <span className="text-red-500">*</span>
+        </Label>
         <Textarea
           id="contact-message"
           name="message"
-          placeholder="What's on your mind?"
+          placeholder={topic?.messagePlaceholder ?? "What's on your mind?"}
+          aria-describedby={topic?.messageHint ? "contact-message-hint" : undefined}
           required
           className="min-h-[160px]"
         />
+        {topic?.messageHint && (
+          <p id="contact-message-hint" className="text-xs text-neutral-500 leading-relaxed">
+            {topic.messageHint}
+          </p>
+        )}
       </div>
 
       <Button type="submit" size="lg" className="w-full" disabled={loading}>

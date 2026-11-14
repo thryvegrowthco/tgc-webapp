@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, ArrowRight } from "lucide-react";
 import { ContactForm } from "@/components/shared/ContactForm";
+import { contactTopic } from "@/lib/contact/topics";
 import { pageMeta } from "@/lib/seo/page-meta";
 import { SOCIAL_LINKS } from "@/lib/site/social";
 
+// Service buttons link here as /contact?topic=<token>#message. The canonical and
+// og:url stay "/contact", so a topic link never becomes a second indexable copy.
 export const metadata: Metadata = pageMeta("/contact", {
   title: "Contact",
   description:
@@ -28,7 +31,16 @@ const faqs = [
   },
 ];
 
-export default function ContactPage() {
+interface ContactPageProps {
+  searchParams: Promise<{ topic?: string | string[] }>;
+}
+
+export default async function ContactPage({ searchParams }: ContactPageProps) {
+  // Read the request before anything else (same rule as /consultation). Only a
+  // topic we published survives; anything else is null and renders the plain form.
+  const { topic: topicParam } = await searchParams;
+  const topic = contactTopic(topicParam);
+
   return (
     <>
       {/* Page hero */}
@@ -147,28 +159,41 @@ export default function ContactPage() {
                 </Link>
               </div>
 
-              {/* Book a call nudge */}
+              {/* Book a call nudge. Next to a paid service request the free call
+                  is named the Free 30-Minute Fit Call so the two are not confused. */}
               <div className="rounded-xl bg-brand-700 p-5 text-white">
-                <p className="font-semibold mb-2">Ready to get started?</p>
+                <p className="font-semibold mb-2">
+                  {topic ? "Not sure what you need yet?" : "Ready to get started?"}
+                </p>
                 <p className="text-sm text-brand-200 leading-relaxed mb-4">
-                  Want to talk it through? Request a free 30-minute call.
+                  {topic
+                    ? "The Free 30-Minute Fit Call is a chance to share what you're looking for and see which Thryve service fits."
+                    : "Want to talk it through? Request a free 30-minute call."}
                 </p>
                 <Link
                   href="/consultation"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-100 hover:text-white transition-colors"
                 >
-                  Request a free 30-minute call <ArrowRight className="h-4 w-4" />
+                  {topic ? "Book a Free 30-Minute Fit Call" : "Request a free 30-minute call"}{" "}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>
 
-            {/* Form */}
-            <div className="lg:col-span-3">
+            {/* Form. On a phone the sidebar stacks above this, so topic links
+                land on #message; scroll-mt clears the sticky header. */}
+            <div id="message" className="lg:col-span-3 scroll-mt-28">
               <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8">
-                <h2 className="font-display text-xl font-bold text-neutral-900 mb-6">
-                  Send a message
+                <h2
+                  className={`font-display text-xl font-bold text-neutral-900 ${topic ? "mb-2" : "mb-6"}`}
+                >
+                  {topic ? topic.heading : "Send a message"}
                 </h2>
-                <ContactForm />
+                {topic && (
+                  <p className="text-sm text-neutral-600 leading-relaxed mb-6">{topic.intro}</p>
+                )}
+                {/* key: a client-side move between topics must reset the prefilled subject. */}
+                <ContactForm key={topic?.subject ?? "general"} topic={topic} />
               </div>
             </div>
           </div>

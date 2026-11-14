@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
-import { ArrowRight, Building2, User, Users, FileText, Briefcase, Bell, UserSearch } from "lucide-react";
+import { ArrowRight, Building2, User, Users, FileText, Briefcase, Bell, UserSearch, MessagesSquare, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 
@@ -58,6 +58,7 @@ const addOnServices = [
   {
     icon: Briefcase,
     badge: "For Individuals",
+    badgeColor: "bg-brand-100 text-brand-800",
     title: "Interview Preparation",
     description:
       "Targeted coaching to help you walk into your next interview with confidence, clarity, and a strategy. Mock interviews, real feedback, no sugarcoating.",
@@ -66,6 +67,7 @@ const addOnServices = [
   {
     icon: FileText,
     badge: "For Individuals",
+    badgeColor: "bg-brand-100 text-brand-800",
     title: "Resume & Career Materials",
     description:
       "A resume that tells the right story about who you are and what you bring. Review, rewrite, LinkedIn optimization, and cover letters.",
@@ -74,10 +76,30 @@ const addOnServices = [
   {
     icon: Bell,
     badge: "For Individuals",
+    badgeColor: "bg-brand-100 text-brand-800",
     title: "Job Alerts & Watchlists",
     description:
       "Curated job matches delivered to you, sourced both manually by Rachel and from live job board feeds, filtered to your goals and preferences.",
     href: "/services/job-alerts",
+  },
+  {
+    icon: MessagesSquare,
+    badge: "For Businesses",
+    badgeColor: "bg-blue-100 text-blue-800",
+    title: "Small Business HR Consult",
+    description:
+      "Have an employee situation you keep going back and forth on? Bring it to a 60-minute working session. We'll focus on one main issue, talk through your options, and figure out what makes sense for your team.",
+    // No page of its own: it is featured on the HR Consulting page.
+    href: "/services/hr-consulting#hr-consult",
+  },
+  {
+    icon: Scale,
+    badge: "For Businesses",
+    badgeColor: "bg-blue-100 text-blue-800",
+    title: "Independent Workplace Investigations",
+    description:
+      "Neutral third-party support for small businesses, nonprofits, and other organizations that need to look into a workplace complaint or employee conduct concern.",
+    href: "/services/workplace-investigations",
   },
 ];
 
@@ -185,7 +207,7 @@ export default function ServicesPage() {
                     <div className="p-2.5 bg-brand-50 rounded-xl">
                       <Icon className="h-5 w-5 text-brand-600" />
                     </div>
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-100 text-brand-800">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${svc.badgeColor}`}>
                       {svc.badge}
                     </span>
                   </div>
@@ -220,7 +242,8 @@ export default function ServicesPage() {
 
       <SectionCTA
         heading="Not Sure Where to Start?"
-        body="That's okay. Tell me what's going on and I'll help you figure out what makes sense. No pressure, no commitment."
+        body="That's okay. The Free 30-Minute Fit Call is a chance to share what you're looking for and see which Thryve service fits. No pressure, no commitment."
+        primaryLabel="Book a Free 30-Minute Fit Call"
         secondaryLabel="View Pricing"
         secondaryHref="/investment"
       />

@@ -7,7 +7,7 @@ import { sendTemplated } from "@/lib/email/render";
 import { syncBookingToGHL } from "@/lib/gohighlevel/client";
 import { createCalendarEvent } from "@/lib/google/calendar";
 import { finalizeSession } from "@/lib/booking/finalize";
-import { PACKAGE_SESSIONS, isPackageService, type ServiceKey } from "@/lib/stripe/products";
+import { PACKAGE_SESSIONS, SERVICES, isPackageService, type ServiceKey } from "@/lib/stripe/products";
 import type { LocationType } from "@/types/database";
 import { localCentralToUtcIso, formatCentralDate } from "@/lib/time/central";
 import { createAdminNotification, notifyAdmin } from "@/lib/notifications/admin";
@@ -978,7 +978,7 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
         status: "confirmed",
         workflow_status: "intake_needed",
         stripe_session_id: session.id,
-        amount_cents: session.amount_total ?? 1500,
+        amount_cents: session.amount_total ?? SERVICES.job_alerts_monthly.amountCents,
         contract_accepted_at: contractAcceptedAt,
         contract_version: contractVersion,
         intake_due_at: intakeDue.toISOString(),
@@ -1000,7 +1000,7 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
     stripe_payment_intent_id:
       typeof session.payment_intent === "string" ? session.payment_intent : null,
     stripe_subscription_id: subscriptionId,
-    amount_cents: session.amount_total ?? 1500,
+    amount_cents: session.amount_total ?? SERVICES.job_alerts_monthly.amountCents,
     status: session.payment_status ?? "paid",
     service_type: serviceType,
   });
@@ -1008,7 +1008,9 @@ async function handleSubscriptionCheckoutCompleted(session: Stripe.Checkout.Sess
   // Send receipt + welcome for the subscription too. The "session workspace"
   // for Job Alerts is the watchlist setup page.
   if (bookingId && clientEmail) {
-    const amountFormatted = formatCents(session.amount_total ?? 1500);
+    const amountFormatted = formatCents(
+      session.amount_total ?? SERVICES.job_alerts_monthly.amountCents
+    );
     const intakeDueDate = formatCentralDate(
       new Date(Date.now() + SUBSCRIPTION_INTAKE_DAYS * 86400000),
       { weekday: "long", month: "long", day: "numeric" }

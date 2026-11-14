@@ -806,6 +806,9 @@ updatePassword server action
 
 ```
 Visitor on /contact → fills firstName, lastName, email, subject, message → submits
+  (arriving from a service button as /contact?topic=hr-consult or
+   ?topic=workplace-investigation, the subject is prefilled and the message box
+   is relabelled; see src/lib/contact/topics.ts. The payload is the same.)
         │
         ▼
 ContactForm (src/components/shared/ContactForm.tsx)

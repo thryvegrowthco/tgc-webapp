@@ -150,6 +150,15 @@ Use a **proposal** for quote-based work — recruitment, HR projects, anything y
 ### Can I edit or cancel a proposal after I send it?
 You can edit, send, copy the link, or cancel a proposal **while it's still a draft or just sent**. Once a client **accepts** it, it's locked — the accepted version is a signed record, so to change anything you create a new proposal. A proposal that's already been **paid** can't be cancelled here; if you need to refund it, do that in Stripe.
 
+### Where do Small Business HR Consult requests and workplace investigation inquiries arrive?
+Both website buttons (**Request an HR Consult** and **Inquire About a Workplace Investigation**) open your regular Contact form with the subject already filled in. Each request lands in your inbox like any other contact-form message, with the subject **Small Business HR Consult** or **Workplace investigation inquiry**, and you reply to the email to reach the person. The investigation form asks for a brief overview only and tells the visitor they can share sensitive details with you directly when you follow up.
+
+### How do I get paid for a Small Business HR Consult?
+The website does not have a pay-and-schedule page for the consult yet, so payment happens after the request comes in. Send the person a **booking invitation** with payment turned on and the amount set to **$150** (see "How do I send someone a few times to choose from?"). For a workplace investigation, which is billed at $150 per hour after a written scope and cost estimate, a **proposal** is the better fit.
+
+### How do I change the Job Alerts price?
+Two places have to change together. The price shown on the website is text your developer updates. The amount people are actually charged comes from the **Price** on the Job Alerts product in Stripe, so a new price means adding a new Price in Stripe and having your developer point the site at it. People who already subscribe keep paying what they pay now until their subscription is changed in Stripe.
+
 ### Where do testimonials come from, and how do I get them on my site?
 The day after a session is marked complete, the client's follow-up email invites them to share a few words (no login needed). Whatever they submit lands on your **Testimonials** page as **Pending** — it is **not** public yet. Open the page, then **Approve** the ones you want to show, **Hide** an approved one to take it down without deleting, **Edit** to fix wording or the rating, or **Delete** it for good. Your public Testimonials page only ever shows ones you've approved.
 

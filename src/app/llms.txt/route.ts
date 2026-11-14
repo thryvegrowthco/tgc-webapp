@@ -34,12 +34,14 @@ Free consultation: 30-minute video call, request at ${SITE_URL}/consultation (re
 - [Career and Leadership Coaching](${SITE_URL}/services/coaching): 1:1 virtual coaching for career transitions, new managers, and feeling stuck. $125 per 60-minute session, or $425 for 4 sessions.
 - [Interview Preparation](${SITE_URL}/services/interview-prep): mock interviews, STAR method coaching, and honest feedback. $100 per session, or $250 for 3 sessions.
 - [Resume and Career Materials](${SITE_URL}/services/resume-materials): resume review and edits $75; full resume rewrite $150 (30-minute intake call, ATS-friendly format, two revision rounds, Word and PDF, delivered within 5 business days of the intake call). LinkedIn, cover letter, and bio add-ons quoted on a call.
-- [Job Alerts and Watchlists](${SITE_URL}/services/job-alerts): job matches curated by Rachel plus a filtered live job feed in a client dashboard. $15 per month, cancel anytime.
+- [Job Alerts and Watchlists](${SITE_URL}/services/job-alerts): job matches curated by Rachel plus a filtered live job feed in a client dashboard. $10 per month, cancel anytime.
 
 ## Services for organizations
+- [Small Business HR Consult](${SITE_URL}/services/hr-consulting#hr-consult): a 60-minute virtual working session focused on one main employee or HR issue, such as an attendance or performance concern, a difficult conversation, or a hiring or onboarding process. $150, including a short intake and a written recap.
 - [HR Consulting and Team Development](${SITE_URL}/services/hr-consulting): HR audits, role clarity, performance management, hiring process, onboarding, manager coaching, policy review. $125 per hour; projects from $500.
 - [Culture and Engagement Consulting](${SITE_URL}/services/culture-engagement): culture assessment, engagement strategy, values alignment. Projects from $750.
 - [Recruitment and Candidate Screening](${SITE_URL}/services/recruitment-screening): resume screening, phone screens, interview questions, candidate recommendations. Custom quote.
+- [Independent Workplace Investigations](${SITE_URL}/services/workplace-investigations): an HR consulting service for employers. Neutral third-party fact-finding about internal workplace complaints and employee conduct concerns, using interviews and relevant workplace records, with a written report. $150 per hour; written scope and cost estimate before work begins.
 
 ## Key pages
 - [Pricing](${SITE_URL}/investment)

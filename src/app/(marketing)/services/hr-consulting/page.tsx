@@ -7,6 +7,8 @@ import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
 import { SectionCTA } from "@/components/shared/SectionCTA";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { contactTopicHref } from "@/lib/contact/topics";
 
 export const metadata: Metadata = pageMeta("/services/hr-consulting", {
   title: "HR Consulting & Team Development",
@@ -36,6 +38,7 @@ const whoFor = [
 
 const pairsWellWith = [
   { title: "Culture & Engagement Consulting", href: "/services/culture-engagement" },
+  { title: "Independent Workplace Investigations", href: "/services/workplace-investigations" },
   { title: "Career & Leadership Coaching", href: "/services/coaching" },
 ];
 
@@ -49,6 +52,7 @@ export default function HRConsultingPage() {
           description:
             "Strategic HR consulting for growing organizations. Build structure, develop leaders, and create the HR foundation your team needs to perform.",
           offers: [
+            { name: "Small Business HR Consult", price: "150" },
             { name: "Hourly Support", price: "125" },
             { name: "Project-Based Work", minPrice: "500" },
           ],
@@ -110,6 +114,68 @@ export default function HRConsultingPage() {
         </div>
       </section>
 
+      {/* Featured: Small Business HR Consult. The Services and Investment pages
+          link straight to #hr-consult; scroll-mt clears the sticky header. */}
+      <section id="hr-consult" className="scroll-mt-28 py-20 bg-brand-50 border-t border-brand-100">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 lg:gap-16">
+            <div className="lg:col-span-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-700 mb-2">
+                Single Working Session
+              </p>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 mb-4">
+                Small Business HR Consult
+              </h2>
+              <p className="text-neutral-700 leading-relaxed mb-4">
+                Have an employee situation you keep going back and forth on? Bring
+                it to a 60-minute working session. We can talk through how to
+                handle an attendance or performance concern, prepare for a
+                difficult conversation, or figure out what needs to change in your
+                hiring or onboarding process.
+              </p>
+              <p className="text-neutral-700 leading-relaxed">
+                Before we meet, I&apos;ll ask a few questions so we can get right
+                into it. We&apos;ll focus on one main issue, talk through your
+                options, and figure out what makes sense for your team. After the
+                call, I&apos;ll send a short recap of the next steps we discussed.
+              </p>
+            </div>
+
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-white rounded-2xl border border-brand-200 shadow-sm p-6">
+                <p className="text-sm font-semibold text-brand-800 mb-1">Investment</p>
+                <p className="text-2xl font-display font-bold text-brand-700">$150</p>
+                <p className="text-sm text-neutral-600 mt-1">
+                  For a 60-minute virtual session. Includes a short intake and a
+                  written recap.
+                </p>
+                <Button asChild className="mt-4">
+                  <Link href={contactTopicHref("hr-consult")}>
+                    Request an HR Consult <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="bg-white/70 rounded-2xl border border-neutral-200 p-6">
+                <p className="text-sm font-semibold text-neutral-800 mb-1">
+                  Free 30-Minute Fit Call
+                </p>
+                <p className="text-sm text-neutral-600 leading-relaxed">
+                  A chance to share what you&apos;re looking for and see which
+                  Thryve service fits.
+                </p>
+                <Link
+                  href="/consultation"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800 mt-3"
+                >
+                  Book a Free 30-Minute Fit Call <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Who This Is For */}
       <section className="py-20 bg-neutral-50 border-t border-neutral-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -150,6 +216,7 @@ export default function HRConsultingPage() {
       <SectionCTA
         heading="Let's Talk About Your Team"
         body="Every organization is different. Tell me what's going on and we'll figure out the right approach together."
+        primaryLabel="Book a Free 30-Minute Fit Call"
         secondaryLabel="View All Services"
         secondaryHref="/services"
       />

@@ -10,9 +10,11 @@ import { SOCIAL_LINKS } from "@/lib/site/social";
 
 const serviceLinks = [
   { label: "HR Consulting & Team Development", href: "/services/hr-consulting" },
+  { label: "Small Business HR Consult", href: "/services/hr-consulting#hr-consult" },
   { label: "Career & Leadership Coaching", href: "/services/coaching" },
   { label: "Culture & Engagement Consulting", href: "/services/culture-engagement" },
   { label: "Recruitment & Candidate Screening", href: "/services/recruitment-screening" },
+  { label: "Independent Workplace Investigations", href: "/services/workplace-investigations" },
   { label: "Interview Preparation", href: "/services/interview-prep" },
   { label: "Resume & Career Materials", href: "/services/resume-materials" },
   { label: "Job Alerts & Watchlists", href: "/services/job-alerts" },

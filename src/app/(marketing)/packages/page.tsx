@@ -58,7 +58,7 @@ const buildYourOwn = [
   { label: "Interview Prep Session", price: "$100", href: "/services/interview-prep" },
   { label: "Resume Review + Edits", price: "$75", href: "/services/resume-materials" },
   { label: "Full Resume Rewrite", price: "$150", href: "/services/resume-materials" },
-  { label: "Job Alerts (monthly)", price: "$15/mo", href: "/services/job-alerts" },
+  { label: "Job Alerts (monthly)", price: "$10/mo", href: "/services/job-alerts" },
 ];
 
 export default function PackagesPage() {

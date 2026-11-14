@@ -8,7 +8,7 @@ import { SectionCTA } from "@/components/shared/SectionCTA";
 export const metadata: Metadata = pageMeta("/investment", {
   title: "Investment",
   description:
-    "Transparent pricing for all Thryve Growth Co. services: HR consulting, career coaching, interview prep, resume writing, and job alerts.",
+    "Transparent pricing for all Thryve Growth Co. services: HR consulting, workplace investigations, career coaching, interview prep, resume writing, and job alerts.",
 });
 
 const individualServices = [
@@ -40,12 +40,19 @@ const individualServices = [
     category: "Job Alerts & Watchlists",
     href: "/services/job-alerts",
     options: [
-      { name: "Monthly Support", price: "$15", unit: "/month", note: "Cancel anytime" },
+      { name: "Monthly Support", price: "$10", unit: "/month", note: "Cancel anytime" },
     ],
   },
 ];
 
 const businessServices = [
+  {
+    category: "Small Business HR Consult",
+    href: "/services/hr-consulting#hr-consult",
+    options: [
+      { name: "60-Minute Virtual Session", price: "$150", unit: "per session", note: "Includes a short intake and a written recap" },
+    ],
+  },
   {
     category: "HR Consulting & Team Development",
     href: "/services/hr-consulting",
@@ -66,6 +73,13 @@ const businessServices = [
     href: "/services/recruitment-screening",
     options: [
       { name: "Flexible Recruitment Support", price: "Custom", unit: "quote", note: "Contact for a customized quote based on your hiring needs" },
+    ],
+  },
+  {
+    category: "Independent Workplace Investigations",
+    href: "/services/workplace-investigations",
+    options: [
+      { name: "Hourly Rate", price: "$150", unit: "/hour", note: "Written scope and cost estimate provided before work begins" },
     ],
   },
 ];
@@ -199,8 +213,8 @@ export default function InvestmentPage() {
 
       <SectionCTA
         heading="Not Sure Where to Start?"
-        body="Pick a service, book a call, or just reach out if you have questions. No pressure either way."
-        primaryLabel="Book a free 30-minute call"
+        body="The Free 30-Minute Fit Call is a chance to share what you're looking for and see which Thryve service fits. No pressure either way."
+        primaryLabel="Book a Free 30-Minute Fit Call"
         primaryHref="/consultation"
         secondaryLabel="Explore services"
         secondaryHref="/services"

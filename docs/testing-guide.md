@@ -232,7 +232,7 @@ This one needs **an actual Stripe subscription** in test mode to fully validate 
 
 ### Path A: Real test checkout (most thorough)
 
-1. Make sure `STRIPE_PRICE_JOB_ALERTS` in `.env.local` points to a Stripe **test-mode** price for a recurring product (`$15/mo`).
+1. Make sure `STRIPE_PRICE_JOB_ALERTS` in `.env.local` points to a Stripe **test-mode** price for a recurring product (`$10/mo`).
 2. Sign in as the test client.
 3. Go through whatever flow your site uses to start the watchlist subscription (the existing Stripe checkout for `job_alerts_monthly`).
 4. Complete checkout with Stripe's test card `4242 4242 4242 4242`, any future expiry, any CVC.
