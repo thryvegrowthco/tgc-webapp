@@ -199,6 +199,8 @@ The Stripe integration is mode-agnostic — the code uses whatever keys are set 
 2. Rows exist for `delivered`/`bounced` but none for `opened`/`clicked` ⇒ open/click tracking is toggled off on the domain (step above).
 3. The Newsletter dashboard (`src/app/(admin)/admin/newsletter/page.tsx`) shows a self-diagnosing amber banner when sent issues exist but `newsletter_events` is still empty — the fast at-a-glance signal for case 1.
 
+**Newsletter idempotency keys:** every `resend.batch.send` call made by the newsletter send carries an `Idempotency-Key` header (`newsletter-issue/<issue id>/<sha256 of the batch's subscriber ids>`). Resend keeps a key for 24 hours: a repeat of the same key and body returns the original response without sending, and the same key with a different body returns 409 `invalid_idempotent_request`. This is what stops a batch going out twice when a run is killed right after Resend accepted it. Details and limits are in `docs/workflows.md` §7c.
+
 **Newsletter sending pipeline:** Issues are rendered once per send via Tiptap → HTML (`@tiptap/html` with `newsletterRenderExtensions`), wrapped in the brand HTML shell (`src/lib/email/newsletter-template.ts`), then sent in batches of 100 via `resend.batch.send(...)` with a 1.1s pause between batches to stay under Resend's 10 req/s default rate limit. Each recipient gets a tokenized unsubscribe URL substituted into placeholders, plus `List-Unsubscribe` + `List-Unsubscribe-Post` headers (RFC 8058) so Gmail's native one-click unsubscribe works.
 
 **Lazy Proxy singleton:** Same pattern as Stripe — defers `new Resend(...)` until first access to avoid build failures.

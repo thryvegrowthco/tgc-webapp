@@ -528,7 +528,7 @@ Email subscribers collected via the footer/blog/landing newsletter forms. Extend
 | `first_name` | `TEXT` | `NULL` | Collected in the `variant="full"` form on `/newsletter` |
 | `source` | `TEXT` | `NULL` | Tracks which form they used (`footer`, `blog`, `newsletter-landing`) |
 | `ghl_contact_id` | `TEXT` | `NULL` | GoHighLevel contact ID after sync |
-| `subscribed_at` | `TIMESTAMPTZ` | `NOW()` | — |
+| `subscribed_at` | `TIMESTAMPTZ` | `NOW()` | Sign-up time. `sendIssue` batches recipients in this order, so a retried send cuts the same batches |
 | `unsubscribed_at` | `TIMESTAMPTZ` | `NULL` | Set by `/api/newsletter/unsubscribe/[token]` and the marketing unsubscribe page |
 | `interests` | `TEXT[]` | `'{}'` | Slugs from `src/lib/newsletter/interests.ts` (GIN-indexed) |
 | `last_engaged_at` | `TIMESTAMPTZ` | `NULL` | Updated by the Resend webhook on `email.opened` / `email.clicked` |
@@ -588,7 +588,7 @@ Reusable section layouts. The migration seeds one row tagged `is_default = TRUE`
 
 ### `newsletter_sends`
 
-Per-recipient ledger of every send. Required so Resend webhook events can be correlated back to the issue + subscriber via `resend_message_id`. `sendIssue` also reads it before sending: a subscriber with a `sent` or `bounced` row for the issue is skipped, which is what keeps a retried send from reaching anyone twice.
+Per-recipient ledger of every send. Required so Resend webhook events can be correlated back to the issue + subscriber via `resend_message_id`. `sendIssue` also reads it before sending: a subscriber with a `sent` or `bounced` row for the issue is skipped, which is what keeps a retried send from reaching anyone twice. A batch that Resend accepted but that never reached this table (the run was killed in between) is covered by the batch's idempotency key instead; see `docs/workflows.md` §7c.
 
 | Column | Type | Default | Notes |
 |---|---|---|---|

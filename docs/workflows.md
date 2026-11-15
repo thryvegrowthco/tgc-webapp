@@ -975,15 +975,19 @@ For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
      (the text part keeps link destinations as "anchor text (https://url)" and
       carries its own footer + {{unsubscribe_url}} — the HTML shell's footer
       never reaches it)
-  3. Load matching recipients (interest-filtered, exclude unsubscribed), then
-     drop anyone newsletter_sends already shows this issue reached (any row
-     that is not 'failed'). Nothing to drop on a first run; on a retry after
-     a killed run this is what stops a second copy going out
+  3. Load matching recipients (interest-filtered, exclude unsubscribed) in
+     pages of 1000, each page starting after the last id of the one before,
+     and put them in sign-up order. Then drop anyone newsletter_sends
+     already shows this issue reached (any row that is not 'failed').
+     Nothing to drop on a first run; on a retry after a killed run this is
+     what stops a second copy going out
   4. Chunk to 100/batch. For each batch:
        - Build per-recipient payload with first_name + tokenized
          unsubscribe URL substituted into the rendered HTML
        - Add List-Unsubscribe + List-Unsubscribe-Post headers (RFC 8058)
-       - resend.batch.send(payload), then CHECK result.error and that
+       - resend.batch.send(payload, { idempotencyKey }), the key being the
+         issue id plus a hash of the batch's subscriber ids (see "The batch
+         the ledger cannot vouch for" below), then CHECK result.error and that
          Resend acknowledged one id per recipient (the SDK resolves
          { data: null, error } on a 401/403/422/429 — it never throws)
        - Insert newsletter_sends rows with resend_message_id
@@ -991,6 +995,7 @@ For each due issue, call sendIssue(id) (src/lib/email/newsletter-send.ts):
   5. UPDATE status='sent', sent_at, sent_count, failed_count
      (sent_count is the issue's total: earlier deliveries plus this run)
   6. UPDATE last_sent_at on the subscribers that actually received it
+     (100 ids per request: the id list travels in the request URL)
         │
         ▼
 Write one automation_log row: event_key='newsletter_send_run'
@@ -1011,9 +1016,28 @@ issue (rows marked `failed` are tried again). The run's `automation_log` row
 reports the ones left out as `skipped`, `sent_count` ends up as the total across
 both runs, and `last_sent_at` is stamped for the skipped subscribers too. If the
 ledger cannot be read the send stops and the issue is marked `failed`, because
-sending blind could deliver the issue twice. One gap remains: a run killed
-between Resend accepting a batch and the ledger insert for that batch leaves no
-row, so that one batch (at most 100 people) would be sent again.
+sending blind could deliver the issue twice.
+
+**The batch the ledger cannot vouch for.** A run killed between Resend accepting
+a batch and the ledger insert for that batch leaves no row, so the retry sends
+that batch again. Each batch therefore goes out under an idempotency key:
+`newsletter-issue/<issue id>/<sha256 of the batch's subscriber ids>`. Resend
+keeps a key for 24 hours and answers a repeat of the same key and body with the
+original response, without sending. The retry gets the original message ids
+back, writes the ledger rows the killed run never wrote, and carries on. For the
+keys to match, the retry has to cut the same batches, which is why recipients
+are put in sign-up order first: the batches already in the ledger drop out
+whole, and new subscribers land at the end. What this does not cover:
+
+- A recipient of that batch unsubscribes before the retry, or someone subscribes
+  while that batch was the last, part-filled one. The retry then cuts a
+  different batch with a new key, and the people in both get a second copy.
+- The retry comes more than 24 hours later, after Resend has dropped the key.
+
+Same key, different body (the issue or a recipient's name was edited in
+between): Resend answers 409 `invalid_idempotent_request` and sends nothing. The
+batch is recorded as `failed` with a message saying an earlier run already
+submitted it, so nobody gets two versions.
 
 **Alerting contract.** The route returns **500 only when an issue was genuinely
 due and failed to go out**. An idle tick, or a transient Supabase error, returns

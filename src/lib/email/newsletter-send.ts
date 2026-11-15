@@ -5,14 +5,18 @@
 // Steps for sendIssue(issueId):
 //   1. Atomically lock the issue (status='sending')
 //   2. Render the HTML body once
-//   3. Load matching recipients (active subscribers, interest-filtered), minus
-//      anyone the send ledger shows this issue already reached (a run that was
-//      killed partway and retried resumes; it does not start over)
+//   3. Load matching recipients (active subscribers, interest-filtered) a page
+//      at a time and put them in sign-up order, minus anyone the send ledger
+//      shows this issue already reached (a run that was killed partway and
+//      retried resumes; it does not start over)
 //   4. For each batch of 100, call resend.batch.send with per-recipient
-//      personalization + signed unsubscribe URL + List-Unsubscribe headers
+//      personalization + signed unsubscribe URL + List-Unsubscribe headers,
+//      under an idempotency key so that a batch Resend already accepted is not
+//      sent a second time by a retry
 //   5. Insert newsletter_sends rows correlating Resend message IDs
 //   6. Set issue status to 'sent' (or 'failed' if every batch failed)
 
+import { createHash } from "node:crypto";
 import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "./resend";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
@@ -28,7 +32,8 @@ import type { JSONContent } from "@tiptap/react";
 
 const BATCH_SIZE = 100;
 const BETWEEN_BATCH_MS = 1100; // stays under Resend's default 10 req/s
-const LEDGER_PAGE_SIZE = 1000; // Supabase returns at most 1000 rows per request by default
+const PAGE_SIZE = 1000; // Supabase returns at most 1000 rows per request by default
+const STAMP_CHUNK_SIZE = 100; // ids per last_sent_at update: the id list travels in the request URL
 
 interface IssueRow {
   id: string;
@@ -46,6 +51,7 @@ interface SubscriberRow {
   first_name: string | null;
   unsubscribe_token: string;
   interests: string[];
+  subscribed_at: string | null;
 }
 
 export interface SendIssueResult {
@@ -100,22 +106,8 @@ async function deliverIssue(
   issueId: string,
   issue: IssueRow
 ): Promise<SendIssueResult> {
-  // 2. Load recipients
-  let recipientQuery = supabase
-    .from("newsletter_subscribers")
-    .select("id, email, first_name, unsubscribe_token, interests")
-    .is("unsubscribed_at", null);
-
-  if (issue.target_interests && issue.target_interests.length > 0) {
-    recipientQuery = recipientQuery.overlaps("interests", issue.target_interests);
-  }
-
-  const { data: recipientsRaw, error: recipientsError } = await recipientQuery;
-  if (recipientsError) {
-    // The caller's catch releases the lock and marks the issue failed.
-    throw new Error(`Failed to load recipients: ${recipientsError.message}`);
-  }
-  const matched = (recipientsRaw ?? []) as SubscriberRow[];
+  // 2. Load recipients, in the fixed order the batches are cut from
+  const matched = await loadMatchingSubscribers(supabase, issue.target_interests);
 
   // 2b. Leave out anyone this issue already reached. On a first run the ledger
   //     has nothing for this issue. It does when an earlier run was killed
@@ -208,7 +200,10 @@ async function deliverIssue(
     });
 
     try {
-      const result = await resend.batch.send(payload);
+      // The key makes a repeat of this exact batch harmless: see batchIdempotencyKey.
+      const result = await resend.batch.send(payload, {
+        idempotencyKey: batchIdempotencyKey(issueId, batch),
+      });
 
       // The Resend SDK does NOT throw on an API error — it resolves to
       // { data: null, error } for every non-ok response, and even turns a
@@ -216,8 +211,19 @@ async function deliverIssue(
       // 401 (bad key), 403 (unverified sending domain), 422, 429 or an outage
       // would be written to the ledger as a clean success for every recipient,
       // and the issue marked 'sent' with failed_count 0.
-      const batchError = (result as { error?: { message?: string } | null }).error;
+      const batchError = (result as { error?: { name?: string; message?: string } | null }).error;
       if (batchError) {
+        if (batchError.name === "invalid_idempotent_request") {
+          // Resend has this batch's key on record with a different body. The key
+          // is unique to this issue and these recipients, so that record is an
+          // earlier run of this send, and something in the batch has changed
+          // since (the issue was edited, or a recipient's details were). Resend
+          // refuses rather than send a second version, and the batch is recorded
+          // as failed like any other refusal.
+          throw new Error(
+            "Resend already received this batch from an earlier run of this send, with different content, and did not send it again"
+          );
+        }
         throw new Error(batchError.message ?? "Resend returned an error with no message");
       }
 
@@ -293,6 +299,83 @@ async function deliverIssue(
   };
 }
 
+// Every active subscriber the issue is addressed to, in sign-up order.
+//
+// Read a page at a time: one request returns at most 1000 rows, so a single
+// query would silently leave out everyone past the first thousand. Each page
+// starts after the last id of the one before, so a subscribe or unsubscribe
+// while the list is being read cannot shift a page boundary and skip someone.
+//
+// The order matters because batches are cut from this list, and a retried send
+// has to cut the same batches as the run it resumes for the idempotency key to
+// match (see batchIdempotencyKey). Sign-up order keeps new subscribers at the
+// end, where they cannot move the boundary of an earlier batch.
+async function loadMatchingSubscribers(
+  supabase: ReturnType<typeof createServiceClient>,
+  targetInterests: string[] | null
+): Promise<SubscriberRow[]> {
+  const matched: SubscriberRow[] = [];
+  let lastId: string | null = null;
+  for (;;) {
+    let query = supabase
+      .from("newsletter_subscribers")
+      .select("id, email, first_name, unsubscribe_token, interests, subscribed_at")
+      .is("unsubscribed_at", null);
+    if (targetInterests && targetInterests.length > 0) {
+      query = query.overlaps("interests", targetInterests);
+    }
+    if (lastId) {
+      query = query.gt("id", lastId);
+    }
+    const { data, error } = await query.order("id", { ascending: true }).limit(PAGE_SIZE);
+    if (error) {
+      // The caller's catch releases the lock and marks the issue failed.
+      throw new Error(`Failed to load recipients: ${error.message}`);
+    }
+    const rows = (data ?? []) as SubscriberRow[];
+    matched.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    lastId = rows[rows.length - 1].id;
+  }
+  return matched.sort(bySignUpOrder);
+}
+
+function bySignUpOrder(a: SubscriberRow, b: SubscriberRow): number {
+  const aTime = signUpTime(a);
+  const bTime = signUpTime(b);
+  if (aTime !== bTime) return aTime - bTime;
+  // Same instant (a bulk import, say): fall back to the id so the order is still fixed.
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+function signUpTime(sub: SubscriberRow): number {
+  const time = sub.subscribed_at ? Date.parse(sub.subscribed_at) : 0;
+  return Number.isNaN(time) ? 0 : time;
+}
+
+// One key per batch, and the same key on every attempt at that batch.
+//
+// Resend keeps a key for 24 hours. A request that repeats a key it has already
+// accepted, with the same body, gets the original response back and nothing is
+// sent again. That covers the one case the send ledger cannot: a run killed
+// after Resend accepted a batch but before its ledger rows were written leaves
+// no row behind, so the retry sends that batch again, and only Resend can tell
+// it has seen it before. The retry then writes the ledger rows from the
+// response it gets back (the original message ids) and carries on.
+//
+// The key is the issue plus the batch's recipients, in order. A retry cuts the
+// same batches as long as it reads the same list: the recipients already in the
+// ledger are whole batches, so leaving them out keeps the rest aligned. If one
+// of that batch's recipients unsubscribed in between, or someone subscribed
+// while the batch in question was the last, part-filled one, the retry cuts a
+// different batch with a new key, and the people in both get a second copy.
+function batchIdempotencyKey(issueId: string, batch: SubscriberRow[]): string {
+  const recipients = createHash("sha256")
+    .update(batch.map((sub) => sub.id).join(","))
+    .digest("hex");
+  return `newsletter-issue/${issueId}/${recipients}`;
+}
+
 // Subscribers this issue has already gone out to, according to the send ledger.
 // 'failed' rows are left out on purpose, so those subscribers are tried again.
 async function loadDeliveredSubscriberIds(
@@ -300,14 +383,14 @@ async function loadDeliveredSubscriberIds(
   issueId: string
 ): Promise<Set<string>> {
   const delivered = new Set<string>();
-  for (let from = 0; ; from += LEDGER_PAGE_SIZE) {
+  for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("newsletter_sends")
       .select("subscriber_id")
       .eq("issue_id", issueId)
       .neq("status", "failed")
       .order("id", { ascending: true })
-      .range(from, from + LEDGER_PAGE_SIZE - 1);
+      .range(from, from + PAGE_SIZE - 1);
     if (error) {
       // Sending without this list could deliver the issue twice, so stop. The
       // caller's catch releases the lock and marks the issue failed.
@@ -315,7 +398,7 @@ async function loadDeliveredSubscriberIds(
     }
     const rows = (data ?? []) as Array<{ subscriber_id: string }>;
     for (const row of rows) delivered.add(row.subscriber_id);
-    if (rows.length < LEDGER_PAGE_SIZE) break;
+    if (rows.length < PAGE_SIZE) break;
   }
   return delivered;
 }
@@ -325,11 +408,17 @@ async function stampLastSent(
   subscriberIds: string[],
   at: string
 ) {
-  if (subscriberIds.length === 0) return;
-  await supabase
-    .from("newsletter_subscribers")
-    .update({ last_sent_at: at })
-    .in("id", subscriberIds);
+  // In chunks: the id list is sent in the request URL, and one request for a
+  // whole large list would be too long for it.
+  for (let i = 0; i < subscriberIds.length; i += STAMP_CHUNK_SIZE) {
+    const { error } = await supabase
+      .from("newsletter_subscribers")
+      .update({ last_sent_at: at })
+      .in("id", subscriberIds.slice(i, i + STAMP_CHUNK_SIZE));
+    if (error) {
+      console.error("[newsletter-send] failed to stamp last_sent_at:", error);
+    }
+  }
 }
 
 // Only reached when delivery threw, which means the batch loop never completed
